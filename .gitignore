@@ -1,0 +1,6 @@
+# IDEA.gitignore
+.idea
+*.iml
+# C++.gitignore
+*.o
+*.dylib
