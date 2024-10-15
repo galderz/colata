@@ -138,6 +138,10 @@ compile-commands:
 > CONF=$(conf_name) make compile-commands
 .PHONY: compile-commands
 
+clion:
+> $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
+.PHONY: clion
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
