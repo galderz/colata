@@ -95,6 +95,26 @@ rr: $(java)
 >   $(shell pwd)/$(CLASS).java
 .PHONY: rr
 
+benchmarks_dir = benchmarks
+benchmarks_jar = $(benchmarks_dir)/target/benchmarks.jar
+
+$(benchmarks_jar): $(shell find $(benchmarks_dir)/src -type f -name '*.java')
+$(benchmarks_jar): $(java)
+> pushd $(benchmarks_dir)
+> JAVA_HOME=$(opt)/java-21 $(opt)/boot-maven-3/bin/mvn verify
+> popd
+> touch $@
+
+benchmarks: $(benchmarks_jar)
+> $(java) -jar $< MinMaxLoop
+.PHONY: benchmarks
+
+clean-benchmarks: $(benchmarks_jar)
+> pushd $(benchmarks_dir)
+> JAVA_HOME=$(opt)/java-21 $(opt)/boot-maven-3/bin/mvn clean
+> popd
+.PHONY: clean-benchmarks
+
 # Other flags used:
 # >   -ea \
 # >   -XX:CompileCommand=print,$(CLASS)::test \
