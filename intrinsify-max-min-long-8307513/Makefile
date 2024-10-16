@@ -106,7 +106,15 @@ $(benchmarks_jar): $(java)
 > touch $@
 
 benchmarks: $(benchmarks_jar)
-> $(java) -jar $< MinMaxLoop.longLoop -v EXTRA -jvmArgs -XX:+UnlockExperimentalVMOptions -jvmArgs -XX:+UseEpsilonGC
+> $(java) -jar $< MinMaxLoop.longLoop \
+>   -f 1 \
+>   -prof perf \
+>   -prof perfnorm \
+>   -prof perfasm \
+>   -v EXTRA \
+>   -jvmArgs -XX:+UnlockExperimentalVMOptions \
+>   -jvmArgs -XX:+UseEpsilonGC \
+>   -p size=10000 \
 .PHONY: benchmarks
 
 clean-benchmarks: $(benchmarks_jar)
