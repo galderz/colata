@@ -11,6 +11,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jol.info.ClassLayout;
 import org.openjdk.jol.info.GraphLayout;
 
 import java.util.Arrays;
@@ -69,14 +70,25 @@ public class MinMaxLoop
             resultIntArray = new int[size];
             resultLongArray = new long[size];
 
-            final HexFormat hex = HexFormat.of();
-            System.out.println("maxLongA start address = " + printableStartAddress(maxLongA, hex));
-            System.out.println("maxLongB start address = " + printableStartAddress(maxLongB, hex));
-            System.out.println("resultLongArray start address = " + printableStartAddress(resultLongArray, hex));
+            System.out.println();
+            System.out.println(); // couple of empty lines
+
+            System.out.println((ClassLayout.parseClass(long[].class).toPrintable()));
+
+            final int alignment = 32; // 0x20
+            print(maxLongA, alignment, "maxLongA");
+            print(maxLongB, alignment, "maxLongB");
+            print(resultLongArray, alignment, "resultLongArray");
         }
 
-        private String printableStartAddress(Object obj, HexFormat hex) {
-            return hex.toHexDigits(GraphLayout.parseInstance(obj).startAddress());
+        private void print(Object obj, int alignment, String name) {
+            final HexFormat hex = HexFormat.of();
+            System.out.printf("%s start address = 0x%s%n", name, hex.toHexDigits(GraphLayout.parseInstance(obj).startAddress()));
+            final long[] longs = (long[]) obj;
+            final long firstAddress = GraphLayout.parseInstance(longs[0]).startAddress();
+            final String firstAddressHex = hex.toHexDigits(firstAddress);
+            System.out.printf("%s[0] address = 0x%s%n", name, firstAddressHex);
+            System.out.printf("%s[0](0x%s) %% 0x%s = %d%n", name, firstAddressHex, hex.toHexDigits(alignment), firstAddress % alignment);
         }
 
         static long[] negate(long[] nums) {
