@@ -11,6 +11,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jol.info.GraphLayout;
 
 import java.util.Arrays;
 import java.util.IntSummaryStatistics;
@@ -66,6 +67,8 @@ public class MinMaxLoop
             minIntB = toInts(minLongB);
             resultIntArray = new int[size];
             resultLongArray = new long[size];
+
+            System.out.println(GraphLayout.parseInstance(maxLongA).toPrintable());
         }
         static long[] negate(long[] nums) {
             return LongStream.of(nums).map(l -> -l).toArray();

@@ -106,7 +106,7 @@ $(benchmarks_jar): $(java)
 > touch $@
 
 benchmarks: $(benchmarks_jar)
-> $(java) -jar $< MinMaxLoop
+> $(java) -jar $< MinMaxLoop.longLoop -v EXTRA
 .PHONY: benchmarks
 
 clean-benchmarks: $(benchmarks_jar)
