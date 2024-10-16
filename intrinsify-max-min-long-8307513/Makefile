@@ -113,6 +113,7 @@ benchmarks: $(benchmarks_jar)
 >   -prof perfasm \
 >   -jvmArgs -XX:+UnlockExperimentalVMOptions \
 >   -jvmArgs -XX:+UseEpsilonGC \
+>   -jvmArgs -XX:-UseOnStackReplacement \
 >   -jvmArgs -XX:LoopStripMiningIter=0 \
 >   -p size=10000 \
 .PHONY: benchmarks
