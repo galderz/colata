@@ -14,6 +14,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jol.info.GraphLayout;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.IntSummaryStatistics;
 import java.util.LongSummaryStatistics;
 import java.util.Random;
@@ -68,8 +69,16 @@ public class MinMaxLoop
             resultIntArray = new int[size];
             resultLongArray = new long[size];
 
-            System.out.println(GraphLayout.parseInstance(maxLongA).toPrintable());
+            final HexFormat hex = HexFormat.of();
+            System.out.println("maxLongA start address = " + printableStartAddress(maxLongA, hex));
+            System.out.println("maxLongB start address = " + printableStartAddress(maxLongB, hex));
+            System.out.println("resultLongArray start address = " + printableStartAddress(resultLongArray, hex));
         }
+
+        private String printableStartAddress(Object obj, HexFormat hex) {
+            return hex.toHexDigits(GraphLayout.parseInstance(obj).startAddress());
+        }
+
         static long[] negate(long[] nums) {
             return LongStream.of(nums).map(l -> -l).toArray();
         }

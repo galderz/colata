@@ -106,7 +106,7 @@ $(benchmarks_jar): $(java)
 > touch $@
 
 benchmarks: $(benchmarks_jar)
-> $(java) -jar $< MinMaxLoop.longLoop -v EXTRA
+> $(java) -jar $< MinMaxLoop.longLoop -v EXTRA -jvmArgs -XX:+UnlockExperimentalVMOptions -jvmArgs -XX:+UseEpsilonGC
 .PHONY: benchmarks
 
 clean-benchmarks: $(benchmarks_jar)
