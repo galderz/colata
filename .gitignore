@@ -1,6 +1,8 @@
-# IDEA.gitignore
-.idea
-*.iml
 # C++.gitignore
 *.o
 *.dylib
+# IDEA.gitignore
+.idea
+*.iml
+# Maven.gitignore
+target/
