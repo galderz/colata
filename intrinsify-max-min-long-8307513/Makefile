@@ -111,7 +111,6 @@ benchmarks: $(benchmarks_jar)
 >   -prof perf \
 >   -prof perfnorm \
 >   -prof perfasm \
->   -v EXTRA \
 >   -jvmArgs -XX:+UnlockExperimentalVMOptions \
 >   -jvmArgs -XX:+UseEpsilonGC \
 >   -p size=10000 \
