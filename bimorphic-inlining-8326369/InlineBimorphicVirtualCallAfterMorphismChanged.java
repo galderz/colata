@@ -1,6 +1,6 @@
 /**
  * @test
- * bug 
+ * bug
  * @summary C2 doesn't perform bimorphic inlining on a call site that was monomorphic during tier 3 compilation.
  * @modules java.base/jdk.internal.misc
  * @library /test/lib
@@ -29,7 +29,7 @@ public class InlineBimorphicVirtualCallAfterMorphismChanged {
                     instance.callSiteHolder();
                 }
             }
-        
+
             // second step: trigger recompilation by loading a second instance,
             // also make the call site bimorphic
             classes = new AbstractBase[] { firstInstance(), secondInstance() };
@@ -40,26 +40,30 @@ public class InlineBimorphicVirtualCallAfterMorphismChanged {
             }
         }
 
-        private static AbstractBase firstInstance() { 
-            return new FirstClass(); 
+        private static AbstractBase firstInstance() {
+            return new FirstClass();
         }
 
-	    private static AbstractBase secondInstance() { 
-            return new SecondClass(); 
+        private static AbstractBase secondInstance() {
+            return new SecondClass();
         }
     }
 
     public final static class FirstClass extends AbstractBase {
-	    public int inlinee() { return 1; }
+        public int inlinee() {
+            return 1;
+        }
     }
 
     public final static class SecondClass extends AbstractBase {
-	    public int inlinee() { return 2; };
+        public int inlinee() {
+            return 2;
+        };
     }
 
     public static void main(String[] args) throws Exception {
         test("-XX:-TieredCompilation");
-	    test("-XX:+TieredCompilation");
+        test("-XX:+TieredCompilation");
     }
 
     private static void test(String option) throws Exception {
@@ -68,13 +72,13 @@ public class InlineBimorphicVirtualCallAfterMorphismChanged {
             "-XX:CompileCommand=compileonly,*::callSiteHolder", option,
             AbstractBase.class.getName()
         );
-        
+
         OutputAnalyzer analyzer = new OutputAnalyzer(pb.start());
         analyzer.shouldHaveExitValue(0);
 
         String re = ".*AbstractBase::inlinee.+virtual call.*";
         boolean virtualInliningFailed = analyzer.asLines().stream()
-                .anyMatch(s -> s.matches(re));
+            .anyMatch(s -> s.matches(re));
 
         if (virtualInliningFailed) {
             analyzer.outputTo(System.out);
