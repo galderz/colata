@@ -228,7 +228,9 @@ jtreg_args += -javaoptions:"-server"
 jtreg_args += -timeout:4
 
 test-jtreg: build-jdk
-> JAVA_HOME=$(boot_jdk_home) $(jtreg_bin) $(jtreg_args) $(TEST)
+> cp $(TEST_FILE) $(JDK_HOME)/$(TEST_DIR)
+> cd $(JDK_HOME)
+> JAVA_HOME=$(boot_jdk_home) $(jtreg_bin) $(jtreg_args) $(JDK_HOME)/$(TEST_DIR)/$(TEST_FILE)
 .PHONY: test-jtreg
 
 igv:
