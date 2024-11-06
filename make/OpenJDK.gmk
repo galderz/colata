@@ -218,6 +218,19 @@ test-hotspot-compiler-c1: build-jdk
 > CONF=$(conf_name) make test TEST="hotspot_compiler" JTREG="JAVA_OPTIONS=-XX:TieredStopAtLevel=1"
 .PHONY: test-hotspot-compiler-c1-only
 
+jtreg_args += -ignore:quiet
+jtreg_args += -conc:8
+jtreg_args += -dir:$(JDK_HOME)/test/hotspot/jtreg
+jtreg_args += -compilejdk:$(java_home)
+jtreg_args += -testjdk:$(java_home)
+jtreg_args += -va
+jtreg_args += -javaoptions:"-server"
+jtreg_args += -timeout:4
+
+test-jtreg: build-jdk
+> JAVA_HOME=$(boot_jdk_home) $(jtreg_bin) $(jtreg_args) $(TEST)
+.PHONY: test-jtreg
+
 igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
 > JAVA_HOME=$(opt)/java-21 $(opt)/boot-maven-3/bin/mvn install -DskipTests
