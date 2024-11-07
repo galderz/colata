@@ -3,6 +3,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 class Test
 {
+    static final int ITER = 100_000;
     static final int SIZE = 16 * 1024;
     static final int THRESHOLD = 4096;
 
@@ -27,9 +28,11 @@ class Test
             array[i] = random.nextInt(THRESHOLD);
         }
 
-        final int result = test(array);
-        blackhole(result);
-
+        for (int i = 0; i < ITER; i++)
+        {
+            final int result = test(array);
+            blackhole(result);
+        }
     }
 
     static void blackhole(int value)
