@@ -239,3 +239,8 @@ igv:
 > popd
 > $(TOPDIR)/make/common/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer
 .PHONY: igv
+
+jcheck:
+> cd $(JDK_HOME)
+> git jcheck
+.PHONY: jcheck
