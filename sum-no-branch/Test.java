@@ -20,8 +20,9 @@ class Test
 
     public static void main(String[] args)
     {
-        int[] array = new int[SIZE];
-        for (int i = 0; i < size; i++)
+	final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final int[] array = new int[SIZE];
+        for (int i = 0; i < SIZE; i++)
         {
             array[i] = random.nextInt(THRESHOLD);
         }
@@ -35,7 +36,7 @@ class Test
     {
         if ((long) value == System.nanoTime())
         {
-            System.out.println(obj);
+            System.out.println(value);
         }
     }
 }
