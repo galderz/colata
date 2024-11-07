@@ -13,6 +13,8 @@ base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 
+jvm_args += $(base_jvm_args)
+
 comp_jvm_args += -XX:+LogCompilation
 comp_jvm_args += -XX:+PrintAssembly
 
