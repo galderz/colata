@@ -21,7 +21,7 @@ class Test
 
     public static void main(String[] args)
     {
-	final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final ThreadLocalRandom random = ThreadLocalRandom.current();
         final int[] array = new int[SIZE];
         for (int i = 0; i < SIZE; i++)
         {
