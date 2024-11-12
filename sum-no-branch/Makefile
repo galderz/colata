@@ -22,6 +22,13 @@ ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
 endif
 
+vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::test,ALL
+vector_jvm_args += -XX:+TraceNewVectors
+
+ifdef VECTOR_ARGS
+  jvm_args += $(vector_jvm_args)
+endif
+
 run: $(java)
 > $(call_java) \
 >   $(jvm_args) \
