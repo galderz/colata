@@ -86,8 +86,10 @@ public class ByStartTimeReverseOnlyL4
                         codeSize = "(code size: " + nMethodSize + ")";
                     }
 
+                    String iicount = "(icount: " + comp.getIcount() + ")";
+
                     final int bc = comp.isOsr() ? comp.getBCI() : -1;
-                    System.out.print(decodeFlags(bc, comp) + " " + comp.getCompiler() + " " + format(bc, comp.getMethod()) + codeSize);
+                    System.out.print(decodeFlags(bc, comp) + " " + comp.getCompiler() + " " + format(bc, comp.getMethod()) + codeSize + iicount);
                     System.out.println();
                 }
             }
