@@ -1,4 +1,4 @@
-package org.mendrugo.fibula;
+package org.mendrugo.compiler;
 
 import com.sun.hotspot.tools.compiler.Compilation;
 import com.sun.hotspot.tools.compiler.LogEvent;
