@@ -8,7 +8,7 @@ import com.sun.hotspot.tools.compiler.NMethod;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-public class ByStartTimeAll
+public class ByStartTimeFifoAll
 {
     /**
      * Sort log events by start time.
@@ -45,8 +45,6 @@ public class ByStartTimeAll
 
     public static void main(String[] args) throws Exception
     {
-        System.out.println("ByStartTimeAll");
-
         final ArrayList<LogEvent> events = LogParser.parse(args[0], false);
         final Comparator<LogEvent> sort = sortByStart;
         final boolean printID = true;
