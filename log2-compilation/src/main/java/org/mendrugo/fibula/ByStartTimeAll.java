@@ -8,7 +8,7 @@ import com.sun.hotspot.tools.compiler.NMethod;
 import java.util.ArrayList;
 import java.util.Comparator;
 
-public class ByStartTimeFifoAll
+public class ByStartTimeAll
 {
     /**
      * Sort log events by start time.
