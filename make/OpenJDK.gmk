@@ -244,3 +244,7 @@ jcheck:
 > cd $(JDK_HOME)
 > git jcheck
 .PHONY: jcheck
+
+print-flags: $(java)
+> $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
+.PHONY: print-flags
