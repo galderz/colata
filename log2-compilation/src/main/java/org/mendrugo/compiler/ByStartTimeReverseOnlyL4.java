@@ -71,7 +71,8 @@ public class ByStartTimeReverseOnlyL4
                 if (nMethod != null &&
                     4 == nMethod.getLevel() &&
                     60_000 < Integer.parseInt(comp.getIcount()) &&
-                    1000 < nMethod.getInstSize()
+                    1000 < nMethod.getInstSize() &&
+                    5000 < Integer.parseInt(comp.getInlinedBytes())
                 )
                 {
                     // Destructure the call below into its components
