@@ -68,10 +68,10 @@ public class ByStartTimeReverseOnlyL4
             if (c instanceof Compilation comp)
             {
                 final NMethod nMethod = comp.getNMethod();
-                if (nMethod != null &&
-                    4 == nMethod.getLevel() &&
-                    60_000 < Integer.parseInt(comp.getIcount()) &&
-                    1000 < nMethod.getInstSize()
+                if (nMethod != null
+                    && 4 == nMethod.getLevel()
+                    && 50_000 < Integer.parseInt(comp.getIcount())
+                    && 100 < Integer.parseInt(comp.getInlinedBytes())
                 )
                 {
                     // Destructure the call below into its components
@@ -89,9 +89,10 @@ public class ByStartTimeReverseOnlyL4
                     }
 
                     String iicount = "(icount: " + comp.getIcount() + ")";
+                    String inlinedBytes = "(inlinedBytes: " + comp.getInlinedBytes() + ")";
 
                     final int bc = comp.isOsr() ? comp.getBCI() : -1;
-                    System.out.print(decodeFlags(bc, comp) + " " + comp.getCompiler() + " " + format(bc, comp.getMethod()) + codeSize + iicount);
+                    System.out.print(decodeFlags(bc, comp) + " " + comp.getCompiler() + " " + format(bc, comp.getMethod()) + codeSize + iicount + inlinedBytes);
                     System.out.println();
                 }
             }
