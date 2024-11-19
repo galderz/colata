@@ -23,11 +23,13 @@ class Test
     {
         final ThreadLocalRandom random = ThreadLocalRandom.current();
         final int[] array = new int[SIZE];
-        final long gold = test(array);
         for (int i = 0; i < SIZE; i++)
         {
             array[i] = random.nextInt(THRESHOLD);
         }
+
+        // Get the sum once to compare with each iteration
+        final int gold = test(array);
 
         for (int i = 0; i < ITER; i++)
         {
