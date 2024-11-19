@@ -23,6 +23,7 @@ class Test
     {
         final ThreadLocalRandom random = ThreadLocalRandom.current();
         final int[] array = new int[SIZE];
+        final long gold = test(array);
         for (int i = 0; i < SIZE; i++)
         {
             array[i] = random.nextInt(THRESHOLD);
@@ -31,15 +32,15 @@ class Test
         for (int i = 0; i < ITER; i++)
         {
             final int result = test(array);
-            blackhole(result);
+            verify("sum", result, gold);
         }
     }
 
-    static void blackhole(int value)
+    static void verify(String context, long total, long gold)
     {
-        if ((long) value == System.nanoTime())
+        if (total != gold)
         {
-            System.out.println(value);
+            throw new RuntimeException("Wrong result for " + context + ": " + total + " != " + gold);
         }
     }
 }
