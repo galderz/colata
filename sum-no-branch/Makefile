@@ -29,7 +29,7 @@ ifdef VECTOR_ARGS
   jvm_args += $(vector_jvm_args)
 endif
 
-run: $(java)
+run: clear-logs $(java)
 > $(call_java) \
 >   $(jvm_args) \
 >   $(shell pwd)/$(CLASS).java
