@@ -3,6 +3,10 @@ include $(TOPDIR)/make/Capstone.gmk
 CONF ?= fast
 BUILD_LOG ?= info
 
+ifdef JDK
+  JDK_HOME = $(HOME)/1/$(JDK)
+endif
+
 ant_home = $(opt)/ant
 ant_bin = $(opt)/ant/bin/ant
 boot_jdk_home = $(opt)/java-$(BOOT_JDK_VERSION)
