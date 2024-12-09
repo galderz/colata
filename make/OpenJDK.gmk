@@ -56,6 +56,12 @@ ifdef NO_WARNINGS_ERRORS
   conf_args += --disable-warnings-as-errors
 endif
 
+ifndef NO_HSDIS
+  conf_args += --enable-hsdis-bundling
+  conf_args += --with-capstone=$(usr_home)
+  conf_args += --with-hsdis=capstone
+endif
+
 java: $(java)
 
 $(java): $(shell find $(JDK_HOME)/src -type f -name '*.java')
@@ -71,7 +77,7 @@ ifeq ($(UNAME_S),Linux)
 else ifeq ($(UNAME_S),Darwin)
 >  cp $(modules_libs_dir)/libjvm.dylib $(java_libs_dir)
 >  rm -drf $(java_libs_dir)/libjvm.dylib.dSYM
->  cp -r $(modules_libs_dir)/libjvm.dylib.dSYM $(java_libs_dir)
+>  cp -r $(modules_libs_dir)/libjvm.dylib.dSYM $(java_libs_dir) || true
 endif
 > touch $@
 
@@ -92,12 +98,9 @@ clean-jdk:
 configure: $(boot_jdk_java) $(jmh) $(capstone_lib) $(jtreg_bin) $(gtest_opt) $(autoconf)
 > pushd $(JDK_HOME)
 > bash configure \
->   --enable-hsdis-bundling \
 >   --disable-precompiled-headers \
 >   --with-boot-jdk=$(boot_jdk_home) \
->   --with-capstone=$(usr_home) \
 >   --with-conf-name=$(conf_name) \
->   --with-hsdis=capstone \
 >   --with-gtest=$(gtest_opt) \
 >   --with-jmh=build/jmh/jars \
 >   --with-jtreg=$(jtreg_home) \
@@ -241,7 +244,7 @@ igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
 > JAVA_HOME=$(opt)/java-21 $(opt)/boot-maven-3/bin/mvn install -DskipTests
 > popd
-> $(TOPDIR)/make/common/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer
+> $(TOPDIR)/make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer
 .PHONY: igv
 
 jcheck:
