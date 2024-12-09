@@ -26,8 +26,8 @@ base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 comp_jvm_args += -XX:+LogCompilation
 comp_jvm_args += -XX:+PrintAssembly
 
-#ideal_jvm_args += -XX:+PrintIR
-ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"ITER_GVN4"
+ideal_jvm_args += -XX:+PrintIdeal
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"ITER_GVN4"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_REMOVEUSELESS"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_BEAUTIFY_LOOPS"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_BEAUTIFY_LOOPS"
