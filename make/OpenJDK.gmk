@@ -130,7 +130,9 @@ sudo dnf install -y \
   libXrender-devel \
   libXt-devel \
   libXtst-devel \
-  perf
+  perf \
+  unzip \
+  zip
 endef
 
 tools: $(autoconf)
