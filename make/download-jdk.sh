@@ -9,6 +9,9 @@ pushd ${DIR}
 if [ "$(uname)" = "Darwin" ]; then
   OS="mac"
   ARCH="aarch64"
+elif [ "$(uname -i)" = "aarch64" ]; then
+  OS=$(uname | tr A-Z a-z)
+  ARCH="aarch64"
 else
   OS=$(uname | tr A-Z a-z)
   ARCH="x64"
