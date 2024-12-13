@@ -115,7 +115,7 @@ $(autoconf):
 ifeq ($(UNAME_S),Linux)
 > $(call tools)
 else ifeq ($(UNAME_S),Darwin)
->  brew install autoconf
+> brew install autoconf
 endif
 
 # todo trim it for linux
