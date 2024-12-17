@@ -3,9 +3,11 @@ include $(TOPDIR)/make/MakeBase.gmk
 
 default: run
 
-CLASS ?= Test
-JDK_HOME ?= $(HOME)/1/jdk-intrinsify-max-min-long
+id = intrinsify-max-min-long
+
 BOOT_JDK_VERSION ?= 23
+CLASS ?= Test
+JDK_HOME ?= $(HOME)/1/jdk-$(id)
 include $(TOPDIR)/make/OpenJDK.gmk
 
 AVX ?=
