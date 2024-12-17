@@ -266,4 +266,11 @@ new-worktree:
 > git worktree add -b topic.$(id) ../jdk-$(id) master
 .PHONY: new-worktree
 
-# todo add checkout-worktree for existing worktrees
+checkout-jdk:
+> mkdir -p $(HOME)/1
+> cd $(HOME)/1
+> git clone https://github.com/galderz/jdk
+
+checkout-worktree:
+> cd $(HOME)/1/jdk
+> git worktree add -b topic.$(id) ../jdk-$(id) origin/topic.$(id)
