@@ -257,3 +257,13 @@ jcheck:
 print-flags: $(java)
 > $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
 .PHONY: print-flags
+
+new-worktree:
+> cd $(HOME)/1/jdk
+> git checkout master
+> git fetch upstream
+> git pull
+> git worktree add -b topic.$(id) ../jdk-$(id) master
+.PHONY: new-worktree
+
+# todo add checkout-worktree for existing worktrees
