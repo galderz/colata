@@ -35,7 +35,27 @@ TEST="micro:lang.MinMaxLoopBench.longReductionMax" MICRO='OPTIONS=-p size=10000 
 
 Running relevant tests:
 ```shell
-TEST="test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java" m test
-TEST="test/hotspot/jtreg/compiler/c2/irTests/TestMinMaxIdentities.java" m test
-TEST="test/hotspot/jtreg/compiler/intrinsics/math/TestMinMaxInlining.java" m test
+TEST="test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java" make test
+TEST="test/hotspot/jtreg/compiler/c2/irTests/TestMinMaxIdentities.java" make test
+TEST="test/hotspot/jtreg/compiler/intrinsics/math/TestMinMaxInlining.java" make test
+```
+
+Check if the test is actually running.
+When `MinMaxRed_Long` does not actually run you see:
+```shell
+$ cat ./test-support/jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java/compiler/loopopts/superword/MinMaxRed_Long.jtr
+...
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 1 of 1 in maxReductionImplement: None of the feature constraints met (applyIfCPUFeatureOr): avx512, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 1 in minReductionImplement: None of the feature constraints met (applyIfCPUFeatureOr): avx512, true
+```
+When `MinMaxRed_Long` runs you see:
+```shell
+$ cat ./build/fast-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java/compiler/loopopts/superword/MinMaxRed_Long.jtr
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
 ```
