@@ -35,9 +35,9 @@ tar --strip-components 1 -xzvpf ../${FILENAME}
 popd
 
 if [ "$(uname)" = "Darwin" ]; then
-  ln -s temurin-${VERSION}/Contents/Home java-${VERSION}
+  ln -s temurin-${VERSION}/Contents/Home boot-java-${VERSION}
 else
-  ln -s temurin-${VERSION} java-${VERSION}
+  ln -s temurin-${VERSION} boot-java-${VERSION}
 fi
 
 popd
