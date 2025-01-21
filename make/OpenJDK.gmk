@@ -9,7 +9,7 @@ endif
 
 ant_home = $(opt)/ant
 ant_bin = $(opt)/ant/bin/ant
-boot_jdk_home = $(opt)/java-$(BOOT_JDK_VERSION)
+boot_jdk_home = $(opt)/boot-java-$(BOOT_JDK_VERSION)
 boot_jdk_java = $(boot_jdk_home)/bin/java
 call_java += $(java)
 gtest_opt = $(opt)/googletest
