@@ -25,10 +25,12 @@ base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 
-comp_jvm_args += -XX:+LogCompilation
-comp_jvm_args += -XX:+PrintAssembly
+comp_jvm_Args = -XX:CompileCommand=print,$(CLASS)::test
+#comp_jvm_args += -XX:+LogCompilation
+#comp_jvm_args += -XX:+PrintAssembly
 
 ideal_jvm_args += -XX:+PrintIdeal
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"ITER_GVN4"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_REMOVEUSELESS"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_BEAUTIFY_LOOPS"
