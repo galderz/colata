@@ -6,3 +6,5 @@
 *.iml
 # Maven.gitignore
 target/
+# Emacs.gitignore
+*~
