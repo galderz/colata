@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {} }:
 
-pkgs.mkShell {
+pkgs.mkShellNoCC {
   packages = [
     pkgs.autoconf
     pkgs.jdk23
