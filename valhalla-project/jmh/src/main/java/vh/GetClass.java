@@ -47,5 +47,5 @@ public class GetClass
         }
     }
 
-    value record ValuePoint(double x, double y);
+    value record ValuePoint(double x, double y) {}
 }
