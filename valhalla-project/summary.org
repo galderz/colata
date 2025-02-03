@@ -1,0 +1,991 @@
+* 3.2.25
+** Equality x86_64 release perfasm
+#+begin_src bash
+[root@CentOS-90-stream-amd64-base jmh]# java --enable-preview -jar target/benchmarks.jar Equality -prof perfasm
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/root/1/colata/valhalla-project/jmh/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.Equality.areNotSameMix
+
+# Run progress: 0.00% complete, ETA 00:00:50
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.952 ns/op
+# Warmup Iteration   2: 1.630 ns/op
+# Warmup Iteration   3: 1.738 ns/op
+# Warmup Iteration   4: 1.748 ns/op
+# Warmup Iteration   5: 1.738 ns/op
+Iteration   1: 1.740 ns/op
+Iteration   2: 1.737 ns/op
+Iteration   3: 1.744 ns/op
+Iteration   4: 1.737 ns/op
+Iteration   5: 1.737 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.Equality.areNotSameMix":
+  1.739 ±(99.9%) 0.012 ns/op [Average]
+  (min, avg, max) = (1.737, 1.739, 1.744), stdev = 0.003
+  CI (99.9%): [1.727, 1.751] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.Equality.areNotSameMix:asm":
+PrintAssembly processed: 238682 total address lines.
+Perf output processed (skipped 8.997 seconds):
+ Column 1: cycles (4876 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub, version 4, compile id 1048
+
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@30 (line 238)
+              0x00007f6d9cb1bc5c:   movl		$1, %ebx
+              0x00007f6d9cb1bc61:   testl		%r9d, %r9d
+          ╭   0x00007f6d9cb1bc64:   jne		0x7f6d9cb1bd07      ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@33 (line 238)
+          │   0x00007f6d9cb1bc6a:   nopw		(%rax, %rax)        ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@36 (line 239)
+          │↗  0x00007f6d9cb1bc70:   movl		0xc(%r10), %r9d     ;*getfield objects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@1 (line 76)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+   9.31%  ││  0x00007f6d9cb1bc74:   movl		8(%r12, %r9, 8), %edi; implicit exception: dispatches to 0x00007f6d9cb1bf6c
+   8.49%  ││  0x00007f6d9cb1bc79:   cmpl		$0x93054530, %edi   ;   {metadata(&apos;java/lang/Object&apos;[])}
+   0.02%  ││  0x00007f6d9cb1bc7f:   jne		0x7f6d9cb1bedc
+          ││  0x00007f6d9cb1bc85:   shlq		$3, %r9             ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@5 (line 76)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6d9cb1bc89:   movl		0xc(%r9), %r11d
+   3.92%  ││  0x00007f6d9cb1bc8d:   testl		%r11d, %r11d
+   0.14%  ││  0x00007f6d9cb1bc90:   jbe		0x7f6d9cb1bd56
+          ││  0x00007f6d9cb1bc96:   movl		0x10(%r10), %r11d   ;*getfield valueObjects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@8 (line 77)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+   0.59%  ││  0x00007f6d9cb1bc9a:   movq		(%r12, %r11, 8), %rdi; implicit exception: dispatches to 0x00007f6d9cb1bf80
+   7.18%  ││  0x00007f6d9cb1bc9e:   testb		$1, %dil
+   4.51%  ││  0x00007f6d9cb1bca2:   je		0x7f6d9cb1bd43      ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@12 (line 77)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6d9cb1bca8:   movl		0x10(%r9), %r9d     ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@5 (line 76)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+   4.78%  ││  0x00007f6d9cb1bcac:   testb		$0x10, %dil
+   0.16%  ││  0x00007f6d9cb1bcb0:   jne		0x7f6d9cb1bd84
+          ││  0x00007f6d9cb1bcb6:   leaq		(%r12, %r11, 8), %rdi
+          ││  0x00007f6d9cb1bcba:   movl		0xc(%rdi), %r11d
+  15.83%  ││  0x00007f6d9cb1bcbe:   testl		%r11d, %r11d
+   0.84%  ││  0x00007f6d9cb1bcc1:   jbe		0x7f6d9cb1bdb8
+          ││  0x00007f6d9cb1bcc7:   movl		0x10(%rdi), %r11d   ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@12 (line 77)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+   1.97%  ││  0x00007f6d9cb1bccb:   cmpl		%r11d, %r9d
+   0.33%  ││  0x00007f6d9cb1bcce:   je		0x7f6d9cb1bdec
+          ││  0x00007f6d9cb1bcd4:   movl		8(%r12, %r9, 8), %edi; implicit exception: dispatches to 0x00007f6d9cb1bf94
+  32.30%  ││  0x00007f6d9cb1bcd9:   cmpl		$0x93041368, %edi   ;   {metadata(&apos;java/lang/Object&apos;)}
+   1.21%  ││  0x00007f6d9cb1bcdf:   jne		0x7f6d9cb1bf38      ;*if_acmpeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@16 (line 78)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6d9cb1bce5:   movl		$1, %r11d           ;*ireturn {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameMix@24 (line 78)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6d9cb1bceb:   movzbl		0x94(%rcx), %r9d    ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@30 (line 238)
+          ││  0x00007f6d9cb1bcf3:   movq		0x30(%r15), %r11
+   1.09%  ││  0x00007f6d9cb1bcf7:   addq		$1, %rbx            ; ImmutableOopMap {r10=Oop r8=Oop rcx=Oop r13=Oop }
+          ││                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@33 (line 238)
+   0.08%  ││  0x00007f6d9cb1bcfb:   testl		%eax, (%r11)        ;   {poll}
+   2.65%  ││  0x00007f6d9cb1bcfe:   testl		%r9d, %r9d
+   0.02%  │╰  0x00007f6d9cb1bd01:   je		0x7f6d9cb1bc70      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@36 (line 239)
+          ↘   0x00007f6d9cb1bd07:   movabsq		$0x7f6da95f5840, %r10
+              0x00007f6d9cb1bd11:   callq		*%r10
+              0x00007f6d9cb1bd14:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@37 (line 239)
+                                                                        ;   {post_call_nop}
+              0x00007f6d9cb1bd1c:   movq		%rax, 0x30(%r13)    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@40 (line 239)
+              0x00007f6d9cb1bd20:   movq		%r12, 0x20(%r13)    ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub@46 (line 240)
+....................................................................................................
+  95.43%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  95.43%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub, version 4, compile id 1048
+   0.23%   [kernel.kallsyms]  mutex_lock
+   0.14%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.10%   [kernel.kallsyms]  get_signal
+   0.10%   [kernel.kallsyms]  rb_erase
+   0.10%                      <unknown>
+   0.10%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.08%   [kernel.kallsyms]  syscall_exit_work
+   0.08%   [kernel.kallsyms]  __x64_sys_futex
+   0.08%   [kernel.kallsyms]  uprobe_deny_signal
+   0.08%   [kernel.kallsyms]  security_file_permission
+   0.08%   [kernel.kallsyms]  __put_user_8
+   0.08%   [kernel.kallsyms]  entry_SYSCALL_64
+   0.08%           libjvm.so  _ZN9xmlStream10write_textEPKcm.part.0
+   0.08%           libc.so.6  clone3
+   0.06%   [kernel.kallsyms]  rb_erase
+   0.06%   [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.06%   [kernel.kallsyms]  srso_safe_ret
+   0.04%   [kernel.kallsyms]  __x64_sys_gettid
+   0.04%                      <unknown>
+   2.85%  <...other 122 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  95.43%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameMix_jmhTest::areNotSameMix_avgt_jmhStub, version 4, compile id 1048
+   0.47%                      <unknown>
+   0.23%   [kernel.kallsyms]  mutex_lock
+   0.16%   [kernel.kallsyms]  rb_erase
+   0.16%   [kernel.kallsyms]  pipe_write
+   0.14%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.12%           libjvm.so  _ZN9xmlStream10write_textEPKcm.part.0
+   0.12%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.10%   [kernel.kallsyms]  get_signal
+   0.08%   [kernel.kallsyms]  uprobe_deny_signal
+   0.08%   [kernel.kallsyms]  __x64_sys_futex
+   0.08%   [kernel.kallsyms]  entry_SYSCALL_64
+   0.08%           libc.so.6  clone3
+   0.08%   [kernel.kallsyms]  security_file_permission
+   0.08%   [kernel.kallsyms]  syscall_exit_work
+   0.08%   [kernel.kallsyms]  __put_user_8
+   0.06%   [kernel.kallsyms]  selinux_file_permission
+   0.06%   [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.06%   [kernel.kallsyms]  srso_safe_ret
+   0.06%   [kernel.kallsyms]  vfs_write
+   2.21%  <...other 91 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  95.43%         c2, level 4
+   2.93%   [kernel.kallsyms]
+   0.74%           libjvm.so
+   0.47%
+   0.27%           libc.so.6
+   0.10%    libcapstone.so.6
+   0.04%         interpreter
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.Equality.areNotSameObject
+
+# Run progress: 20.00% complete, ETA 00:01:06
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.239 ns/op
+# Warmup Iteration   2: 1.358 ns/op
+# Warmup Iteration   3: 1.217 ns/op
+# Warmup Iteration   4: 1.215 ns/op
+# Warmup Iteration   5: 1.216 ns/op
+Iteration   1: 1.224 ns/op
+Iteration   2: 1.215 ns/op
+Iteration   3: 1.216 ns/op
+Iteration   4: 1.221 ns/op
+Iteration   5: 1.218 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.Equality.areNotSameObject":
+  1.219 ±(99.9%) 0.014 ns/op [Average]
+  (min, avg, max) = (1.215, 1.219, 1.224), stdev = 0.004
+  CI (99.9%): [1.204, 1.233] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.Equality.areNotSameObject:asm":
+PrintAssembly processed: 246263 total address lines.
+Perf output processed (skipped 9.091 seconds):
+ Column 1: cycles (5060 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub, version 4, compile id 1023
+
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@30 (line 238)
+              0x00007f6c8cb1ed91:   movl		$1, %ebx
+              0x00007f6c8cb1ed96:   testl		%r10d, %r10d
+          ╭   0x00007f6c8cb1ed99:   jne		0x7f6c8cb1ee01      ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@33 (line 238)
+          │   0x00007f6c8cb1ed9b:   nopl		(%rax, %rax)        ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@36 (line 239)
+          │↗  0x00007f6c8cb1eda0:   movl		0xc(%r11), %r10d    ;*getfield objects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@1 (line 52)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+  12.45%  ││  0x00007f6c8cb1eda4:   movl		8(%r12, %r10, 8), %r8d; implicit exception: dispatches to 0x00007f6c8cb1ef84
+   1.44%  ││  0x00007f6c8cb1eda9:   cmpl		$0x23054530, %r8d   ;   {metadata(&apos;java/lang/Object&apos;[])}
+          ││  0x00007f6c8cb1edb0:   jne		0x7f6c8cb1eef4
+          ││  0x00007f6c8cb1edb6:   shlq		$3, %r10            ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@5 (line 52)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6c8cb1edba:   movl		0xc(%r10), %edi
+   6.72%  ││  0x00007f6c8cb1edbe:   cmpl		$2, %edi
+   0.06%  ││  0x00007f6c8cb1edc1:   jbe		0x7f6c8cb1ee3d
+          ││  0x00007f6c8cb1edc3:   movl		0x18(%r10), %r8d    ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@12 (line 53)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+   0.63%  ││  0x00007f6c8cb1edc7:   movl		0x10(%r10), %r10d   ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@5 (line 52)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+   8.40%  ││  0x00007f6c8cb1edcb:   cmpl		%r8d, %r10d
+  10.36%  ││  0x00007f6c8cb1edce:   je		0x7f6c8cb1ee6c
+          ││  0x00007f6c8cb1edd4:   movl		8(%r12, %r10, 8), %edi; implicit exception: dispatches to 0x00007f6c8cb1ef98
+  44.90%  ││  0x00007f6c8cb1edd9:   cmpl		$0x23041368, %edi   ;   {metadata(&apos;java/lang/Object&apos;)}
+   0.04%  ││  0x00007f6c8cb1eddf:   jne		0x7f6c8cb1ef50      ;*if_acmpeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@16 (line 54)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6c8cb1ede5:   movl		$1, %r10d           ;*ireturn {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.Equality::areNotSameObject@24 (line 54)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@17 (line 236)
+          ││  0x00007f6c8cb1edeb:   movzbl		0x94(%rcx), %edi    ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@30 (line 238)
+   0.02%  ││  0x00007f6c8cb1edf2:   movq		0x30(%r15), %r8
+   0.10%  ││  0x00007f6c8cb1edf6:   addq		$1, %rbx            ; ImmutableOopMap {r11=Oop r9=Oop rcx=Oop r13=Oop }
+          ││                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@33 (line 238)
+   0.02%  ││  0x00007f6c8cb1edfa:   testl		%eax, (%r8)         ;   {poll}
+   5.85%  ││  0x00007f6c8cb1edfd:   testl		%edi, %edi
+   1.54%  │╰  0x00007f6c8cb1edff:   je		0x7f6c8cb1eda0      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@36 (line 239)
+          ↘   0x00007f6c8cb1ee01:   movabsq		$0x7f6c99bf5840, %r10
+              0x00007f6c8cb1ee0b:   callq		*%r10
+              0x00007f6c8cb1ee0e:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@37 (line 239)
+                                                                        ;   {post_call_nop}
+              0x00007f6c8cb1ee16:   movq		%rax, 0x30(%r13)    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@40 (line 239)
+              0x00007f6c8cb1ee1a:   movq		%r12, 0x20(%r13)    ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub@46 (line 240)
+....................................................................................................
+  92.53%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  92.53%           c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub, version 4, compile id 1023
+   0.32%     [kernel.kallsyms]  mutex_lock
+   0.28%     [kernel.kallsyms]  srso_safe_ret
+   0.22%             libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.20%     [kernel.kallsyms]  entry_SYSCALL_64
+   0.18%             libc.so.6  __GI___libc_write
+   0.16%     [kernel.kallsyms]  get_signal
+   0.16%     [kernel.kallsyms]  __get_user_8
+   0.16%     [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.14%     [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.14%     [kernel.kallsyms]  copyin
+   0.14%     [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.12%     [kernel.kallsyms]  _raw_spin_lock_irq
+   0.10%     [kernel.kallsyms]  __futex_wait
+   0.08%     [kernel.kallsyms]  restore_fpregs_from_fpstate
+   0.08%     [kernel.kallsyms]  audit_reset_context.part.0.constprop.0
+   0.08%     [kernel.kallsyms]  uprobe_deny_signal
+   0.08%     [kernel.kallsyms]  dput
+   0.08%     [kernel.kallsyms]  security_file_permission
+   0.08%     [kernel.kallsyms]  llist_reverse_order
+   4.70%  <...other 183 warm regions...>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  92.53%           c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameObject_jmhTest::areNotSameObject_avgt_jmhStub, version 4, compile id 1023
+   0.67%                        <unknown>
+   0.32%     [kernel.kallsyms]  mutex_lock
+   0.28%     [kernel.kallsyms]  srso_safe_ret
+   0.22%             libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.20%     [kernel.kallsyms]  entry_SYSCALL_64
+   0.18%             libc.so.6  __GI___libc_write
+   0.18%     [kernel.kallsyms]  vfs_write
+   0.18%     [kernel.kallsyms]  pipe_write
+   0.16%     [kernel.kallsyms]  get_signal
+   0.16%     [kernel.kallsyms]  __get_user_8
+   0.16%     [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.14%     [kernel.kallsyms]  do_syscall_64
+   0.14%     [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.14%     [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.14%     [kernel.kallsyms]  copyin
+   0.12%     [kernel.kallsyms]  _raw_spin_lock_irq
+   0.10%     [kernel.kallsyms]  __futex_wait
+   0.08%     [kernel.kallsyms]  llist_reverse_order
+   0.08%     [kernel.kallsyms]  syscall_return_via_sysret
+   3.85%  <...other 135 warm methods...>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Distribution by Source]........................................................................
+  92.53%           c2, level 4
+   5.04%     [kernel.kallsyms]
+   1.01%             libjvm.so
+   0.67%
+   0.55%             libc.so.6
+   0.10%      libcapstone.so.6
+   0.04%           interpreter
+   0.04%  ld-linux-x86-64.so.2
+   0.02%        hsdis-amd64.so
+....................................................................................................
+ 100.00%  <totals>
+
+
+
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.Equality.areNotSameValueClass
+
+# Run progress: 40.00% complete, ETA 00:00:49
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 18.288 ns/op
+# Warmup Iteration   2: 12.824 ns/op
+# Warmup Iteration   3: 13.140 ns/op
+# Warmup Iteration   4: 12.962 ns/op
+# Warmup Iteration   5: 12.964 ns/op
+Iteration   1: 12.827 ns/op
+Iteration   2: 12.867 ns/op
+Iteration   3: 12.794 ns/op
+Iteration   4: 12.831 ns/op
+Iteration   5: 12.824 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.Equality.areNotSameValueClass":
+  12.829 ±(99.9%) 0.100 ns/op [Average]
+  (min, avg, max) = (12.794, 12.829, 12.867), stdev = 0.026
+  CI (99.9%): [12.729, 12.928] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.Equality.areNotSameValueClass:asm":
+PrintAssembly processed: 258927 total address lines.
+Perf output processed (skipped 9.142 seconds):
+ Column 1: cycles (4994 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+
+                                                                       ; - java.lang.ClassValue::get@1 (line 104)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dc98:   movl		0xc(%r12, %r10, 8), %r9d; implicit exception: dispatches to 0x00007f2000b1dedc
+                                                                       ;*arraylength {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue$ClassValueMap::loadFromCache@3 (line 548)
+                                                                       ; - java.lang.ClassValue$ClassValueMap::probeHomeLocation@6 (line 554)
+                                                                       ; - java.lang.ClassValue::get@7 (line 104)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+   0.04%     0x00007f2000b1dc9d:   leal		-1(%r9), %ebp
+             0x00007f2000b1dca1:   andl		$0x722191c, %ebp    ;*iand {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue$ClassValueMap::loadFromCache@6 (line 548)
+                                                                       ; - java.lang.ClassValue$ClassValueMap::probeHomeLocation@6 (line 554)
+                                                                       ; - java.lang.ClassValue::get@7 (line 104)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+   2.00%     0x00007f2000b1dca7:   testl		%r9d, %r9d
+             0x00007f2000b1dcaa:   jbe		0x7f2000b1ddfc
+             0x00007f2000b1dcb0:   leaq		(%r12, %r10, 8), %r11
+             0x00007f2000b1dcb4:   movl		0x10(%r11, %rbp, 4), %ebx;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue$ClassValueMap::loadFromCache@7 (line 548)
+                                                                       ; - java.lang.ClassValue$ClassValueMap::probeHomeLocation@6 (line 554)
+                                                                       ; - java.lang.ClassValue::get@7 (line 104)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+   2.40%     0x00007f2000b1dcb9:   testl		%ebx, %ebx
+             0x00007f2000b1dcbb:   je		0x7f2000b1ddaa      ;*ifnull {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue::match@1 (line 245)
+                                                                       ; - java.lang.ClassValue::get@13 (line 107)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dcc1:   movabsq		$0x459ee42b0, %r11  ;   {oop(a &apos;java/lang/runtime/ValueObjectMethods$2&apos;{0x0000000459ee42b0})}
+             0x00007f2000b1dccb:   movl		0xc(%r12, %rbx, 8), %ecx
+   6.47%     0x00007f2000b1dcd0:   movl		%ecx, %r9d
+             0x00007f2000b1dcd3:   shlq		$3, %r9
+   0.30%     0x00007f2000b1dcd7:   cmpb		$0, 0x48(%r15)
+             0x00007f2000b1dcdc:   jne		0x7f2000b1dfe0      ;*invokevirtual get {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue::match@5 (line 245)
+                                                                       ; - java.lang.ClassValue::get@13 (line 107)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dce2:   movl		0x14(%r11), %ebp    ;*getfield version {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue::match@9 (line 245)
+                                                                       ; - java.lang.ClassValue::get@13 (line 107)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dce6:   cmpl		%ebp, %ecx
+   0.04%     0x00007f2000b1dce8:   jne		0x7f2000b1de24      ;*if_acmpne {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue::match@12 (line 245)
+                                                                       ; - java.lang.ClassValue::get@13 (line 107)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dcee:   movl		0x1c(%r12, %rbx, 8), %ebp;*getfield value {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.ClassValue$Entry::value@5 (line 339)
+                                                                       ; - java.lang.ClassValue::get@20 (line 111)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@23 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+   0.14%     0x00007f2000b1dcf3:   movl		8(%r12, %rbp, 8), %r11d; implicit exception: dispatches to 0x00007f2000b1def4
+   8.67%     0x00007f2000b1dcf8:   cmpl		$0x490ec598, %r11d  ;   {metadata(&apos;java/lang/invoke/BoundMethodHandle$Species_LLLL&apos;)}
+             0x00007f2000b1dcff:   jne		0x7f2000b1dec8
+             0x00007f2000b1dd05:   leaq		(%r12, %rbp, 8), %r8;*checkcast {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.runtime.ValueObjectMethods::substitutableInvoker@26 (line 1182)
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@91 (line 1138)
+             0x00007f2000b1dd09:   movl		0x10(%r8), %r10d
+   3.22%     0x00007f2000b1dd0d:   cmpl		$0x8b47902b, %r10d  ;   {oop(a &apos;java/lang/invoke/MethodType&apos;{0x000000045a3c8158} = (Ljava/lang/Object;Ljava/lang/Object;)Z)}
+          ╭  0x00007f2000b1dd14:   je		0x7f2000b1dd31      ;*if_acmpne {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - java.lang.invoke.MethodHandle::asType@5 (line 865)
+          │                                                            ; - java.lang.invoke.Invokers::checkGenericType@2 (line 541)
+          │                                                            ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@8
+          │                                                            ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+          │  0x00007f2000b1dd16:   movl		0x18(%r8), %r10d    ;*getfield asTypeCache {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - java.lang.invoke.MethodHandle::asTypeCached@1 (line 877)
+          │                                                            ; - java.lang.invoke.MethodHandle::asType@12 (line 869)
+          │                                                            ; - java.lang.invoke.Invokers::checkGenericType@2 (line 541)
+          │                                                            ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@8
+          │                                                            ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+   0.22%  │  0x00007f2000b1dd1a:   testl		%r10d, %r10d
+          │  0x00007f2000b1dd1d:   je		0x7f2000b1dd6f      ;*ifnull {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - java.lang.invoke.MethodHandle::asTypeCached@6 (line 878)
+          │                                                            ; - java.lang.invoke.MethodHandle::asType@12 (line 869)
+          │                                                            ; - java.lang.invoke.Invokers::checkGenericType@2 (line 541)
+          │                                                            ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@8
+          │                                                            ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+          │  0x00007f2000b1dd1f:   movl		0x10(%r12, %r10, 8), %r11d
+   7.85%  │  0x00007f2000b1dd24:   cmpl		$0x8b47902b, %r11d  ;   {oop(a &apos;java/lang/invoke/MethodType&apos;{0x000000045a3c8158} = (Ljava/lang/Object;Ljava/lang/Object;)Z)}
+          │  0x00007f2000b1dd2b:   jne		0x7f2000b1dd6f      ;*if_acmpne {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - java.lang.invoke.MethodHandle::asTypeCached@14 (line 878)
+          │                                                            ; - java.lang.invoke.MethodHandle::asType@12 (line 869)
+          │                                                            ; - java.lang.invoke.Invokers::checkGenericType@2 (line 541)
+          │                                                            ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@8
+          │                                                            ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+          │  0x00007f2000b1dd2d:   leaq		(%r12, %r10, 8), %r8;*invokevirtual asType {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - java.lang.invoke.Invokers::checkGenericType@2 (line 541)
+          │                                                            ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@8
+          │                                                            ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+          ↘  0x00007f2000b1dd31:   movl		0x14(%r8), %r10d    ;*getfield form {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.invoke.Invokers::checkCustomized@9 (line 625)
+                                                                       ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@15
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+   3.64%     0x00007f2000b1dd35:   movl		0x1c(%r12, %r10, 8), %ebp; implicit exception: dispatches to 0x00007f2000b1df0c
+                                                                       ;*getfield customized {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.invoke.Invokers::checkCustomized@12 (line 625)
+                                                                       ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@15
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+   9.45%     0x00007f2000b1dd3a:   testl		%ebp, %ebp
+   0.08%     0x00007f2000b1dd3c:   je		0x7f2000b1de74      ;*ifnonnull {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.invoke.Invokers::checkCustomized@15 (line 625)
+                                                                       ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@15
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+             0x00007f2000b1dd42:   movq		%r8, %rsi
+             0x00007f2000b1dd45:   movq		0x10(%rsp), %rdx
+             0x00007f2000b1dd4a:   movq		8(%rsp), %rcx
+             0x00007f2000b1dd4f:   callq		0x7f2000b109a0      ; ImmutableOopMap {}
+                                                                       ;*invokevirtual invokeBasic {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - java.lang.invoke.LambdaForm$MH/0x000000004911ac00::invoke_MT@22
+                                                                       ; - java.lang.runtime.ValueObjectMethods::isSubstitutable@96 (line 1138)
+....................................................................................................
+  44.53%  <total for region 1>
+
+....[Hottest Region 2]..............................................................................
+Unknown, level 0, java.lang.invoke.MethodHandle::invokeBasic, version 1, compile id 934
+
+           [Verified Entry Point]
+           [Verified Inline Entry Point]
+           [Verified Inline Entry Point (RO)]
+             # {method} {0x00007f1fc4c28eb0} &apos;invokeBasic&apos; &apos;(Ljava/lang/Object;Ljava/lang/Object;)I&apos; in &apos;java/lang/invoke/MethodHandle&apos;
+             # this:     rsi:rsi   = &apos;java/lang/invoke/MethodHandle&apos;
+             # parm0:    rdx:rdx   = &apos;java/lang/Object&apos;
+             # parm1:    rcx:rcx   = &apos;java/lang/Object&apos;
+             #           [sp+0x0]  (sp of caller)
+             0x00007f2000b109a0:   movl		0x14(%rsi), %ebx
+             0x00007f2000b109a3:   shlq		$3, %rbx
+   1.82%     0x00007f2000b109a7:   movl		0x28(%rbx), %ebx
+   0.32%     0x00007f2000b109aa:   shlq		$3, %rbx
+             0x00007f2000b109ae:   movl		0x24(%rbx), %ebx
+   8.59%     0x00007f2000b109b1:   shlq		$3, %rbx
+             0x00007f2000b109b5:   movq		0x10(%rbx), %rbx
+   8.93%     0x00007f2000b109b9:   testq		%rbx, %rbx
+          ╭  0x00007f2000b109bc:   je		0x7f2000b109c5
+          │  0x00007f2000b109c2:   jmpq		*0x50(%rbx)
+          ↘  0x00007f2000b109c5:   jmp		0x7f2000589460      ;   {runtime_call Shared Runtime throw_AbstractMethodError_blob}
+           [Stub Code]
+             0x00007f2000b109ca:   hlt
+             0x00007f2000b109cb:   hlt
+             0x00007f2000b109cc:   hlt
+             0x00007f2000b109cd:   hlt
+             0x00007f2000b109ce:   hlt
+             0x00007f2000b109cf:   hlt
+....................................................................................................
+  19.66%  <total for region 2>
+
+....[Hottest Regions]...............................................................................
+  44.53%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+  19.66%    Unknown, level 0  java.lang.invoke.MethodHandle::invokeBasic, version 1, compile id 934
+   9.83%         c2, level 4  java.lang.invoke.LambdaForm$MH.0x0000000049121c00::invoke, version 2, compile id 1095
+   1.94%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   1.92%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   1.90%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   1.88%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   1.82%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+   1.80%         c2, level 4  java.lang.invoke.LambdaForm$MH.0x0000000049121c00::invoke, version 2, compile id 1095
+   1.66%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+   1.60%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+   1.60%         c2, level 4  java.lang.invoke.LambdaForm$MH.0x0000000049121c00::invoke, version 2, compile id 1095
+   1.60%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   1.50%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+   0.24%   [kernel.kallsyms]  mutex_lock
+   0.22%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.20%   [kernel.kallsyms]  srso_safe_ret
+   0.18%   [kernel.kallsyms]  copyin
+   0.14%   [kernel.kallsyms]  do_syscall_64
+   0.12%   [kernel.kallsyms]  security_file_permission
+   5.61%  <...other 188 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  51.12%         c2, level 4  java.lang.runtime.ValueObjectMethods::isSubstitutable, version 2, compile id 1086
+  19.66%    Unknown, level 0  java.lang.invoke.MethodHandle::invokeBasic, version 1, compile id 934
+  13.24%         c2, level 4  java.lang.invoke.LambdaForm$MH.0x0000000049121c00::invoke, version 2, compile id 1095
+   9.25%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areNotSameValueClass_jmhTest::areNotSameValueClass_avgt_jmhStub, version 6, compile id 1131
+   0.62%                      <unknown>
+   0.24%   [kernel.kallsyms]  mutex_lock
+   0.22%   [kernel.kallsyms]  do_syscall_64
+   0.22%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.20%   [kernel.kallsyms]  srso_safe_ret
+   0.20%   [kernel.kallsyms]  copyin
+   0.16%   [kernel.kallsyms]  vfs_write
+   0.14%   [kernel.kallsyms]  pipe_write
+   0.12%   [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.12%   [kernel.kallsyms]  security_file_permission
+   0.12%   [kernel.kallsyms]  copy_page_from_iter
+   0.12%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.10%   [kernel.kallsyms]  entry_SYSCALL_64
+   0.10%           libjvm.so  _ZN13RelocIterator10initializeEP7nmethodPhS2_
+   0.10%           libc.so.6  __strchr_avx2
+   0.10%   [kernel.kallsyms]  __fget_light
+   3.82%  <...other 132 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  73.61%         c2, level 4
+  19.66%    Unknown, level 0
+   4.31%   [kernel.kallsyms]
+   1.08%           libjvm.so
+   0.62%
+   0.50%           libc.so.6
+   0.08%         interpreter
+   0.08%    libcapstone.so.6
+   0.04%      hsdis-amd64.so
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.Equality.areSameObject
+
+# Run progress: 60.00% complete, ETA 00:00:32
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.193 ns/op
+# Warmup Iteration   2: 1.088 ns/op
+# Warmup Iteration   3: 1.100 ns/op
+# Warmup Iteration   4: 1.159 ns/op
+# Warmup Iteration   5: 1.159 ns/op
+Iteration   1: 1.160 ns/op
+Iteration   2: 1.146 ns/op
+Iteration   3: 1.146 ns/op
+Iteration   4: 1.146 ns/op
+Iteration   5: 1.159 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.Equality.areSameObject":
+  1.151 ±(99.9%) 0.029 ns/op [Average]
+  (min, avg, max) = (1.146, 1.151, 1.160), stdev = 0.007
+  CI (99.9%): [1.123, 1.180] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.Equality.areSameObject:asm":
+PrintAssembly processed: 251983 total address lines.
+Perf output processed (skipped 9.273 seconds):
+ Column 1: cycles (4970 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub, version 6, compile id 1086
+
+              0x00007f57f4b200f7:   movzbl		0x94(%rbx), %r10d   ; implicit exception: dispatches to 0x00007f57f4b20344
+                                                                        ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@30 (line 238)
+              0x00007f57f4b200ff:   movl		$1, %r9d
+              0x00007f57f4b20105:   testl		%r10d, %r10d
+              0x00007f57f4b20108:   jne		0x7f57f4b201e5      ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@33 (line 238)
+          ╭   0x00007f57f4b2010e:   jmp		0x7f57f4b20113
+          │↗  0x00007f57f4b20110:   movq		%rbx, %r9           ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@36 (line 239)
+   5.05%  ↘│  0x00007f57f4b20113:   movl		0xc(%r8), %r10d     ;*getfield objects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameObject@1 (line 44)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@17 (line 236)
+           │  0x00007f57f4b20117:   movl		8(%r12, %r10, 8), %r11d; implicit exception: dispatches to 0x00007f57f4b20308
+  21.07%   │  0x00007f57f4b2011c:   cmpl		$0xab054530, %r11d  ;   {metadata(&apos;java/lang/Object&apos;[])}
+   5.15%   │  0x00007f57f4b20123:   jne		0x7f57f4b202a4
+           │  0x00007f57f4b20129:   leaq		(%r12, %r10, 8), %r11
+           │  0x00007f57f4b2012d:   movl		0xc(%r11), %ecx
+  16.06%   │  0x00007f57f4b20131:   cmpl		$1, %ecx
+   2.60%   │  0x00007f57f4b20134:   jbe		0x7f57f4b2019d
+           │  0x00007f57f4b20136:   movl		0x10(%r11), %r10d   ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameObject@5 (line 44)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@17 (line 236)
+   6.24%   │  0x00007f57f4b2013a:   movl		0x14(%r11), %ecx    ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameObject@12 (line 45)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@17 (line 236)
+  11.13%   │  0x00007f57f4b2013e:   movzbl		0x94(%rdx), %r11d   ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@30 (line 238)
+   0.02%   │  0x00007f57f4b20146:   leaq		1(%r9), %rbx
+           │  0x00007f57f4b2014a:   cmpl		%r10d, %ecx
+   7.93%   │  0x00007f57f4b2014d:   jne		0x7f57f4b201cc      ;*if_acmpne {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameObject@16 (line 46)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@17 (line 236)
+           │  0x00007f57f4b2014f:   movl		$1, %r10d           ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@30 (line 238)
+           │  0x00007f57f4b20155:   movq		0x30(%r15), %r10    ; ImmutableOopMap {r8=Oop rdi=Oop rdx=Oop r13=Oop }
+           │                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@33 (line 238)
+   0.80%   │  0x00007f57f4b20159:   testl		%eax, (%r10)        ;   {poll}
+  16.52%   │  0x00007f57f4b2015c:   testl		%r11d, %r11d
+   0.58%   ╰  0x00007f57f4b2015f:   je		0x7f57f4b20110      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@36 (line 239)
+              0x00007f57f4b20161:   movabsq		$0x7f58035f5840, %r10
+              0x00007f57f4b2016b:   callq		*%r10
+              0x00007f57f4b2016e:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@37 (line 239)
+                                                                        ;   {post_call_nop}
+              0x00007f57f4b20176:   movq		%rax, 0x30(%r13)    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@40 (line 239)
+              0x00007f57f4b2017a:   movq		%r12, 0x20(%r13)    ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub@46 (line 240)
+....................................................................................................
+  93.14%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  93.14%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub, version 6, compile id 1086
+   0.38%   [kernel.kallsyms]  srso_safe_ret
+   0.22%   [kernel.kallsyms]  mutex_lock
+   0.18%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.16%   [kernel.kallsyms]  do_syscall_64
+   0.16%   [kernel.kallsyms]  _raw_spin_lock_irq
+   0.14%   [kernel.kallsyms]  syscall_exit_work
+   0.14%   [kernel.kallsyms]  mutex_unlock
+   0.14%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.12%   [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.12%   [kernel.kallsyms]  pipe_write
+   0.12%   [kernel.kallsyms]  security_file_permission
+   0.12%   [kernel.kallsyms]  entry_SYSCALL_64
+   0.10%   [kernel.kallsyms]  arch_do_signal_or_restart
+   0.10%   [kernel.kallsyms]  rb_erase
+   0.08%   [kernel.kallsyms]  restore_fpregs_from_fpstate
+   0.08%   [kernel.kallsyms]  fpregs_restore_userregs
+   0.08%   [kernel.kallsyms]  audit_reset_context.part.0.constprop.0
+   0.08%   [kernel.kallsyms]  vfs_write
+   0.08%   [kernel.kallsyms]  pipe_write
+   4.23%  <...other 153 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  93.14%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areSameObject_jmhTest::areSameObject_avgt_jmhStub, version 6, compile id 1086
+   0.58%                      <unknown>
+   0.38%   [kernel.kallsyms]  srso_safe_ret
+   0.36%   [kernel.kallsyms]  pipe_write
+   0.22%   [kernel.kallsyms]  mutex_lock
+   0.18%   [kernel.kallsyms]  do_syscall_64
+   0.18%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.16%   [kernel.kallsyms]  _raw_spin_lock_irq
+   0.14%   [kernel.kallsyms]  mutex_unlock
+   0.14%   [kernel.kallsyms]  syscall_exit_work
+   0.14%   [kernel.kallsyms]  vfs_write
+   0.14%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.12%   [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.12%   [kernel.kallsyms]  entry_SYSCALL_64
+   0.12%   [kernel.kallsyms]  security_file_permission
+   0.10%           libc.so.6  __GI___libc_write
+   0.10%   [kernel.kallsyms]  rb_erase
+   0.10%   [kernel.kallsyms]  __jbd2_journal_unreserve_handle
+   0.10%   [kernel.kallsyms]  arch_do_signal_or_restart
+   0.08%   [kernel.kallsyms]  selinux_file_permission
+   3.36%  <...other 109 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  93.14%         c2, level 4
+   4.65%   [kernel.kallsyms]
+   1.07%           libjvm.so
+   0.58%
+   0.38%           libc.so.6
+   0.14%    libcapstone.so.6
+   0.02%         interpreter
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.Equality.areSameValueClass
+
+# Run progress: 80.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.396 ns/op
+# Warmup Iteration   2: 1.436 ns/op
+# Warmup Iteration   3: 1.253 ns/op
+# Warmup Iteration   4: 1.261 ns/op
+# Warmup Iteration   5: 1.256 ns/op
+Iteration   1: 1.258 ns/op
+Iteration   2: 1.261 ns/op
+Iteration   3: 1.260 ns/op
+Iteration   4: 1.260 ns/op
+Iteration   5: 1.261 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.Equality.areSameValueClass":
+  1.260 ±(99.9%) 0.004 ns/op [Average]
+  (min, avg, max) = (1.258, 1.260, 1.261), stdev = 0.001
+  CI (99.9%): [1.256, 1.264] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.Equality.areSameValueClass:asm":
+PrintAssembly processed: 239295 total address lines.
+Perf output processed (skipped 9.130 seconds):
+ Column 1: cycles (4883 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub, version 4, compile id 1073
+
+                                                                        ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@30 (line 238)
+              0x00007ff8bcb1bbe7:   testl		%r10d, %r10d
+              0x00007ff8bcb1bbea:   jne		0x7ff8bcb1be2c      ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@33 (line 238)
+              0x00007ff8bcb1bbf0:   movl		$1, %ecx
+          ╭   0x00007ff8bcb1bbf5:   jmp		0x7ff8bcb1bc03
+          │   0x00007ff8bcb1bbf7:   nopw		(%rax, %rax)
+          │↗  0x00007ff8bcb1bc00:   movq		%rbx, %rcx          ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@36 (line 239)
+   5.67%  ↘│  0x00007ff8bcb1bc03:   movl		0x10(%rax), %r10d   ;*getfield valueObjects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@1 (line 60)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+           │  0x00007ff8bcb1bc07:   movq		(%r12, %r10, 8), %rsi; implicit exception: dispatches to 0x00007ff8bcb1bfd8
+  17.53%   │  0x00007ff8bcb1bc0b:   movq		%rsi, %rdx
+           │  0x00007ff8bcb1bc0e:   andq		$1, %rdx
+   0.25%   │  0x00007ff8bcb1bc12:   je		0x7ff8bcb1bcb2
+  17.69%   │  0x00007ff8bcb1bc18:   movq		%rsi, %r9
+   0.02%   │  0x00007ff8bcb1bc1b:   testb		$0x10, %r9b
+   1.84%   │  0x00007ff8bcb1bc1f:   jne		0x7ff8bcb1bcda
+           │  0x00007ff8bcb1bc25:   leaq		(%r12, %r10, 8), %rdi
+   3.54%   │  0x00007ff8bcb1bc29:   movl		0xc(%rdi), %ebx     ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@5 (line 60)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+  10.94%   │  0x00007ff8bcb1bc2c:   cmpl		$1, %ebx
+   1.13%   │  0x00007ff8bcb1bc2f:   jbe		0x7ff8bcb1bd08
+           │  0x00007ff8bcb1bc35:   testq		%rdx, %rdx
+   0.14%   │  0x00007ff8bcb1bc38:   je		0x7ff8bcb1bcc6      ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@12 (line 61)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+           │  0x00007ff8bcb1bc3e:   movl		0x10(%rdi), %r9d    ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@5 (line 60)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+   0.04%   │  0x00007ff8bcb1bc42:   testb		$0x10, %sil
+   3.91%   │  0x00007ff8bcb1bc46:   jne		0x7ff8bcb1bd38
+           │  0x00007ff8bcb1bc4c:   movl		0x14(%rdi), %ebp    ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@12 (line 61)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+   8.27%   │  0x00007ff8bcb1bc4f:   leaq		1(%rcx), %rbx
+           │  0x00007ff8bcb1bc53:   cmpl		%r9d, %ebp          ;   {no_reloc}
+   4.01%   │  0x00007ff8bcb1bc56:   jne		0x7ff8bcb1bd6c      ;*if_acmpne {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.Equality::areSameValueClass@16 (line 62)
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@17 (line 236)
+           │  0x00007ff8bcb1bc5c:   movzbl		0x94(%r8), %r10d    ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@30 (line 238)
+   3.17%   │  0x00007ff8bcb1bc64:   movl		$1, %r9d            ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@33 (line 238)
+   0.72%   │  0x00007ff8bcb1bc6a:   movq		0x30(%r15), %r9     ; ImmutableOopMap {r11=Oop r8=Oop rax=Oop r13=Oop }
+           │                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+           │                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@33 (line 238)
+   0.14%   │  0x00007ff8bcb1bc6e:   testl		%eax, (%r9)         ;   {poll}
+  12.33%   │  0x00007ff8bcb1bc71:   testl		%r10d, %r10d
+   3.79%   ╰  0x00007ff8bcb1bc74:   je		0x7ff8bcb1bc00      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@36 (line 239)
+              0x00007ff8bcb1bc76:   movabsq		$0x7ff8ccdf5840, %r10
+              0x00007ff8bcb1bc80:   callq		*%r10
+              0x00007ff8bcb1bc83:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@37 (line 239)
+                                                                        ;   {post_call_nop}
+              0x00007ff8bcb1bc8b:   movq		%rax, 0x30(%r13)    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@40 (line 239)
+              0x00007ff8bcb1bc8f:   movq		%r12, 0x20(%r13)    ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub@46 (line 240)
+....................................................................................................
+  95.15%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  95.15%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub, version 4, compile id 1073
+   0.18%   [kernel.kallsyms]  srso_safe_ret
+   0.16%   [kernel.kallsyms]  sched_ttwu_pending
+   0.16%   [kernel.kallsyms]  unroll_tree_refs
+   0.14%   [kernel.kallsyms]  syscall_exit_work
+   0.14%   [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.12%   [kernel.kallsyms]  mutex_lock
+   0.10%   [kernel.kallsyms]  _raw_spin_lock
+   0.08%   [kernel.kallsyms]  restore_fpregs_from_fpstate
+   0.08%   [kernel.kallsyms]  get_signal
+   0.08%                      <unknown>
+   0.08%   [kernel.kallsyms]  __audit_syscall_exit
+   0.08%   [kernel.kallsyms]  file_has_perm
+   0.08%   [kernel.kallsyms]  __get_user_8
+   0.08%   [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.08%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.06%   [kernel.kallsyms]  syscall_trace_enter.constprop.0
+   0.06%   [kernel.kallsyms]  bpf_lsm_file_permission
+   0.06%   [kernel.kallsyms]  pipe_write
+   0.06%   [kernel.kallsyms]  copyin
+   2.91%  <...other 124 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  95.15%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.Equality_areSameValueClass_jmhTest::areSameValueClass_avgt_jmhStub, version 4, compile id 1073
+   0.29%                      <unknown>
+   0.18%   [kernel.kallsyms]  srso_safe_ret
+   0.16%   [kernel.kallsyms]  sched_ttwu_pending
+   0.16%   [kernel.kallsyms]  unroll_tree_refs
+   0.14%   [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.14%   [kernel.kallsyms]  syscall_exit_work
+   0.12%   [kernel.kallsyms]  mutex_lock
+   0.12%   [kernel.kallsyms]  pipe_write
+   0.10%   [kernel.kallsyms]  _raw_spin_lock
+   0.08%   [kernel.kallsyms]  get_signal
+   0.08%   [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.08%   [kernel.kallsyms]  avc_has_perm_noaudit
+   0.08%   [kernel.kallsyms]  __get_user_8
+   0.08%   [kernel.kallsyms]  restore_fpregs_from_fpstate
+   0.08%   [kernel.kallsyms]  file_has_perm
+   0.08%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.08%   [kernel.kallsyms]  __audit_syscall_exit
+   0.06%           libjvm.so  _ZN2os8pd_writeEiPKvm
+   0.06%           libjvm.so  _ZN13defaultStream5writeEPKcm
+   2.62%  <...other 105 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  95.15%         c2, level 4
+   3.40%   [kernel.kallsyms]
+   0.66%           libjvm.so
+   0.33%           libc.so.6
+   0.29%
+   0.06%         interpreter
+   0.04%    libcapstone.so.6
+   0.02%      hsdis-amd64.so
+   0.02%         c1, level 3
+   0.02%     perf-414277.map
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# Run complete. Total time: 00:01:21
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                          Mode  Cnt   Score   Error  Units
+Equality.areNotSameMix             avgt    5   1.739 ± 0.012  ns/op
+Equality.areNotSameMix:asm         avgt          NaN            ---
+Equality.areNotSameObject          avgt    5   1.219 ± 0.014  ns/op
+Equality.areNotSameObject:asm      avgt          NaN            ---
+Equality.areNotSameValueClass      avgt    5  12.829 ± 0.100  ns/op
+Equality.areNotSameValueClass:asm  avgt          NaN            ---
+Equality.areSameObject             avgt    5   1.151 ± 0.029  ns/op
+Equality.areSameObject:asm         avgt          NaN            ---
+Equality.areSameValueClass         avgt    5   1.260 ± 0.004  ns/op
+Equality.areSameValueClass:asm     avgt          NaN            ---
+[root@CentOS-90-stream-amd64-base jmh]#
+#+end_src
+** Equality x86_64 release
+#+begin_src bash
+Benchmark                            Mode  Cnt   Score   Error  Units
+Equality.areNotSameMix               avgt    5   1.730 ± 0.030  ns/op
+Equality.areNotSameObject            avgt    5   1.222 ± 0.031  ns/op
+Equality.areNotSameValueClass        avgt    5  12.821 ± 0.130  ns/op
+Equality.areSameObject               avgt    5   1.070 ± 0.027  ns/op
+Equality.areSameValueClass           avgt    5   1.248 ± 0.001  ns/op
+#+end_src
