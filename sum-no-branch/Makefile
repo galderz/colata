@@ -3,9 +3,9 @@ include $(TOPDIR)/make/MakeBase.gmk
 
 default: run
 
+BOOT_JDK_VERSION ?= 23
 CLASS ?= Test
 JDK_HOME ?= $(HOME)/1/jdk-sum-no-branch
-BOOT_JDK_VERSION ?= 23
 include $(TOPDIR)/make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
@@ -15,6 +15,7 @@ base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 
 jvm_args += $(base_jvm_args)
 
+# todo try -XX:CompileCommand=print,class::method instead, more focused?
 comp_jvm_args += -XX:+LogCompilation
 comp_jvm_args += -XX:+PrintAssembly
 
