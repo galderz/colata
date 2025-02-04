@@ -1,5 +1,336 @@
 * 3.2.25
-** Equality x86_64 release perfasm
+** GetClass x64 release perfasm
+#+begin_src bash
+[root@CentOS-90-stream-amd64-base jmh]# java --enable-preview -jar target/benchmarks.jar GetClass -prof perfasm
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.openjdk.jmh.util.Utils (file:/root/1/colata/valhalla-project/jmh/target/benchmarks.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jmh.util.Utils
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.GetClass.getClassObject
+
+# Run progress: 0.00% complete, ETA 00:00:20
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.655 ns/op
+# Warmup Iteration   2: 1.530 ns/op
+# Warmup Iteration   3: 1.611 ns/op
+# Warmup Iteration   4: 1.610 ns/op
+# Warmup Iteration   5: 1.609 ns/op
+Iteration   1: 1.609 ns/op
+Iteration   2: 1.610 ns/op
+Iteration   3: 1.608 ns/op
+Iteration   4: 1.609 ns/op
+Iteration   5: 1.607 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.GetClass.getClassObject":
+  1.608 ±(99.9%) 0.004 ns/op [Average]
+  (min, avg, max) = (1.607, 1.608, 1.610), stdev = 0.001
+  CI (99.9%): [1.604, 1.612] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.GetClass.getClassObject:asm":
+PrintAssembly processed: 241263 total address lines.
+Perf output processed (skipped 9.065 seconds):
+ Column 1: cycles (4823 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub, version 4, compile id 1069
+
+             0x00007fecf0b1b285:   nopw		(%rax, %rax)        ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@36 (line 239)
+          ↗  0x00007fecf0b1b290:   movl		0xc(%r9), %r11d     ;*getfield objects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.GetClass::getClassObject@1 (line 29)
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@17 (line 236)
+          │  0x00007fecf0b1b294:   movl		8(%r12, %r11, 8), %edi; implicit exception: dispatches to 0x00007fecf0b1b3ec
+          │  0x00007fecf0b1b299:   cmpl		$0x73054530, %edi   ;   {metadata(&apos;java/lang/Object&apos;[])}
+          │  0x00007fecf0b1b29f:   jne		0x7fecf0b1b3c0
+          │  0x00007fecf0b1b2a5:   leaq		(%r12, %r11, 8), %r10
+          │  0x00007fecf0b1b2a9:   movl		0xc(%r10), %r11d
+  14.56%  │  0x00007fecf0b1b2ad:   testl		%r11d, %r11d
+          │  0x00007fecf0b1b2b0:   jbe		0x7fecf0b1b317
+          │  0x00007fecf0b1b2b2:   movl		0x10(%r10), %r10d   ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.GetClass::getClassObject@5 (line 29)
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@17 (line 236)
+          │  0x00007fecf0b1b2b6:   movl		8(%r12, %r10, 8), %r10d; implicit exception: dispatches to 0x00007fecf0b1b400
+          │                                                            ;*invokevirtual getClass {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.GetClass::getClassObject@6 (line 29)
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@17 (line 236)
+   5.66%  │  0x00007fecf0b1b2bb:   movzbl		0x94(%rcx), %r11d   ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@30 (line 238)
+          │  0x00007fecf0b1b2c3:   addq		$1, %rbp            ;*ladd {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@26 (line 237)
+          │  0x00007fecf0b1b2c7:   movl		%r10d, %edi
+          │  0x00007fecf0b1b2ca:   movq		0x70(%rdi), %r10
+  25.07%  │  0x00007fecf0b1b2ce:   movq		(%r10), %r10        ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@30 (line 238)
+  51.11%  │  0x00007fecf0b1b2d1:   movq		0x30(%r15), %rdi    ; ImmutableOopMap {r8=Oop r9=Oop rcx=Oop rbx=Oop }
+          │                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@33 (line 238)
+          │  0x00007fecf0b1b2d5:   testl		%eax, (%rdi)        ;   {poll}
+          │  0x00007fecf0b1b2d7:   testl		%r11d, %r11d
+          ╰  0x00007fecf0b1b2da:   je		0x7fecf0b1b290      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+                                                                       ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub@36 (line 239)
+             0x00007fecf0b1b2dc:   movabsq		$0x7fecfdff5840, %r10
+             0x00007fecf0b1b2e6:   callq		*%r10
+             0x00007fecf0b1b2e9:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+....................................................................................................
+  96.39%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  96.39%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub, version 4, compile id 1069
+   0.27%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.21%   [kernel.kallsyms]  srso_safe_ret
+   0.17%   [kernel.kallsyms]  fpregs_restore_userregs
+   0.10%   [kernel.kallsyms]  syscall_exit_work
+   0.10%   [kernel.kallsyms]  do_syscall_64
+   0.10%   [kernel.kallsyms]  _raw_spin_lock
+   0.10%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.08%   [kernel.kallsyms]  uprobe_deny_signal
+   0.08%   [kernel.kallsyms]  __fget_light
+   0.08%   [kernel.kallsyms]  __ext4_journal_get_write_access
+   0.06%   [kernel.kallsyms]  selinux_file_permission
+   0.04%   [kernel.kallsyms]  restore_fpregs_from_fpstate
+   0.04%   [kernel.kallsyms]  __task_pid_nr_ns
+   0.04%   [kernel.kallsyms]  vfs_write
+   0.04%   [kernel.kallsyms]  ksys_write
+   0.04%   [kernel.kallsyms]  pipe_write
+   0.04%   [kernel.kallsyms]  file_update_time
+   0.04%   [kernel.kallsyms]  security_file_permission
+   0.04%   [kernel.kallsyms]  copy_page_from_iter
+   1.89%  <...other 79 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  96.39%         c2, level 4  org.sample.jmh.valhalla.jmh_generated.GetClass_getClassObject_jmhTest::getClassObject_avgt_jmhStub, version 4, compile id 1069
+   0.27%           libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.21%   [kernel.kallsyms]  srso_safe_ret
+   0.17%                      <unknown>
+   0.17%   [kernel.kallsyms]  fpregs_restore_userregs
+   0.15%   [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.12%   [kernel.kallsyms]  do_syscall_64
+   0.10%   [kernel.kallsyms]  syscall_exit_work
+   0.10%   [kernel.kallsyms]  _raw_spin_lock
+   0.08%   [kernel.kallsyms]  uprobe_deny_signal
+   0.08%   [kernel.kallsyms]  __fget_light
+   0.08%   [kernel.kallsyms]  __ext4_journal_get_write_access
+   0.08%   [kernel.kallsyms]  pipe_write
+   0.06%   [kernel.kallsyms]  selinux_file_permission
+   0.06%   [kernel.kallsyms]  vfs_write
+   0.06%   [kernel.kallsyms]  jbd2_journal_get_write_access
+   0.06%           libjvm.so  _ZN13defaultStream5writeEPKcm
+   0.04%   [kernel.kallsyms]  crc32c_pcl_intel_update
+   0.04%   [kernel.kallsyms]  ksys_write
+   0.04%   [kernel.kallsyms]  __task_pid_nr_ns
+   1.60%  <...other 66 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  96.39%         c2, level 4
+   2.53%   [kernel.kallsyms]
+   0.66%           libjvm.so
+   0.17%
+   0.17%           libc.so.6
+   0.04%    libcapstone.so.6
+   0.02%     perf-414786.map
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# JMH version: 1.37
+# VM version: JDK 24-internal, OpenJDK 64-Bit Server VM, 24-internal-adhoc.root.jdk-valhalla-lworld
+# VM invoker: /root/1/jdk-valhalla-lworld/build/release-linux-x86_64/jdk/bin/java
+# VM options: --enable-preview
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: org.sample.jmh.valhalla.GetClass.getClassValueObject
+
+# Run progress: 50.00% complete, ETA 00:00:16
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 1.555 ns/op
+# Warmup Iteration   2: 1.438 ns/op
+# Warmup Iteration   3: 1.519 ns/op
+# Warmup Iteration   4: 1.527 ns/op
+# Warmup Iteration   5: 1.592 ns/op
+Iteration   1: 1.529 ns/op
+Iteration   2: 1.527 ns/op
+Iteration   3: 1.512 ns/op
+Iteration   4: 1.522 ns/op
+Iteration   5: 1.513 ns/op
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.sample.jmh.valhalla.GetClass.getClassValueObject":
+  1.521 ±(99.9%) 0.030 ns/op [Average]
+  (min, avg, max) = (1.512, 1.521, 1.529), stdev = 0.008
+  CI (99.9%): [1.491, 1.550] (assumes normal distribution)
+
+Secondary result "org.sample.jmh.valhalla.GetClass.getClassValueObject:asm":
+PrintAssembly processed: 252438 total address lines.
+Perf output processed (skipped 9.287 seconds):
+ Column 1: cycles (4935 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub, version 4, compile id 1064
+
+                                                                        ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@30 (line 238)
+              0x00007f868cb1e3fc:   movl		$1, %ebp
+              0x00007f868cb1e401:   testl		%r11d, %r11d
+          ╭   0x00007f868cb1e404:   jne		0x7f868cb1e45d      ;*ifeq {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@33 (line 238)
+          │   0x00007f868cb1e406:   nopw		(%rax, %rax)        ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@36 (line 239)
+          │↗  0x00007f868cb1e410:   movl		0xc(%r9), %r11d     ;*getfield objects {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.GetClass::getClassValueObject@1 (line 35)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@17 (line 236)
+   0.02%  ││  0x00007f868cb1e414:   movl		8(%r12, %r11, 8), %edi; implicit exception: dispatches to 0x00007f868cb1e56c
+   0.04%  ││  0x00007f868cb1e419:   cmpl		$0x2c054530, %edi   ;   {metadata(&apos;java/lang/Object&apos;[])}
+          ││  0x00007f868cb1e41f:   jne		0x7f868cb1e540
+          ││  0x00007f868cb1e425:   leaq		(%r12, %r11, 8), %r10
+          ││  0x00007f868cb1e429:   movl		0xc(%r10), %r11d
+  16.05%  ││  0x00007f868cb1e42d:   cmpl		$1, %r11d
+          ││  0x00007f868cb1e431:   jbe		0x7f868cb1e498
+          ││  0x00007f868cb1e433:   movl		0x14(%r10), %r10d   ;*aaload {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.GetClass::getClassValueObject@5 (line 35)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@17 (line 236)
+   0.02%  ││  0x00007f868cb1e437:   movl		8(%r12, %r10, 8), %r10d; implicit exception: dispatches to 0x00007f868cb1e580
+          ││                                                            ;*invokevirtual getClass {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.GetClass::getClassValueObject@6 (line 35)
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@17 (line 236)
+   1.16%  ││  0x00007f868cb1e43c:   movzbl		0x94(%rcx), %r11d   ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@30 (line 238)
+   0.02%  ││  0x00007f868cb1e444:   addq		$1, %rbp            ;*ladd {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@26 (line 237)
+          ││  0x00007f868cb1e448:   movl		%r10d, %edi
+          ││  0x00007f868cb1e44b:   movq		0x70(%rdi), %r10
+  18.84%  ││  0x00007f868cb1e44f:   movq		(%r10), %r10        ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@30 (line 238)
+  58.48%  ││  0x00007f868cb1e452:   movq		0x30(%r15), %rdi    ; ImmutableOopMap {r8=Oop r9=Oop rcx=Oop rbx=Oop }
+          ││                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0 return_scalarized=0}
+          ││                                                            ; - (reexecute) org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@33 (line 238)
+          ││  0x00007f868cb1e456:   testl		%eax, (%rdi)        ;   {poll}
+          ││  0x00007f868cb1e458:   testl		%r11d, %r11d
+          │╰  0x00007f868cb1e45b:   je		0x7f868cb1e410      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+          │                                                             ; - org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub@36 (line 239)
+          ↘   0x00007f868cb1e45d:   movabsq		$0x7f869c3f5840, %r10
+              0x00007f868cb1e467:   callq		*%r10
+              0x00007f868cb1e46a:   nopl		(%rax, %rax)        ;*invokestatic nanoTime {reexecute=0 rethrow=0 return_oop=0 return_scalarized=0}
+....................................................................................................
+  94.63%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  94.63%          c2, level 4  org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub, version 4, compile id 1064
+   0.20%    [kernel.kallsyms]  do_syscall_64
+   0.16%    [kernel.kallsyms]  entry_SYSCALL_64
+   0.16%            libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.14%    [kernel.kallsyms]  mutex_lock
+   0.12%    [kernel.kallsyms]  srso_safe_ret
+   0.10%    [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.08%    [kernel.kallsyms]  fpregs_restore_userregs
+   0.08%    [kernel.kallsyms]  __task_pid_nr_ns
+   0.08%    [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.08%    [kernel.kallsyms]  audit_reset_context.part.0.constprop.0
+   0.08%    [kernel.kallsyms]  uprobe_deny_signal
+   0.08%    [kernel.kallsyms]  rep_movs_alternative
+   0.08%    [kernel.kallsyms]  native_queued_spin_lock_slowpath
+   0.08%    [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.06%                       <unknown>
+   0.06%    [kernel.kallsyms]  __audit_syscall_entry
+   0.06%    [kernel.kallsyms]  vfs_write
+   0.06%    [kernel.kallsyms]  ksys_write
+   0.06%    [kernel.kallsyms]  pipe_write
+   3.51%  <...other 142 warm regions...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  94.63%          c2, level 4  org.sample.jmh.valhalla.jmh_generated.GetClass_getClassValueObject_jmhTest::getClassValueObject_avgt_jmhStub, version 4, compile id 1064
+   0.36%                       <unknown>
+   0.20%    [kernel.kallsyms]  do_syscall_64
+   0.16%    [kernel.kallsyms]  entry_SYSCALL_64
+   0.16%            libjvm.so  _ZN14ElfSymbolTable6lookupEPhPiS1_S1_P16ElfFuncDescTable
+   0.16%    [kernel.kallsyms]  pipe_write
+   0.14%    [kernel.kallsyms]  mutex_lock
+   0.12%    [kernel.kallsyms]  srso_safe_ret
+   0.12%    [kernel.kallsyms]  vfs_write
+   0.10%    [kernel.kallsyms]  syscall_exit_to_user_mode
+   0.10%    [kernel.kallsyms]  crc32c_pcl_intel_update
+   0.08%    [kernel.kallsyms]  uprobe_deny_signal
+   0.08%    [kernel.kallsyms]  exit_to_user_mode_prepare
+   0.08%    [kernel.kallsyms]  rep_movs_alternative
+   0.08%    [kernel.kallsyms]  __task_pid_nr_ns
+   0.08%    [kernel.kallsyms]  file_has_perm
+   0.08%    [kernel.kallsyms]  fpregs_restore_userregs
+   0.08%    [kernel.kallsyms]  audit_reset_context.part.0.constprop.0
+   0.08%    [kernel.kallsyms]  entry_SYSCALL_64_after_hwframe
+   0.08%    [kernel.kallsyms]  native_queued_spin_lock_slowpath
+   2.98%  <...other 117 warm methods...>
+....................................................................................................
+  99.98%  <totals>
+
+....[Distribution by Source]........................................................................
+  94.63%          c2, level 4
+   3.47%    [kernel.kallsyms]
+   0.99%            libjvm.so
+   0.39%            libc.so.6
+   0.36%
+   0.06%     libcapstone.so.6
+   0.04%          interpreter
+   0.02%       hsdis-amd64.so
+   0.02%  libstdc++.so.6.0.29
+....................................................................................................
+  99.98%  <totals>
+
+
+
+# Run complete. Total time: 00:00:32
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                         Mode  Cnt  Score   Error  Units
+GetClass.getClassObject           avgt    5  1.608 ± 0.004  ns/op
+GetClass.getClassObject:asm       avgt         NaN            ---
+GetClass.getClassValueObject      avgt    5  1.521 ± 0.030  ns/op
+GetClass.getClassValueObject:asm  avgt         NaN            ---
+[root@CentOS-90-stream-amd64-base jmh]#
+#+end_src
+** Equality x64 release perfasm
 #+begin_src bash
 [root@CentOS-90-stream-amd64-base jmh]# java --enable-preview -jar target/benchmarks.jar Equality -prof perfasm
 WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
