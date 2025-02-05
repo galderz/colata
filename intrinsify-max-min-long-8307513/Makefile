@@ -3,7 +3,7 @@ include $(TOPDIR)/make/MakeBase.gmk
 
 default: run
 
-id = intrinsify-max-min-long
+ID ?= intrinsify-max-min-long
 
 BOOT_JDK_VERSION ?= 23
 CLASS ?= Test

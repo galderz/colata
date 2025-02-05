@@ -263,7 +263,7 @@ new-worktree:
 > git checkout master
 > git fetch upstream
 > git pull
-> git worktree add -b topic.$(id) ../jdk-$(id) master
+> git worktree add -b topic.$(ID) ../jdk-$(ID) master
 .PHONY: new-worktree
 
 checkout-jdk:
@@ -273,4 +273,4 @@ checkout-jdk:
 
 checkout-worktree:
 > cd $(HOME)/1/jdk
-> git worktree add -b topic.$(id) ../jdk-$(id) origin/topic.$(id)
+> git worktree add -b topic.$(ID) ../jdk-$(ID) origin/topic.$(ID)
