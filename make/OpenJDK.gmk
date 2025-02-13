@@ -90,6 +90,12 @@ build-jdk:
 > touch $(java)
 .PHONY: build-jdk
 
+build-graal-builder-image:
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) LOG=$(BUILD_LOG) make graal-builder-image
+> touch $(java)
+.PHONY: build-graal-builder-image
+
 clean-jdk:
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make clean
