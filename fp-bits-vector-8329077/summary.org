@@ -1,0 +1,80 @@
+* 29.01.2025
+** floatToIntBits
+floatToIntBits not vectorizing because of flow control:
+#+begin_src java
+public static int floatToIntBits(float value) {
+    if (!isNaN(value)) {
+        return floatToRawIntBits(value);
+    }
+    return 0x7fc00000;
+}
+#+end_src
+
+#+begin_src bash
+ 336  AddI  === _ 651 188  [[ 651 337 460 345 ]]  !orig=[275],223 !jvms: Test::test @ bci:17 (line 7)
+ 337  CmpI  === _ 336 677  [[ 338 ]]  !orig=[150] !jvms: Test::test @ bci:5 (line 7)
+ 338  Bool  === _ 337  [[ 339 ]] [lt] !orig=[151] !jvms: Test::test @ bci:5 (line 7)
+
+   7  Parm  === 3  [[ 171 149 318 25 29 32 33 37 262 106 413 95 16 208 268 176 444 350 619 ]] Memory  Memory: @BotPTR *+bot, idx=Bot; !orig=[89],[234],[128] !jvms: Test::test @ bci:2 (line 7)
+ 266  Bool  === _ 267  [[ 286 ]] [ne] !orig=196 !jvms: Test::test @ bci:13 (line 9)
+ 267  CmpF  === _ 268 268  [[ 266 ]]  !orig=195 !jvms: Test::test @ bci:13 (line 9)
+ 268  LoadF  === 472 7 269  [[ 265 267 267 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; #float !orig=192 !jvms: Test::test @ bci:12 (line 9)
+ 286  If  === 641 266  [[ 287 300 ]] P=0.900000, C=-1.000000 !orig=197 !jvms: Test::test @ bci:13 (line 9)
+ 287  IfFalse  === 286  [[ 288 ]] #0 !orig=200 !jvms: Test::test @ bci:13 (line 9)
+ 300  IfTrue  === 286  [[ 288 ]] #1 !orig=198 !jvms: Test::test @ bci:13 (line 9)
+
+ 288  Region  === 288 300 287  [[ 288 263 299 291 339 ]]  !orig=193 !jvms: Test::test @ bci:13 (line 9)
+ 339  CountedLoopEnd  === 288 338  [[ 660 153 ]] [lt] P=0.999902, C=112651.000000 !orig=[152] !jvms: Test::test @ bci:5 (line 7)
+ 634  CountedLoop  === 634 343 153  [[ 634 637 650 651 639 ]] inner stride: 2 main of N634 strip mined !orig=[344],[301],[261] !jvms: Test::test @ bci:12 (line 9)
+
+VLoop::check_preconditions
+    Loop: N634/N153  limit_check counted [int,int),+2 (10243 iters)  main rc  has_sfpt strip_mined
+ 634  CountedLoop  === 634 343 153  [[ 634 637 650 651 639 ]] inner stride: 2 main of N634 strip mined !orig=[344],[301],[261] !jvms: Test::test @ bci:12 (line 9)
+VLoop::check_preconditions: fails because of control flow.
+  cl_exit 339 339  CountedLoopEnd  === 288 338  [[ 660 153 ]] [lt] P=0.999902, C=112651.000000 !orig=[152] !jvms: Test::test @ bci:5 (line 7)
+  cl_exit->in(0) 288 288  Region  === 288 300 287  [[ 288 263 299 291 339 ]]  !orig=193 !jvms: Test::test @ bci:13 (line 9)
+  lpt->_head 634 634  CountedLoop  === 634 343 153  [[ 634 637 650 651 639 ]] inner stride: 2 main of N634 strip mined !orig=[344],[301],[261] !jvms: Test::test @ bci:12 (line 9)
+    Loop: N634/N153  limit_check counted [int,int),+2 (10243 iters)  main rc  has_sfpt strip_mined
+VLoop::check_preconditions: failed: control flow in loop not allowed
+#+end_src
+** stacktraces
+#+begin_src bash
+Compile::print_method(CompilerPhaseType, int, Node *) compile.cpp:5138
+PhaseIdealLoop::do_unroll(IdealLoopTree *, Node_List &, bool) loopTransform.cpp:2019
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3404
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3440
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3424
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4918
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1113
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1111
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1207
+Compile::Optimize() compile.cpp:2395
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:852
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:686
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:142
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2319
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1977
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:68
+JavaThread::thread_main_inner() javaThread.cpp:777
+JavaThread::run() javaThread.cpp:762
+Thread::call_run() thread.cpp:232
+thread_native_entry(Thread *) os_bsd.cpp:612
+#+end_src
+* 28.01.2025
+#+begin_src bash
+   7  Parm  === 3  [[ 171 149 318 25 29 32 33 37 262 106 413 95 16 208 268 176 444 350 619 732 744 ]] Memory  Memory: @BotPTR *+bot, idx=Bot; !orig=[89],[234],[128] !jvms: Test::test @ bci:2 (line 7)
+ 199  ConI  === 0  [[ 299 373 436 642 ]]  #int:2143289344
+ 263  StoreI  === 288 621 264 299  |252  [[ 458 650 262 711 ]]  @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=7;  Memory: @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=7; !orig=222 !jvms: Test::test @ bci:16 (line 9)
+ 265  MoveF2I  === _ 268  [[ 299 ]]  !orig=201 !jvms: Test::test @ bci:13 (line 9)
+ 266  Bool  === _ 267  [[ 286 ]] [ne] !orig=196 !jvms: Test::test @ bci:13 (line 9)
+ 267  CmpF  === _ 268 268  [[ 266 ]]  !orig=195 !jvms: Test::test @ bci:13 (line 9)
+ 268  LoadF  === 472 7 269  |257  [[ 265 267 267 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; #float !orig=192 !jvms: Test::test @ bci:12 (line 9)
+ 269  AddP  === _ 62 623 702  [[ 268 ]]  !orig=190 !jvms: Test::test @ bci:12 (line 9)
+ 286  If  === 641 266  [[ 287 300 ]] P=0.900000, C=-1.000000 !orig=197 !jvms: Test::test @ bci:13 (line 9)
+ 287  IfFalse  === 286  [[ 288 ]] #0 !orig=200 !jvms: Test::test @ bci:13 (line 9)
+ 288  Region  === 288 300 287  [[ 288 263 299 339 ]]  !orig=193 !jvms: Test::test @ bci:13 (line 9)
+ 299  Phi  === 288 199 265  [[ 263 ]]  #int !orig=194 !jvms: Test::test @ bci:13 (line 9)
+ 300  IfTrue  === 286  [[ 288 ]] #1 !orig=198 !jvms: Test::test @ bci:13 (line 9)
+ 339  CountedLoopEnd  === 288 725  [[ 660 153 ]] [lt] P=0.999902, C=112651.000000 !orig=[152] !jvms: Test::test @ bci:5 (line 7)
+ 472  IfTrue  === 471  [[ 268 761 619 ]] #1
+#+end_src
