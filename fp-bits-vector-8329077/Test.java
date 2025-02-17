@@ -16,7 +16,7 @@ public class Test
     {
         final int[] ints = new int[10_000];
         final float[] floats = new float[10_000];
-        // init(ints);
+        init(ints);
 
         for (int i = 0; i < 100_000; i++)
         {
@@ -24,11 +24,11 @@ public class Test
         }
     }
 
-//    static void init(int[] ints) {
-//        final ThreadLocalRandom rand = ThreadLocalRandom.current();
-//        for (int i = 0; i < ints.length; i++)
-//        {
-//            ints[i] = rand.nextInt();
-//        }
-//    }
+    static void init(int[] ints) {
+        final ThreadLocalRandom rand = ThreadLocalRandom.current();
+        for (int i = 0; i < ints.length; i++)
+        {
+            ints[i] = rand.nextInt();
+        }
+    }
 }
