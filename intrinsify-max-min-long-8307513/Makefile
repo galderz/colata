@@ -32,6 +32,8 @@ comp_jvm_args = -XX:CompileCommand=printcompilation,$(CLASS)::$(PATTERN)
 #comp_jvm_args += -XX:+LogCompilation
 #comp_jvm_args += -XX:+PrintAssembly
 
+comp_verbose_jvm_args = -XX:CompileCommand=print,$(CLASS)::$(PATTERN)
+
 ideal_jvm_args += -XX:+PrintIdeal
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BEFORE_MACRO_EXPANSION"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"ITER_GVN4"
@@ -51,6 +53,10 @@ jvm_args += $(base_jvm_args)
 
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
+endif
+
+ifdef COMP_VERBOSE_ARGS
+  jvm_args += $(comp_verbose_jvm_args)
 endif
 
 ifdef IDEAL_ARGS
