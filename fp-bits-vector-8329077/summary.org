@@ -1,3 +1,221 @@
+* 17.02.2025
+** floatToRawIntBits macos
+gContinue exploration in macos to understand assembly.
+#+begin_src asm
+ ;; B14: #	out( B14 B15 ) <- in( B13 B14 ) Loop( B14-B14 inner main of N71 strip mined) Freq: 1.04898e+08
+  0x000000010cf740d0:   sbfiz		x12, x4, #2, #0x20  ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                    <-- x12 = i * 4 calculates the memory offset of the i-th element in arrays
+
+  0x000000010cf740d4:   add		x13, x2, x12        <-- x12 holds the base address of the floats
+                                                  <-- adds x12 to x2, resulting in x13 pointing to floats[i]
+
+  0x000000010cf740d8:   ldr		s17, [x13, #0x10]   ;*faload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@10 (line 9)
+                                                  <-- loads a single precision float (s17) from floats[i]
+                                                  <-- #0x10 offset means it is reading from x13 + 16 (could be unrolled loop behavior)
+
+  0x000000010cf740dc:   add		x12, x10, x12       <-- x10 holds the base address of ints
+                                                  <-- x12 (byte offset) is added to x10 computing ints[i] address
+
+  0x000000010cf740e0:   str		s17, [x12, #0x10]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores the float value as is into memory
+
+ ;; merged ldr pair
+  0x000000010cf740e4:   ldp		w14, w16, [x13, #0x14];*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+                                                    <-- load pair (ldp) loads 2 consecutive 32-bit words (interpreted as floats)
+                                                    <-- these get converted into int representations
+                                                    <-- they're already in IEEE 754 bit format
+
+  0x000000010cf740e8:   str		w14, [x12, #0x14]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores w14 into (first float's bit representation) into ints[i]
+
+  0x000000010cf740ec:   ldr		w0, [x13, #0x1c]    ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+                                                  <-- loads another 32-bit float into w0
+
+  0x000000010cf740f0:   str		w16, [x12, #0x18]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores w16 into ints[i + 1]
+
+  0x000000010cf740f4:   ldr		w14, [x13, #0x20]   ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+                                                  <-- loads another 32-bit float into w14
+
+  0x000000010cf740f8:   str		w0, [x12, #0x1c]    ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores w0 into ints[i + 2]
+
+  0x000000010cf740fc:   ldr		w5, [x13, #0x24]    ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+                                                  <-- loads another 32-bit float into w5
+
+  0x000000010cf74100:   str		w14, [x12, #0x20]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores w14 into ints[i + 3]
+
+ ;; merged ldr pair
+  0x000000010cf74104:   ldp		w16, w14, [x13, #0x28];*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+                                                  <-- loads 2 more floats into w16 and w14
+
+ ;; merged str pair
+  0x000000010cf74108:   stp		w5, w16, [x12, #0x24];*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+                                                  <-- stores two values at once into ints using store pair (stp)
+
+  0x000000010cf7410c:   add		w4, w4, #8          ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@23 (line 7)
+                                                  <-- increments i by 8 instead of 1
+
+  0x000000010cf74110:   str		w14, [x12, #0x2c]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+
+  0x000000010cf74114:   cmp		w4, w11             <-- compares w4 (current index) with w11 (array length)
+
+  0x000000010cf74118:   b.lt		0x10cf740d0         ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@5 (line 7)
+                                                    <-- if i < length, loop continues jumping back to the start
+ ;; B15: #	out( B13 B16 ) <- in( B14 )  Freq: 10241.4
+#+end_src
+#+begin_src java
+     2
+     3	public class Test
+     4	{
+     5	    static void test(int[] ints, float[] floats)
+     6	    {
+     7	        for (int i = 0; i < ints.length; i++)
+     8	        {
+     9	            final float aFloat = floats[i];
+    10	            final int bits = Float.floatToRawIntBits(aFloat);
+    11	            ints[i] = bits;
+    12	        }
+    13	    }
+    14
+    15	    public static void main(String[] args)
+    16	    {
+    17	        final int[] ints = new int[10_000];
+    18	        final float[] floats = new float[10_000];
+    19	        init(ints);
+    20
+    21	        for (int i = 0; i < 100_000; i++)
+    22	        {
+    23	            test(ints, floats);
+    24	        }
+    25	    }
+    26
+    27	    static void init(int[] ints) {
+    28	        final ThreadLocalRandom rand = ThreadLocalRandom.current();
+    29	        for (int i = 0; i < ints.length; i++)
+    30	        {
+    31	            ints[i] = rand.nextInt();
+    32	        }
+    33	    }
+    34	}
+#+end_src
+* 13.02.2025
+** floatToRawIntBits macos
+Fails with
+#+begin_src bash
+PackSet::print: 3 packs
+ Pack: 0
+    0:  617  LoadF  === 594 7 618  [[ 616 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #float (does not depend only on test, unknown control) !orig=527,235,[134] !jvms: Test::test @ bci:12 (line 9)
+    1:  623  LoadF  === 594 7 624  [[ 622 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #float (does not depend only on test, unknown control) !orig=235,[134] !jvms: Test::test @ bci:12 (line 9)
+    2:  527  LoadF  === 594 7 528  [[ 526 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #float (does not depend only on test, unknown control) !orig=235,[134] !jvms: Test::test @ bci:12 (line 9)
+    3:  235  LoadF  === 594 7 132  [[ 135 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #float (does not depend only on test, unknown control) !orig=[134] !jvms: Test::test @ bci:12 (line 9)
+ Pack: 1
+    0:  616  MoveF2I  === _ 617  [[ 615 ]]  !orig=526,135 !jvms: Test::test @ bci:13 (line 9)
+    1:  622  MoveF2I  === _ 623  [[ 614 ]]  !orig=135 !jvms: Test::test @ bci:13 (line 9)
+    2:  526  MoveF2I  === _ 527  [[ 524 ]]  !orig=135 !jvms: Test::test @ bci:13 (line 9)
+    3:  135  MoveF2I  === _ 235  [[ 156 ]]  !jvms: Test::test @ bci:13 (line 9)
+ Pack: 2
+    0:  615  StoreI  === 631 637 619 616  [[ 614 ]]  @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6;  Memory: @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=524,156,543 !jvms: Test::test @ bci:16 (line 9)
+    1:  614  StoreI  === 631 615 620 622  [[ 524 ]]  @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6;  Memory: @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=156,543 !jvms: Test::test @ bci:16 (line 9)
+    2:  524  StoreI  === 631 614 525 526  [[ 396 156 ]]  @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6;  Memory: @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=156,543 !jvms: Test::test @ bci:16 (line 9)
+    3:  156  StoreI  === 631 524 154 135  [[ 637 394 159 ]]  @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6;  Memory: @int[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=543 !jvms: Test::test @ bci:16 (line 9)
+
+WARNING: Removed pack: not implemented at any smaller size:
+    0:  616  MoveF2I  === _ 617  [[ 615 ]]  !orig=526,135 !jvms: Test::test @ bci:13 (line 9)
+    1:  622  MoveF2I  === _ 623  [[ 614 ]]  !orig=135 !jvms: Test::test @ bci:13 (line 9)
+    2:  526  MoveF2I  === _ 527  [[ 524 ]]  !orig=135 !jvms: Test::test @ bci:13 (line 9)
+    3:  135  MoveF2I  === _ 235  [[ 156 ]]  !jvms: Test::test @ bci:13 (line 9)
+
+After SuperWord::split_packs_only_implemented_with_smaller_size
+#+end_src
+#+begin_src java
+     1	import java.util.concurrent.ThreadLocalRandom;
+     2
+     3	public class Test
+     4	{
+     5	    static void test(int[] ints, float[] floats)
+     6	    {
+     7	        for (int i = 0; i < ints.length; i++)
+     8	        {
+     9	            final float aFloat = floats[i];
+    10	            final int bits = Float.floatToRawIntBits(aFloat);
+    11	            ints[i] = bits;
+    12	        }
+    13	    }
+    14
+    15	    public static void main(String[] args)
+    16	    {
+    17	        final int[] ints = new int[10_000];
+    18	        final float[] floats = new float[10_000];
+    19	        // init(ints);
+    20
+    21	        for (int i = 0; i < 100_000; i++)
+    22	        {
+    23	            test(ints, floats);
+    24	        }
+    25	    }
+    34	}
+#+end_src
+You can see the unrolling and the assembly here:
+#+begin_src asm
+ ;; B14: #	out( B14 B15 ) <- in( B13 B14 ) Loop( B14-B14 inner main of N71 strip mined) Freq: 1.04898e+08
+  0x000000010e5fc0d0:   sbfiz		x12, x4, #2, #0x20  ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc0d4:   add		x13, x2, x12
+  0x000000010e5fc0d8:   ldr		s17, [x13, #0x10]   ;*faload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@10 (line 9)
+  0x000000010e5fc0dc:   add		x12, x10, x12
+  0x000000010e5fc0e0:   str		s17, [x12, #0x10]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+ ;; merged ldr pair
+  0x000000010e5fc0e4:   ldp		w14, w16, [x13, #0x14];*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+  0x000000010e5fc0e8:   str		w14, [x12, #0x14]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc0ec:   ldr		w0, [x13, #0x1c]    ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+  0x000000010e5fc0f0:   str		w16, [x12, #0x18]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc0f4:   ldr		w14, [x13, #0x20]   ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+  0x000000010e5fc0f8:   str		w0, [x12, #0x1c]    ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc0fc:   ldr		w5, [x13, #0x24]    ;*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+  0x000000010e5fc100:   str		w14, [x12, #0x20]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+ ;; merged ldr pair
+  0x000000010e5fc104:   ldp		w16, w14, [x13, #0x28];*invokestatic floatToRawIntBits {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@13 (line 10)
+ ;; merged str pair
+  0x000000010e5fc108:   stp		w5, w16, [x12, #0x24];*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc10c:   add		w4, w4, #8          ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@23 (line 7)
+  0x000000010e5fc110:   str		w14, [x12, #0x2c]   ;*iastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@22 (line 11)
+  0x000000010e5fc114:   cmp		w4, w11
+  0x000000010e5fc118:   b.lt		0x10e5fc0d0         ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@5 (line 7)
+ ;; B15: #	out( B13 B16 ) <- in( B14 )  Freq: 10241.4
+#+end_src
 * 29.01.2025
 ** floatToIntBits
 floatToIntBits not vectorizing because of flow control:
