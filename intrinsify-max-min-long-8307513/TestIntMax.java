@@ -3,7 +3,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 
-class Test
+class TestIntMax
 {
     static final int RANGE = 16 * 1024;
     static final int ITER = 100_000;
