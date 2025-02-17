@@ -8,6 +8,8 @@ ID ?= intrinsify-max-min-long
 BOOT_JDK_VERSION ?= 23
 CLASS ?= Test
 JDK_HOME ?= $(HOME)/1/jdk-$(ID)
+PATTERN ?= test
+PROBABILITY ?= 100
 include $(TOPDIR)/make/OpenJDK.gmk
 
 AVX ?=
@@ -23,25 +25,26 @@ endif
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
-base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::$(PATTERN)
 
-comp_jvm_Args = -XX:CompileCommand=print,$(CLASS)::test
+comp_jvm_args = -XX:CompileCommand=printcompilation,$(CLASS)::$(PATTERN)
+#comp_jvm_args = -XX:CompileCommand=print,$(CLASS)::$(PATTERN)
 #comp_jvm_args += -XX:+LogCompilation
 #comp_jvm_args += -XX:+PrintAssembly
 
 ideal_jvm_args += -XX:+PrintIdeal
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"ITER_GVN4"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_REMOVEUSELESS"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_BEAUTIFY_LOOPS"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_BEAUTIFY_LOOPS"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BARRIER_EXPANSION"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"OPTIMIZE_FINISHED"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BEFORE_MACRO_EXPANSION"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"ITER_GVN4"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BEFORE_REMOVEUSELESS"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BEFORE_BEAUTIFY_LOOPS"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"AFTER_BEAUTIFY_LOOPS"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"PHASEIDEALLOOP_ITERATIONS"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BARRIER_EXPANSION"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"OPTIMIZE_FINISHED"
 
 loop_jvm_args += -XX:+TraceLoopOpts
 
-vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::test,ALL
+vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::$(PATTERN),ALL
 vector_jvm_args += -XX:+TraceNewVectors
 
 jvm_args += $(base_jvm_args)
@@ -79,7 +82,7 @@ endif
 run: clear-logs $(java)
 > $(call_java) \
 >   $(jvm_args) \
->   $(shell pwd)/$(CLASS).java
+>   $(shell pwd)/$(CLASS).java $(PROBABILITY)
 .PHONY: run
 
 perf: $(java)
@@ -90,8 +93,8 @@ perf: $(java)
 
 rr: $(java)
 > rr $(java) \
->   -XX:CompileCommand=printcompilation,$(CLASS)::test \
->   -XX:CompileCommand=compileonly,$(CLASS)::test \
+>   -XX:CompileCommand=printcompilation,$(CLASS)::$(PATTERN) \
+>   -XX:CompileCommand=compileonly,$(CLASS)::$(PATTERN) \
 >   -Xbatch \
 >   -XX:+TraceLoopOpts \
 >   -XX:+TraceSuperWord \
@@ -130,7 +133,7 @@ clean-benchmarks: $(benchmarks_jar)
 
 # Other flags used:
 # >   -ea \
-# >   -XX:CompileCommand=print,$(CLASS)::test \
+# >   -XX:CompileCommand=print,$(CLASS)::$(PATTERN) \
 # >   -XX:+LogCompilation \
 # >   -XX:+PrintCFG \
 # >   -XX:+PrintIdeal \
@@ -145,7 +148,7 @@ clean-benchmarks: $(benchmarks_jar)
 # >   -XX:+TraceNewVectors \
 # >   -XX:+TraceOptoParse \
 # >   -XX:+TraceSuperWord \
-# >   -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION,AFTER_MACRO_EXPANSION_STEP"
+# >   -XX:CompileCommand=PrintIdealPhase,$(CLASS)::$(PATTERN),"BEFORE_MACRO_EXPANSION,AFTER_MACRO_EXPANSION_STEP"
 
 # Other env variables used:
 > DYLD_PRINT_LIBRARIES=1 \
