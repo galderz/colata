@@ -6,7 +6,9 @@ public class Test
     {
         for (int i = 0; i < ints.length; i++)
         {
-            ints[i] = Float.floatToRawIntBits(floats[i]);
+            final float aFloat = floats[i];
+            final int bits = Float.floatToRawIntBits(aFloat);
+            ints[i] = bits;
         }
     }
 

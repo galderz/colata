@@ -6,7 +6,9 @@ public class FloatToIntBits
     {
         for (int i = 0; i < ints.length; i++)
         {
-            ints[i] = Float.floatToIntBits(floats[i]);
+            final float aFloat = floats[i];
+            final int bits = Float.floatToIntBits(floats[i]);
+            ints[i] = bits;
         }
     }
 
