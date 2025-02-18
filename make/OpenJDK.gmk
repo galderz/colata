@@ -274,7 +274,7 @@ endif
 
 new-worktree:
 > cd $(HOME)/1/jdk
-> git fetch upstream
+> git fetch $(worktree_base_remote)
 > git pull
 > git worktree add -b topic.$(ID) ../jdk-$(ID) $(worktree_base_branch)
 .PHONY: new-worktree
