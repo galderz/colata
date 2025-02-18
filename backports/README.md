@@ -5,7 +5,7 @@ This project can be used for testing JDK backports.
 Create a new backport for JDK 21:
 
 ```shell
-WORKTREE_BASE=21 ID=21u-dev.translet-name-ignored make new-worktree
+WORKTREE_BASE=21 ID=21.translet-name-ignored make new-worktree
 ```
 
 Checkout a backport:
