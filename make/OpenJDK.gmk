@@ -266,8 +266,10 @@ print-flags: $(java)
 
 ifeq ($(WORKTREE_BASE),latest)
   worktree_base_branch = master
+  worktree_base_branch = upstream
 else ifeq ($(WORKTREE_BASE),21)
   worktree_base_branch = jdk21u-dev-master
+  worktree_base_remote = jdk21u-dev
 endif
 
 new-worktree:
