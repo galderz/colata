@@ -264,9 +264,11 @@ print-flags: $(java)
 > $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
 .PHONY: print-flags
 
+WORKTREE_BASE ?= master
+
 new-worktree:
 > cd $(HOME)/1/jdk
-> git checkout master
+> git checkout $(WORKTREE_BASE)
 > git fetch upstream
 > git pull
 > git worktree add -b topic.$(ID) ../jdk-$(ID) master
@@ -277,6 +279,10 @@ checkout-jdk:
 > cd $(HOME)/1
 > git clone https://github.com/galderz/jdk
 
-checkout-worktree:
+checkout-topic:
 > cd $(HOME)/1/jdk
 > git worktree add -b topic.$(ID) ../jdk-$(ID) origin/topic.$(ID)
+
+checkout-backport:
+> cd $(HOME)/1/jdk
+> git worktree add -b backport.$(ID) ../jdk-$(ID) origin/backport.$(ID)
