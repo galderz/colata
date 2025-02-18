@@ -2,6 +2,12 @@
 
 This project can be used for testing JDK backports.
 
+Create a new backport for JDK 21:
+
+```shell
+WORKTREE_BASE=21 ID=jdk21u-dev.translet-name-ignored make new-worktree
+```
+
 Checkout a backport:
 
 ```shell
