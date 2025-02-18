@@ -3,6 +3,19 @@ include $(TOPDIR)/make/Capstone.gmk
 CONF ?= fast
 BUILD_LOG ?= info
 
+WORKTREE ?= topic
+
+ifeq ($(BASE),latest)
+  base_branch = master
+  base_remote = upstream
+  worktree_id = $(WORKTREE).$(ID)
+else ifeq ($(BASE),21)
+  BOOT_JDK_VERSION = 21
+  base_branch = jdk21u-dev-master
+  base_remote = jdk21u-dev
+  worktree_id = $(WORKTREE).$(BASE).$(ID)
+endif
+
 ifdef JDK
   JDK_HOME = $(HOME)/1/$(JDK)
 endif
@@ -264,30 +277,19 @@ print-flags: $(java)
 > $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
 .PHONY: print-flags
 
-ifeq ($(WORKTREE_BASE),latest)
-  worktree_base_branch = master
-  worktree_base_branch = upstream
-else ifeq ($(WORKTREE_BASE),21)
-  worktree_base_branch = jdk21u-dev-master
-  worktree_base_remote = jdk21u-dev
-endif
-
 new-worktree:
 > cd $(HOME)/1/jdk
-> git fetch $(worktree_base_remote)
+> git fetch $(base_remote)
 > git pull
-> git worktree add -b topic.$(ID) ../jdk-$(ID) $(worktree_base_branch)
+> git worktree add -b $(worktree_id) ../jdk-$(worktree_id) $(base_branch)
 .PHONY: new-worktree
+
+checkout-worktree:
+> cd $(HOME)/1/jdk
+> git worktree add -b $(worktree_id) ../jdk-$(worktree_id) origin/$(worktree_id)
+.PHONY: checkout-worktree
 
 checkout-jdk:
 > mkdir -p $(HOME)/1
 > cd $(HOME)/1
 > git clone https://github.com/galderz/jdk
-
-checkout-topic:
-> cd $(HOME)/1/jdk
-> git worktree add -b topic.$(ID) ../jdk-$(ID) origin/topic.$(ID)
-
-checkout-backport:
-> cd $(HOME)/1/jdk
-> git worktree add -b backport.$(ID) ../jdk-$(ID) origin/backport.$(ID)
