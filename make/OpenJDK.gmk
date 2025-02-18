@@ -13,7 +13,7 @@ else ifeq ($(BASE),21)
   BOOT_JDK_VERSION = 21
   base_branch = jdk21u-dev-master
   base_remote = jdk21u-dev
-  worktree_id = $(WORKTREE).$(BASE).$(ID)
+  worktree_id = backport.$(BASE).$(ID)
 endif
 
 ifdef JDK
