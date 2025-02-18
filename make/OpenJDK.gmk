@@ -265,17 +265,17 @@ print-flags: $(java)
 .PHONY: print-flags
 
 ifeq ($(WORKTREE_BASE),latest)
-  worktree_branch = master
+  worktree_base_branch = master
 else ifeq ($(WORKTREE_BASE),21)
-  worktree_branch = jdk21u-dev-master
+  worktree_base_branch = jdk21u-dev-master
 endif
 
 new-worktree:
 > cd $(HOME)/1/jdk
-> git checkout $(worktree_branch)
+> git checkout $(worktree_base_branch)
 > git fetch upstream
 > git pull
-> git worktree add -b topic.$(ID) ../jdk-$(ID) master
+> git worktree add -b topic.$(ID) ../jdk-$(ID) $(worktree_base_branch)
 .PHONY: new-worktree
 
 checkout-jdk:
