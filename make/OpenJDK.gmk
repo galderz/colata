@@ -8,16 +8,20 @@ WORKTREE ?= topic
 ifeq ($(BASE),latest)
   base_branch = master
   base_remote = upstream
+  jdk_tree_name = jdk-$(worktree_id)
   worktree_id = $(WORKTREE).$(ID)
 else ifeq ($(BASE),21)
   BOOT_JDK_VERSION = 21
   base_branch = jdk21u-dev-master
   base_remote = jdk21u-dev
+  jdk_tree_name = jdk-$(BASE).$(ID)
   worktree_id = backport.$(BASE).$(ID)
 endif
 
 ifdef JDK
   JDK_HOME = $(HOME)/1/$(JDK)
+else
+  JDK_HOME = $(HOME)/1/$(jdk_tree_name)
 endif
 
 ant_home = $(opt)/ant
@@ -281,12 +285,12 @@ new-worktree:
 > cd $(HOME)/1/jdk
 > git fetch $(base_remote)
 > git pull
-> git worktree add -b $(worktree_id) ../jdk-$(worktree_id) $(base_branch)
+> git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
 .PHONY: new-worktree
 
 checkout-worktree:
 > cd $(HOME)/1/jdk
-> git worktree add -b $(worktree_id) ../jdk-$(worktree_id) origin/$(worktree_id)
+> git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
 .PHONY: checkout-worktree
 
 checkout-jdk:
