@@ -290,7 +290,7 @@ new-worktree:
 
 checkout-worktree:
 > cd $(HOME)/1/jdk
-> git fetch $(base_remote)
+> git fetch origin
 > git pull
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
 .PHONY: checkout-worktree
