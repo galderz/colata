@@ -272,7 +272,6 @@ endif
 
 new-worktree:
 > cd $(HOME)/1/jdk
-> git checkout $(worktree_base_branch)
 > git fetch upstream
 > git pull
 > git worktree add -b topic.$(ID) ../jdk-$(ID) $(worktree_base_branch)
