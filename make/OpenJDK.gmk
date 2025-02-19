@@ -105,7 +105,7 @@ build-hotspot: $(java)
 
 build-jdk:
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make
+> CONF=$(conf_name) LOG=$(BUILD_LOG) make -C
 > touch $(java)
 .PHONY: build-jdk
 
