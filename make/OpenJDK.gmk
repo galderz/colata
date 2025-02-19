@@ -42,6 +42,8 @@ jtreg_bin = $(jtreg_home)/bin/jtreg
 jtreg_opt = $(opt)/jtreg
 jtreg_home = $(jtreg_opt)/build/images/jtreg
 lldbinit = $(TOPDIR)/make/.lldbinit
+make += make
+make += -s
 modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
 os = $(shell uname | tr A-Z a-z)
 
@@ -90,7 +92,7 @@ $(java): $(shell find $(JDK_HOME)/test -type f -name '*pp')
 $(java): $(shell find $(JDK_HOME)/src -type f -name '*.ad')
 $(java):
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make hotspot
+> CONF=$(conf_name) LOG=$(BUILD_LOG) $(make) hotspot
 ifeq ($(UNAME_S),Linux)
 >  cp $(modules_libs_dir)/libjvm.so $(java_libs_dir)
 else ifeq ($(UNAME_S),Darwin)
@@ -105,19 +107,19 @@ build-hotspot: $(java)
 
 build-jdk:
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make -s
+> CONF=$(conf_name) LOG=$(BUILD_LOG) $(make) -s
 > touch $(java)
 .PHONY: build-jdk
 
 build-graal-builder-image:
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make graal-builder-image
+> CONF=$(conf_name) LOG=$(BUILD_LOG) $(make) graal-builder-image
 > touch $(java)
 .PHONY: build-graal-builder-image
 
 clean-jdk:
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) make clean
+> CONF=$(conf_name) $(make) clean
 .PHONY: clean-jdk
 
 configure: $(boot_jdk_java) $(jmh) $(capstone_lib) $(jtreg_bin) $(gtest_opt) $(autoconf)
@@ -174,7 +176,7 @@ boot-jdk: $(boot_jdk_java)
 
 compile-commands:
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make compile-commands
+> CONF=$(conf_name) $(make) compile-commands
 .PHONY: compile-commands
 
 clion:
@@ -217,39 +219,39 @@ test: build-jdk
 > cd $(JDK_HOME)
 > mkdir -p $(java_build_dir)/images/test
 > cp $(capstone_dylib) $(java_build_dir)/images/test || true
-> CONF=$(conf_name) make test TEST="$(TEST)"
+> CONF=$(conf_name) $(make) test TEST="$(TEST)"
 .PHONY: test
 
 micro: build-jdk
 > cd $(JDK_HOME)
 > mkdir -p $(java_build_dir)/images/test
 > cp $(capstone_dylib) $(java_build_dir)/images/test || true
-> CONF=$(conf_name) make test TEST="$(TEST)" MICRO="$(MICRO)"
+> CONF=$(conf_name) $(make) test TEST="$(TEST)" MICRO="$(MICRO)"
 .PHONY: micro
 
 micro-c1: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test TEST="$(TEST)" MICRO="JAVA_OPTIONS=-XX:TieredStopAtLevel=1"
+> CONF=$(conf_name) $(make) test TEST="$(TEST)" MICRO="JAVA_OPTIONS=-XX:TieredStopAtLevel=1"
 .PHONY: micro-c1
 
 test-all: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test TEST="hotspot_compiler hotspot_gc hotspot_serviceability hotspot_runtime tier1 tier2 tier3"
+> CONF=$(conf_name) $(make) test TEST="hotspot_compiler hotspot_gc hotspot_serviceability hotspot_runtime tier1 tier2 tier3"
 .PHONY: test-all
 
 test-tier1: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test TEST="tier1"
+> CONF=$(conf_name) $(make) test TEST="tier1"
 .PHONY: test-tier1
 
 test-hotspot-compiler: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test TEST="hotspot_compiler"
+> CONF=$(conf_name) $(make) test TEST="hotspot_compiler"
 .PHONY: test-hotspot-compiler
 
 test-hotspot-compiler-c1: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test TEST="hotspot_compiler" JTREG="JAVA_OPTIONS=-XX:TieredStopAtLevel=1"
+> CONF=$(conf_name) $(make) test TEST="hotspot_compiler" JTREG="JAVA_OPTIONS=-XX:TieredStopAtLevel=1"
 .PHONY: test-hotspot-compiler-c1-only
 
 jtreg_args += -ignore:quiet
