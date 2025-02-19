@@ -16,6 +16,8 @@ else ifeq ($(BASE),21)
   base_remote = jdk21u-dev
   jdk_tree_name = jdk-$(BASE).$(ID)
   worktree_id = backport.$(BASE).$(ID)
+else
+  jdk_tree_name = jdk-$(ID)
 endif
 
 ifdef JDK
