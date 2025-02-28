@@ -79,6 +79,13 @@ make[2]: *** [jdk.hotspot.agent-gensrc-src] Error 2
 make[2]: *** Waiting for unfinished jobs....
 ```
 
+The `MacOSX.sdk` folder should be resolved from the devkit root:
+
+```
+galder@m25:/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/ > find . -iname "MacOSX.sdk"
+./Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+```
+
 ### Next steps
 
 * Build with trace/detailed to see if there are more hints.
