@@ -78,3 +78,9 @@ make[3]: *** [/Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-
 make[2]: *** [jdk.hotspot.agent-gensrc-src] Error 2
 make[2]: *** Waiting for unfinished jobs....
 ```
+
+### Next steps
+
+* Build with trace/detailed to see if there are more hints.
+* Find out where the `apple-sdk-11.3` dependency is coming from.
+* See if there's a way to exclude that dependency and see how things behave.
