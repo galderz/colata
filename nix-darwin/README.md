@@ -122,7 +122,7 @@ dr-xr-xr-x  6 root nixbld 192 Jan  1  1970 usr
 
 No references to `/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3` in the command line, but the `env` shows:
 
-``
+```
 DEVELOPER_DIR=/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3
 ```
 
