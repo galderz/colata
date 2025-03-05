@@ -214,3 +214,29 @@ fi
 ```
 
 Maybe I need/can set `MIGCC` and avoid that path? Any other solution?
+
+I'm unsure the error that makes it stop, but the execution ends with:
+
+```
++ case "$1" in
++ file=/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
++ shift
+++ basename /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs .defs
++ base=mach_exc
++ temp=/private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557
+++ dirname /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
++ sourcedir=/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach
++ '[' -n /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk ']'
++ iSysRootParm=("-isysroot" "${sdkRoot}")
++ '[' '!' -r /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs ']'
++ rm -f /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.c /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.d
++ echo '#line 1 "/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs"'
++ cat /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
++ '' -E -arch arm64 -D__MACH30__ -I /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.c
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig: line 171: : command not found
++ /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/migcom -server /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excServer.c -user /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excUser.c -header /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_exc.h
+mig: fatal: "<no name yet>", line -1: no SubSystem declaration
++ '[' 1 -ne 0 ']'
++ rm -rf /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.c /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.d /private/tmp/nix-shell-61851-0/mig.AxdU6X
++ exit 1
+```
