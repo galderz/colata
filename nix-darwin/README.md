@@ -248,3 +248,25 @@ $ /nix/store/prpzadksziwxb1w7x9y57iqnai22ybbx-xcbuild-0.1.1-unstable-2019-11-20-
 warning: unhandled Platform key FamilyDisplayName
 error: unable to find sdk: '/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk'
 ```
+
+Also, the command not found error is coming from:
+
+```bash
+"$C" -E -arch ${arch} "${target[@]}" "${cppflags[@]}" -I "${sourcedir}" "${iSysRootParm[@]}" "${temp}.c" | "$M" "${migflags[@]}"
+```
+
+In the debug run it shows as:
+
+```bash
++ '' -E -arch arm64 -D__MACH30__ -I /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.c
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig: line 171: : command not found
+```
+
+It's failing to resolve `$C`. Which `$C` should it be using here?
+
+```bash
+$ which cc
+/usr/bin/cc
+```
+
+That doesn't look like the right C compiler.
