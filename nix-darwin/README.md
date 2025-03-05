@@ -273,19 +273,151 @@ That doesn't look like the right C compiler.
 
 Switched from `pkgs.mkShellNoCC` to `pkgs.mkShell` and then:
 
-```
+```bash
 $ export MIGCC=/nix/store/0jd4fjnnrfz0dfxbc5lgfyxjfay73i77-clang-wrapper-19.1.7/bin/cc
 ```
 
 And now the following command runs fine:
 
-```
+```bash
 $ /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk -server /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excServer.c -user /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excUser.c -header /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_exc.h /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
 ```
 
-It works!
-
+The build works fine now:
+```bash
+[nix-shell:~/1/colata/nix-darwin]$ pushd jdk && make
+Building target 'default (exploded-image)' in configuration 'macosx-aarch64-server-release'
+Compiling up to 1 files for jdk.jdwp.agent
+Compiling up to 53 files for jdk.incubator.vector
+Compiling up to 27 files for jdk.management
+Compiling up to 4 files for jdk.jsobject
+Compiling up to 1545 files for jdk.localedata
+Compiling up to 26 files for jdk.sctp
+Compiling up to 3 files for jdk.nio.mapmode
+Compiling up to 9 files for jdk.net
+Compiling up to 94 files for jdk.xml.dom
+Compiling up to 9 files for jdk.unsupported
+Compiling up to 301 files for jdk.jfr
+Compiling up to 18 files for java.prefs
+Compiling up to 118 files for jdk.internal.le
+Compiling up to 30 files for java.security.sasl
+Compiling up to 77 files for java.sql
+Compiling up to 15 files for jdk.attach
+Compiling up to 368 files for jdk.compiler
+Compiling up to 105 files for java.rmi
+Compiling up to 272 files for java.xml.crypto
+Compiling up to 1 files for jdk.graal.compiler
+Compiling up to 67 files for jdk.dynalink
+Compiling up to 1 files for jdk.graal.compiler.management
+Compiling up to 28 files for jdk.jartool
+Compiling up to 204 files for java.naming
+Compiling up to 40 files for jdk.jcmd
+Compiling up to 254 files for jdk.jdi
+Compiling up to 11 files for jdk.jstatd
+Creating support/modules_libs/java.base/libverify.dylib from 1 file(s)
+Creating support/modules_libs/java.base/libjava.dylib from 66 file(s)
+Creating support/modules_libs/java.base/libzip.dylib from 20 file(s)
+Creating support/modules_libs/java.base/libjimage.dylib from 6 file(s)
+Creating support/modules_libs/java.base/libjli.dylib from 15 file(s)
+Creating support/modules_libs/java.base/libnet.dylib from 14 file(s)
+Creating support/modules_libs/java.base/libnio.dylib from 24 file(s)
+Creating support/modules_libs/java.base/libosxsecurity.dylib from 1 file(s)
+Creating support/modules_libs/java.base/libjsig.dylib from 1 file(s)
+Creating support/modules_libs/java.base/libsyslookup.dylib from 1 file(s)
+Compiling up to 15 files for jdk.management.jfr
+Compiling up to 16 files for java.management.rmi
+Compiling up to 211 files for java.security.jgss
+Compiling up to 16 files for jdk.naming.dns
+Compiling up to 8 files for jdk.naming.rmi
+Compiling up to 56 files for java.sql.rowset
+Compiling up to 30 files for jdk.management.agent
+Compiling up to 16 files for jdk.security.jgss
+Compiling up to 30 files for jdk.security.auth
+Compiling up to 145 files for jdk.internal.md
+Compiling up to 144 files for jdk.jdeps
+Compiling up to 2715 files for java.desktop
+Compiling up to 102 files for jdk.jshell
+Compiling up to 213 files for jdk.javadoc
+Compiling up to 95 files for jdk.jlink
+Creating support/modules_libs/java.prefs/libprefs.dylib from 1 file(s)
+Creating support/modules_libs/java.instrument/libinstrument.dylib from 12 file(s)
+Creating support/modules_cmds/java.rmi/rmiregistry from 1 file(s)
+Creating support/modules_libs/java.rmi/librmi.dylib from 1 file(s)
+Creating support/modules_libs/jdk.attach/libattach.dylib from 1 file(s)
+Creating support/modules_libs/java.smartcardio/libj2pcsc.dylib from 2 file(s)
+Creating support/modules_cmds/java.scripting/jrunscript from 1 file(s)
+Creating support/modules_cmds/jdk.hotspot.agent/jhsdb from 1 file(s)
+Creating support/modules_libs/java.management/libmanagement.dylib from 9 file(s)
+Creating support/modules_libs/java.security.jgss/libj2gss.dylib from 3 file(s)
+Creating support/modules_cmds/jdk.compiler/javac from 1 file(s)
+Creating support/modules_libs/java.security.jgss/libosxkrb5.dylib from 2 file(s)
+Creating support/modules_libs/jdk.crypto.cryptoki/libj2pkcs11.dylib from 14 file(s)
+Creating support/modules_cmds/jdk.compiler/serialver from 1 file(s)
+Creating support/modules_cmds/java.base/java from 1 file(s)
+Creating support/modules_cmds/java.base/keytool from 1 file(s)
+Creating support/modules_libs/java.base/jspawnhelper from 1 file(s)
+Creating support/modules_cmds/jdk.httpserver/jwebserver from 1 file(s)
+Creating support/modules_cmds/jdk.javadoc/javadoc from 1 file(s)
+Creating support/modules_cmds/jdk.jartool/jar from 1 file(s)
+Creating support/modules_cmds/jdk.jartool/jarsigner from 1 file(s)
+Creating support/modules_libs/jdk.management.agent/libmanagement_agent.dylib from 1 file(s)
+Creating support/modules_libs/jdk.management/libmanagement_ext.dylib from 8 file(s)
+Creating support/modules_cmds/jdk.jconsole/jconsole from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jinfo from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jmap from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jps from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jstack from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jstat from 1 file(s)
+Creating support/modules_cmds/jdk.jcmd/jcmd from 1 file(s)
+Creating support/modules_cmds/jdk.jdeps/javap from 1 file(s)
+Creating support/modules_cmds/jdk.jdeps/jdeps from 1 file(s)
+Creating support/modules_cmds/jdk.jdeps/jdeprscan from 1 file(s)
+Creating support/modules_cmds/jdk.jdeps/jnativescan from 1 file(s)
+Creating support/modules_cmds/jdk.jdi/jdb from 1 file(s)
+Creating support/modules_libs/jdk.jdwp.agent/libdt_socket.dylib from 2 file(s)
+Creating support/modules_libs/jdk.jdwp.agent/libjdwp.dylib from 43 file(s)
+Creating support/modules_cmds/jdk.jfr/jfr from 1 file(s)
+Creating support/modules_cmds/jdk.jpackage/jpackage from 1 file(s)
+Creating support/modules_cmds/jdk.jlink/jimage from 1 file(s)
+Creating support/modules_cmds/jdk.jlink/jlink from 1 file(s)
+Creating support/modules_cmds/jdk.jshell/jshell from 1 file(s)
+Creating support/modules_cmds/jdk.jlink/jmod from 1 file(s)
+Creating support/modules_cmds/jdk.jstatd/jstatd from 1 file(s)
+Creating support/modules_libs/jdk.net/libextnet.dylib from 1 file(s)
+Creating support/modules_libs/jdk.security.auth/libjaas.dylib from 1 file(s)
+Compiling up to 68 files for COMPILE_CREATE_SYMBOLS
+Compiling up to 1 files for java.se
+Compiling up to 8 files for jdk.unsupported.desktop
+Compiling up to 18 files for jdk.accessibility
+Compiling up to 3 files for jdk.editpad
+Compiling up to 64 files for jdk.jconsole
+Compiling up to 69 files for jdk.jpackage
+Compiling up to 904 files for jdk.hotspot.agent
+Creating jdk/modules/jdk.jpackage/jdk/jpackage/internal/resources/jpackageapplauncher from 16 file(s)
+Creating support/modules_libs/java.desktop/libawt.dylib from 70 file(s)
+Creating support/modules_libs/java.desktop/libawt_lwawt.dylib from 126 file(s)
+Creating support/modules_libs/java.desktop/libosxapp.dylib from 6 file(s)
+Creating support/modules_libs/java.desktop/libjawt.dylib from 1 file(s)
+Creating support/modules_libs/java.desktop/libmlib_image.dylib from 50 file(s)
+Creating support/modules_libs/java.desktop/liblcms.dylib from 27 file(s)
+Creating support/modules_libs/java.desktop/libjavajpeg.dylib from 46 file(s)
+Creating support/modules_libs/java.desktop/libsplashscreen.dylib from 81 file(s)
+Creating support/modules_libs/java.desktop/libfreetype.dylib from 106 file(s)
+Creating support/modules_libs/java.desktop/libfontmanager.dylib from 61 file(s)
+Creating support/modules_libs/java.desktop/libosxui.dylib from 7 file(s)
+Creating support/modules_libs/java.desktop/libjsound.dylib from 17 file(s)
+Creating support/modules_libs/java.desktop/libosx.dylib from 1 file(s)
+Compiling up to 4 files for COMPILE_CREATE_SYMBOLS
+Creating support/modules_libs/jdk.hotspot.agent/libsaproc.dylib from 8 file(s)
+Creating ct.sym classes
+Compiling up to 4 files for BUILD_JIGSAW_TOOLS
+Optimizing the exploded image
+Stopping javac server
+Finished building target 'default (exploded-image)' in configuration 'macosx-aarch64-server-release'
 ```
+
+And the `java` binary behaves as expected:
+```bash
 [nix-shell:~/1/colata/nix-darwin]$ ./jdk/build/macosx-aarch64-server-release/jdk/bin/java --version
 openjdk 25-internal 2025-09-16
 OpenJDK Runtime Environment (build 25-internal-adhoc.galder.jdk)
