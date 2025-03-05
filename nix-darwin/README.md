@@ -240,3 +240,11 @@ mig: fatal: "<no name yet>", line -1: no SubSystem declaration
 + rm -rf /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.c /private/tmp/nix-shell-61851-0/mig.AxdU6X/mach_exc.62557.d /private/tmp/nix-shell-61851-0/mig.AxdU6X
 + exit 1
 ```
+
+I've also tried running with `xcrun` added by nix but that doesn't work either:
+
+```
+$ /nix/store/prpzadksziwxb1w7x9y57iqnai22ybbx-xcbuild-0.1.1-unstable-2019-11-20-xcrun/bin/xcrun -sdk /nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -find cc
+warning: unhandled Platform key FamilyDisplayName
+error: unable to find sdk: '/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk'
+```
