@@ -81,14 +81,14 @@ make[2]: *** Waiting for unfinished jobs....
 
 The `MacOSX.sdk` folder should be resolved from the devkit root:
 
-```
+```bash
 galder@m25:/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/ > find . -iname "MacOSX.sdk"
 ./Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
 ```
 
 Running command individually:
 
-```
+```bash
 [nix-shell:~/1/colata/nix-darwin]$ /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk -server /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excServer.c -user /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excUser.c -header /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_exc.h /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
 /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig: line 171: error: unable to find sdk: '/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk': No such file or directory
 mig: fatal: "<no name yet>", line -1: no SubSystem declaration
@@ -96,7 +96,7 @@ mig: fatal: "<no name yet>", line -1: no SubSystem declaration
 
 `ls` for different folders:
 
-```
+```bash
 [nix-shell:~/1/colata/nix-darwin]$ ls -al /nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/
 total 16
 dr-xr-xr-x 7 root nixbld  224 Jan  1  1970 .
@@ -122,14 +122,64 @@ dr-xr-xr-x  6 root nixbld 192 Jan  1  1970 usr
 
 No references to `/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3` in the command line, but the `env` shows:
 
-```
+```bash
 DEVELOPER_DIR=/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3
 ```
 
 I wonder if `DEVELOPER_DIR` needs to be overriden to point to `/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer`.
 
-### Next steps
+```bash
+$ export DEVELOPER_DIR=${DEVKIT_ROOT}/Xcode.app/Contents/Developer
+$ echo $DEVELOPER_DIR
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode.app/Contents/Developer
+```
 
-* Build with trace/detailed to see if there are more hints.
-* Find out where the `apple-sdk-11.3` dependency is coming from.
-* See if there's a way to exclude that dependency and see how things behave.
+Then I get issues locating `xcodebuild`:
+
+```bash
+$ /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk -server /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excServer.c -user /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excUser.c -header /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_exc.h /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
+xcrun: error: unable to locate xcodebuild, please make sure the path to the Xcode folder is set correctly!
+xcrun: error: You can set the path to the Xcode folder using /usr/bin/xcode-select -switch
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig: line 171: : command not found
+mig: fatal: "<no name yet>", line -1: no SubSystem declaration
+```
+
+Looking at the path I see `xcodebuild` is still pointing to the one in `/usr/bin`:
+
+```bash
+$ which xcodebuild
+/usr/bin/xcodebuild
+```
+
+The devkit has got an `xcodebuild` so I tried to set `PATH` to that:
+
+```bash
+[nix-shell:/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode.app/Contents/Developer/usr/bin]$ ls
+2to3		  actool		  convertRichTextToAscii	   g++		    ibtool	       lldb	       pip3.9		 safari-web-extension-converter  stapler     xcindex-test
+2to3-3.9	  agvtool		  copySceneKitAssets		   gamepolicyctl    ibtool3	       lldb-dap        placeholderutil	 sample				 stringdups  xcodebuild
+DeRez		  altool		  copypng			   gatherheaderdoc  ibtoold	       logdump	       pngcrush		 scalar				 swinfo      xcresulttool
+GetFileInfo	  amlint		  coremlc			   gcc		    ictool	       make	       pydoc3		 scntool			 symbols     xcsigningtool
+ResMerger	  appleProductTypesTool   crashlog			   genstrings	    instrumentbuilder  malloc_history  pydoc3.9		 sdef				 vmmap	     xcstringstool
+Rez		  atos			  desdp				   gnumake	    intentbuilderc     mapc	       python3		 sdp				 xarsigner   xctest
+SetFile		  backgroundassets-debug  devicectl			   hdxml2manxml     ipatool	       momc	       python3.9	 simctl				 xccov	     xctrace
+SplitForks	  bitcode-build-tool	  embeddedBinaryValidationUtility  headerdoc2html   iphoneos-optimize  notarytool      realitytool	 ssu-cli			 xcdebug     xed
+TextureAtlas	  cktool		  extractLocStrings		   heap		    ld		       opendiff        referenceobjectc  ssu-cli-app			 xcdevice    xml2man
+TextureConverter  compileSceneKitShaders  filtercalltree		   iTMSTransporter  leaks	       pip3	       resolveLinks	 ssu-cli-nlu			 xcdiagnose
+
+$ export PATH=/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode.app/Contents/Developer/usr/bin:$PATH
+
+$ which xcodebuild
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode.app/Contents/Developer/usr/bin/xcodebuild
+```
+
+But the same error happens:
+
+```bash
+$ /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig -isysroot /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk -server /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excServer.c -user /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_excUser.c -header /Users/galder/1/colata/nix-darwin/jdk/build/macosx-aarch64-server-release/support/gensrc/jdk.hotspot.agent/mach_exc.h /nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.sdk/usr/include/mach/mach_exc.defs
+xcrun: error: unable to locate xcodebuild, please make sure the path to the Xcode folder is set correctly!
+xcrun: error: You can set the path to the Xcode folder using /usr/bin/xcode-select -switch
+/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/mig: line 171: : command not found
+mig: fatal: "<no name yet>", line -1: no SubSystem declaration
+```
+
+A message pops up saying: `“Xcode.app” is damaged and can’t be opened.`
