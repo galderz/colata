@@ -183,3 +183,34 @@ mig: fatal: "<no name yet>", line -1: no SubSystem declaration
 ```
 
 A message pops up saying: `“Xcode.app” is damaged and can’t be opened.`
+
+I've run with `sh -x` and I see:
+
+```
++ '[' -n /nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk ']'
++ sdkRoot=/nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
++ '[' -z '' ']'
++ xcrunPath=/usr/bin/xcrun
++ '[' -x /usr/bin/xcrun ']'
+++ /usr/bin/xcrun -sdk /nix/store/lsjl29pwp5if71jfgxlv8fifsrpax805-apple-sdk-11.3/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -find cc
+xcrun: error: unable to locate xcodebuild, please make sure the path to the Xcode folder is set correctly!
+xcrun: error: You can set the path to the Xcode folder using /usr/bin/xcode-select -switch
++ MIGCC=
++ C=
++ M=/nix/store/vhsix1jn849mpxggwbw2zh1nbxpy0grc-Xcode16.2-MacOSX15/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/migcom
+```
+
+The `mig` script hardcodes using `/usr/bin/xcrun`, not sure how
+
+```bash
+if [ -z "${MIGCC}" ]; then
+  xcrunPath="/usr/bin/xcrun"
+  if [ -x "${xcrunPath}" ]; then
+    MIGCC=`"${xcrunPath}" -sdk "$sdkRoot" -find cc`
+  else
+    MIGCC=$(realpath "${scriptRoot}/cc")
+  fi
+fi
+```
+
+Maybe I need/can set `MIGCC` and avoid that path? Any other solution?
