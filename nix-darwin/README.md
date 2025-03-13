@@ -1,5 +1,10 @@
 # Building OpenJDK for Darwin with Nix packages
 
+## TODOS
+
+* Why do you need to depend on clang? devkit already has it
+* Depend on termurin-bin rather than jdk23, which brings zulu instead
+
 ## Useful links
 
 https://github.com/NixOS/nixpkgs/blob/master/doc/stdenv/platform-notes.chapter.md
