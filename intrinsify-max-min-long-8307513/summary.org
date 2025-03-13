@@ -1,0 +1,2190 @@
+#+STARTUP: overview
+#+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
+
+* 27.2.25
+#+begin_src bash
+static java.util.Arrays::copyOfRange([BII)[B
+  73 invokestatic 304 <java/lang/Math.min(II)I>
+  416  bci: 73   CounterData        count(6878)
+
+java.io.ObjectOutputStream$BlockDataOutputStream::write([BIIZ)V
+  107 invokestatic 64 <java/lang/Math.min(II)I>
+  488  bci: 107  CounterData        count(3611)
+
+sun.nio.ch.NioSocketImpl::write([BII)V
+  41 invokestatic 255 <java/lang/Math.min(II)I>
+  128  bci: 41   CounterData        count(3623)
+
+sun.nio.cs.UTF_8$Encoder::encodeArrayLoop(Ljava/nio/CharBuffer;Ljava/nio/ByteBuffer;)Ljava/nio/charset/CoderResult;
+  75 invokestatic 62 <java/lang/Math.min(II)I>
+  480  bci: 75   CounterData        count(3599)
+
+sun.nio.cs.StreamEncoder::growByteBufferIfNeeded(I)V
+  34 invokestatic 252 <java/lang/Math.min(II)I>
+  144  bci: 34   CounterData        count(3597)
+#+end_src
+* 26.2.25
+** Lists
+Regressions:
+
+1) Given loops with a long min/max reduction pattern with one side of branch taken ~100 of time
+   , when Supeword finds the pattern not profitable
+   , then they will use scalar instructions (cmov) and they will regress.
+   Solution: make Superword profitable in these scenarios.
+
+2) Given loops with a long min/max reduction pattern with one side of branch taken ~100 of time
+   , when the platform does not support vector instructions to achieve this (e.g. AVX-512 quad word vpmax/vpmin)
+   , then they will use scalar instructions (cmov) and they will regress.
+   Solutions:
+   a) find a way to use other vector instructions (vpcmp+vpblend+vmov?)
+   b) fallback on more suitable scalar instructions, e.g. cmp+mov, when the branch is very one-sided
+
+3) Given loops with a long min/max non-reduction pattern (e.g. longLoopMax) with one side of branch taken ~100 of time
+   , when the platform does not vectorize it (either lack of CPU instruction support, or Superword finding not profitable)
+   , then they will use scalar instructions (cmov) and they will regress.
+   Solutions:
+   a) fallback on more suitable scalar instructions, e.g. cmp+mov, when the branch is very one-sided
+   b) find a way to use other vector instructions (e.g. longLoopMax vectorizes with AVX2)
+
+3) longLoopMax with avx2 improves
+   longLoopMax -maxL decreases
+   what makes avx2 work compared with -maxL?
+   it works because of vcmp+vblend+vmovd
+** longLoopMax -maxL vs avx2
+*** perfasm
+**** -maxL
+#+begin_src bash
+   0.03%  ││           │ ↗  ││    0x00007f4c680f8b2c:   movq		0x10(%rax, %rsi, 8), %r11;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││           │ │  ││                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@20 (line 256)
+          ││           │ │  ││                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+          ││           │ │  ││    0x00007f4c680f8b31:   movq		0x10(%r8, %rsi, 8), %r9;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││           │ │  ││                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@26 (line 256)
+          ││           │ │  ││                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+   0.04%  ││           │ │  ││    0x00007f4c680f8b36:   cmpq		%r9, %r11
+          ││           │╭│  ││    0x00007f4c680f8b39:   jl		0x7f4c680f8c6b      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││           │││  ││                                                              ; - java.lang.Math::max@11 (line 2038)
+          ││           │││  ││                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@27 (line 256)
+          ││           │││  ││                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** avx2
+#+begin_src bash
+   4.73%  │    │   ││││  0x00007fb2300f8781:   vpcmpgtq		%ymm6, %ymm5, %ymm11
+   3.21%  │    │   ││││  0x00007fb2300f8786:   vblendvpd		%ymm11, %ymm5, %ymm6, %ymm11
+   8.17%  │    │   ││││  0x00007fb2300f878c:   vmovdqu		%ymm11, 0xf0(%rax, %r10, 8)
+          │    │   ││││                                                            ;*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │    │   ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@30 (line 256)
+          │    │   ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** raw data
+#+begin_src bash
+Benchmark                 (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longLoopMax            100    2048  thrpt    4  511.978 ± 0.065  ops/ms -maxL
+MinMaxVector.longLoopMax            100    2048  thrpt    4  949.648 ± 9.657  ops/ms avx2
+MinMaxVector.longLoopMin            100    2048  thrpt    4  537.229 ± 1.025  ops/ms -maxL
+MinMaxVector.longLoopMin            100    2048  thrpt    4  871.747 ± 5.949  ops/ms avx2
+#+end_src
+#+begin_src bash
+longLoopMax-avx2-disable-instrinsic-100.log:77:MinMaxVector.longLoopMax            100    2048  thrpt    4  511.978 ± 0.065  ops/ms
+longLoopMax-avx2-disable-instrinsic-100.log:166:MinMaxVector.longLoopMax            100    2048  thrpt    4  949.648 ± 9.657  ops/ms
+longLoopMax-avx2-disable-instrinsic-100.log:255:MinMaxVector.longLoopMin            100    2048  thrpt    4  537.229 ± 1.025  ops/ms
+longLoopMax-avx2-disable-instrinsic-100.log:344:MinMaxVector.longLoopMin            100    2048  thrpt    4  871.747 ± 5.949  ops/ms
+#+end_src
+** PR comment
+The probabilities are fine.
+
+I think the issue with Math.min(II) seems to be specific to when its compilation happens,
+and the fact that the intrinsic has been disabled.
+
+In the slow cases it appears the compilation happens before the benchmark kicks in,
+and so it takes the profiling data before the benchmark to decide how to compile this in.
+
+In the slow versions you see this `PrintMethodData`:
+```
+static java.lang.Math::min(II)I
+  interpreter_invocation_count:       18171
+  invocation_counter:                 18171
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 328 bytes
+
+   0 iload_0
+   1 iload_1
+   2 if_icmpgt 9
+  0    bci: 2    BranchData         taken(7732) displacement(56)
+                                    not taken(10180)
+   5 iload_0
+   6 goto 10
+  32   bci: 6    JumpData           taken(10180) displacement(24)
+   9 iload_1
+  10 ireturn
+
+org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin(Lorg/openjdk/bench/java/lang/MinMaxVector$LoopState;)I
+  interpreter_invocation_count:         189
+  invocation_counter:                   189
+  backedge_counter:                  313344
+  decompile_count:                        0
+  mdo size: 384 bytes
+
+   0 iconst_0
+   1 istore_2
+   2 iconst_0
+   3 istore_3
+   4 iload_3
+   5 aload_1
+   6 fast_igetfield 35 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.size:I>
+   9 if_icmpge 33
+  0    bci: 9    BranchData         taken(58) displacement(72)
+                                    not taken(192512)
+  12 aload_1
+  13 fast_agetfield 41 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.minIntA:[I>
+  16 iload_3
+  17 iaload
+  18 istore #4
+  20 iload_2
+  21 fast_iload #4
+  23 invokestatic 32 <java/lang/Math.min(II)I>
+  32   bci: 23   CounterData        count(192512)
+  26 istore_2
+  27 iinc #3 1
+  30 goto 4
+  48   bci: 30   JumpData           taken(192512) displacement(-48)
+  33 iload_2
+  34 ireturn
+```
+
+The benchmark method calls Math.min `192_512` times, yet the method data shows only `18_171` invocations,
+of which `7_732` are taken which is 42%.
+So it gets compiled with a cmov and the benchmark will be slow because it will branch 100% one of the sides.
+
+In the fast version, `PrintMethodData` looks like this:
+
+```
+static java.lang.Math::min(II)I
+  interpreter_invocation_count:     1575322
+  invocation_counter:               1575322
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 368 bytes
+
+   0 iload_0
+   1 iload_1
+   2 if_icmpgt 9
+  0    bci: 2    BranchData         taken(1418001) displacement(56)
+                                    not taken(157062)
+   5 iload_0
+   6 goto 10
+  32   bci: 6    JumpData           taken(157062) displacement(24)
+   9 iload_1
+  10 ireturn
+
+org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin(Lorg/openjdk/bench/java/lang/MinMaxVector$LoopState;)I
+  interpreter_invocation_count:         858
+  invocation_counter:                   858
+  backedge_counter:                 1756214
+  decompile_count:                        0
+  mdo size: 424 bytes
+
+   0 iconst_0
+   1 istore_2
+   2 iconst_0
+   3 istore_3
+   4 iload_3
+   5 aload_1
+   6 fast_igetfield 35 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.size:I>
+   9 if_icmpge 33
+  0    bci: 9    BranchData         taken(733) displacement(72)
+                                    not taken(1637363)
+  12 aload_1
+  13 fast_agetfield 41 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.minIntA:[I>
+  16 iload_3
+  17 iaload
+  18 istore #4
+  20 iload_2
+  21 fast_iload #4
+  23 invokestatic 32 <java/lang/Math.min(II)I>
+  32   bci: 23   CounterData        count(1637363)
+  26 istore_2
+  27 iinc #3 1
+  30 goto 4
+  48   bci: 30   JumpData           taken(1637363) displacement(-48)
+  33 iload_2
+  34 ireturn
+```
+
+The benchmark method calls Math.min `1_637_363` times, and the method data shows `1_575_322` invocations,
+of which `1_418_001` are taken which is 90%.
+So no cmov is introduced and the benchmark will be fast because it will branch 100% one of the sides.
+
+A factor here might be my Xeon machine.
+I run the benchmar on a 4 core VM inside it,
+so given the limited resources compilation can take longer.
+I've noticed that it's easier to replicate this scenario there rather than my M1 laptop,
+which has 10 cores.
+** fast PrintMethodData
+Min calls from benchmarked method:
+Count:     1637363
+
+Count:     1575322
+Taken:     1418001 (90%)
+Not taken:  157062 (10%)
+#+begin_src bash
+TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMin"  MICRO="FORK=1;OPTIONS=-p probability=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_min -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+PrintMethodData -v EXTRA" BUILD_LOG=warn make micro
+
+CONF=fast-darwin-arm64 make -s test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMin" MICRO="FORK=1;OPTIONS=-p probability=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_min -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+PrintMethodData -v EXTRA"
+
+static java.lang.Math::min(II)I
+  interpreter_invocation_count:     1575322
+  invocation_counter:               1575322
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 368 bytes
+
+   0 iload_0
+   1 iload_1
+   2 if_icmpgt 9
+  0    bci: 2    BranchData         taken(1418001) displacement(56)
+                                    not taken(157062)
+   5 iload_0
+   6 goto 10
+  32   bci: 6    JumpData           taken(157062) displacement(24)
+   9 iload_1
+  10 ireturn
+
+org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin(Lorg/openjdk/bench/java/lang/MinMaxVector$LoopState;)I
+  interpreter_invocation_count:         858
+  invocation_counter:                   858
+  backedge_counter:                 1756214
+  decompile_count:                        0
+  mdo size: 424 bytes
+
+   0 iconst_0
+   1 istore_2
+   2 iconst_0
+   3 istore_3
+   4 iload_3
+   5 aload_1
+   6 fast_igetfield 35 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.size:I>
+   9 if_icmpge 33
+  0    bci: 9    BranchData         taken(733) displacement(72)
+                                    not taken(1637363)
+  12 aload_1
+  13 fast_agetfield 41 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.minIntA:[I>
+  16 iload_3
+  17 iaload
+  18 istore #4
+  20 iload_2
+  21 fast_iload #4
+  23 invokestatic 32 <java/lang/Math.min(II)I>
+  32   bci: 23   CounterData        count(1637363)
+  26 istore_2
+  27 iinc #3 1
+  30 goto 4
+  48   bci: 30   JumpData           taken(1637363) displacement(-48)
+  33 iload_2
+  34 ireturn
+
+Benchmark                           (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.intReductionSimpleMin            100    2048  thrpt    4  2206.262 ? 32.815  ops/ms
+#+end_src
+** slow PrintMethodData
+Min calls from benchmarked method:
+Count:    192512
+
+Count:     18171
+Taken:      7732 (42%)
+Not taken: 10180 (56%)
+#+begin_src bash
+$ TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMin"  MICRO="FORK=1;OPTIONS=-p probability=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_min -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+PrintMethodData -v EXTRA" BUILD_LOG=warn CONF=release make micro
+
+CONF=release-darwin-arm64 make -s test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMin" MICRO="FORK=1;OPTIONS=-p probability=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_min -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+PrintMethodData -v EXTRA"
+
+static java.lang.Math::min(II)I
+  interpreter_invocation_count:       18171
+  invocation_counter:                 18171
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 328 bytes
+
+   0 iload_0
+   1 iload_1
+   2 if_icmpgt 9
+  0    bci: 2    BranchData         taken(7732) displacement(56)
+                                    not taken(10180)
+   5 iload_0
+   6 goto 10
+  32   bci: 6    JumpData           taken(10180) displacement(24)
+   9 iload_1
+  10 ireturn
+
+org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin(Lorg/openjdk/bench/java/lang/MinMaxVector$LoopState;)I
+  interpreter_invocation_count:         189
+  invocation_counter:                   189
+  backedge_counter:                  313344
+  decompile_count:                        0
+  mdo size: 384 bytes
+
+   0 iconst_0
+   1 istore_2
+   2 iconst_0
+   3 istore_3
+   4 iload_3
+   5 aload_1
+   6 fast_igetfield 35 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.size:I>
+   9 if_icmpge 33
+  0    bci: 9    BranchData         taken(58) displacement(72)
+                                    not taken(192512)
+  12 aload_1
+  13 fast_agetfield 41 <org/openjdk/bench/java/lang/MinMaxVector$LoopState.minIntA:[I>
+  16 iload_3
+  17 iaload
+  18 istore #4
+  20 iload_2
+  21 fast_iload #4
+  23 invokestatic 32 <java/lang/Math.min(II)I>
+  32   bci: 23   CounterData        count(192512)
+  26 istore_2
+  27 iinc #3 1
+  30 goto 4
+  48   bci: 30   JumpData           taken(192512) displacement(-48)
+  33 iload_2
+  34 ireturn
+
+Benchmark                           (probability)  (size)   Mode  Cnt    Score    Error   Units
+MinMaxVector.intReductionSimpleMin            100    2048  thrpt    4  775.424 ? 85.717  ops/ms
+#+end_src
+* 25.2.25
+** compared darwin/m1
+#+begin_src bash
+Benchmark                           (probability)  (size)   Mode  Cnt      -min     +min    Units
+MinMaxVector.intReductionMultiplyMin          100    2048  thrpt    4   772.772   767.588  ops/ms
+MinMaxVector.intReductionSimpleMin            100    2048  thrpt    4  2179.544   762.251  ops/ms
+#+end_src
+** raw data darwin/m1
+#+begin_src bash
+Benchmark                           (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.intReductionMultiplyMin          100    2048  thrpt    4   772.772 ? 49.731  ops/ms
+MinMaxVector.intReductionSimpleMin            100    2048  thrpt    4  2179.544 ? 365.007  ops/ms
+MinMaxVector.intReductionMultiplyMin          100    2048  thrpt    4   767.588 ? 63.335  ops/ms
+MinMaxVector.intReductionSimpleMin            100    2048  thrpt    4   762.251 ? 129.054  ops/ms
+#+end_src
+* 20.2.25
+** MinMaxVector reduction 100 scalar
+*** PR comment
+**** intReductionMultiplyMin
+***** -min
+#+begin_src asm
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_min -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.intReductionMultiplyMin
+# Parameters: (probability = 100, size = 2048)
+...
+   2.29%  │││    │   0x00007f4aa40f5835:   cmpl		%edi, %r10d
+   4.25%  │││    │   0x00007f4aa40f5838:   cmovgl		%edi, %r10d         ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - java.lang.Math::min@10 (line 2119)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +min
+#+begin_src asm
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.intReductionMultiplyMin
+# Parameters: (probability = 100, size = 2048)
+...
+   2.06%  │││    │   0x00007ff8ec0f4c35:   cmpl		%edi, %r10d
+   4.31%  │││    │   0x00007ff8ec0f4c38:   cmovgl		%edi, %r10d         ;*invokestatic min {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** longReductionMultiplyMin
+***** -min
+#+begin_src asm
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_minL -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMin
+# Parameters: (probability = 100, size = 2048)
+...
+   0.01%  │            │   ││ │ ││  0x00007ff9d80f7609:   imulq		$0xb, 0x10(%r12, %r10, 8), %rbp
+          │            │   ││ │ ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          │            │   ││ │ ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMin@24 (line 265)
+          │            │   ││ │ ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMin_jmhTest::longReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+          │            │   ││ │ ││  0x00007ff9d80f760f:   testq		%rbp, %rbp
+          │            │   ││╭│ ││  0x00007ff9d80f7612:   jge		0x7ff9d80f7646      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │            │   ││││ ││                                                            ; - java.lang.Math::min@11 (line 2134)
+          │            │   ││││ ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMin@30 (line 266)
+          │            │   ││││ ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMin_jmhTest::longReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +min
+#+begin_src asm
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMin
+# Parameters: (probability = 100, size = 2048)
+...
+   0.01%  │   ││  0x00007f83400f7d76:   cmpq		%r13, %rdx
+   0.12%  │   ││  0x00007f83400f7d79:   cmovlq		%rdx, %r13          ;*invokestatic min {reexecute=0 rethrow=0 return_oop=0}
+          │   ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMin@30 (line 266)
+          │   ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMin_jmhTest::longReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** comparison
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt  -min/-max  +min/+max   Units
+MinMaxVector.intReductionMultiplyMax             100    2048  thrpt    4    876.867    407.905  ops/ms (-53%)
+MinMaxVector.intReductionMultiplyMin             100    2048  thrpt    4    407.963    407.956  ops/ms (1)
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    4    838.845    405.371  ops/ms (-51%)
+MinMaxVector.longReductionMultiplyMin            100    2048  thrpt    4    825.602    414.757  ops/ms (-49%)
+MinMaxVector.intReductionSimpleMax               100    2048  thrpt    4   1032.561    460.486  ops/ms (-55%)
+MinMaxVector.intReductionSimpleMin               100    2048  thrpt    4    460.530    460.490  ops/ms (2)
+MinMaxVector.longReductionSimpleMax              100    2048  thrpt    4   1017.560    460.436  ops/ms (-54%)
+MinMaxVector.longReductionSimpleMin              100    2048  thrpt    4    959.507    459.197  ops/ms (-52%)
+#+end_src
+*** raw data
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score   Error    Units
+MinMaxVector.intReductionMultiplyMax             100    2048  thrpt    4   876.867 ± 1.991   ops/ms
+MinMaxVector.intReductionMultiplyMin             100    2048  thrpt    4   407.963 ± 0.595   ops/ms
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    4   838.845 ± 22.006  ops/ms
+MinMaxVector.longReductionMultiplyMin            100    2048  thrpt    4   825.602 ± 1.061   ops/ms
+MinMaxVector.intReductionSimpleMax               100    2048  thrpt    4  1032.561 ± 2.064   ops/ms
+MinMaxVector.intReductionSimpleMin               100    2048  thrpt    4   460.530 ± 0.245   ops/ms
+MinMaxVector.longReductionSimpleMax              100    2048  thrpt    4  1017.560 ± 4.280   ops/ms
+MinMaxVector.longReductionSimpleMin              100    2048  thrpt    4   959.507 ± 1.575   ops/ms
+MinMaxVector.intReductionMultiplyMax             100    2048  thrpt    4   407.905 ± 0.239   ops/ms
+MinMaxVector.intReductionMultiplyMin             100    2048  thrpt    4   407.956 ± 0.147   ops/ms
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    4   405.371 ± 0.225   ops/ms
+MinMaxVector.longReductionMultiplyMin            100    2048  thrpt    4   414.757 ± 0.079   ops/ms
+MinMaxVector.intReductionSimpleMax               100    2048  thrpt    4   460.486 ± 0.158   ops/ms
+MinMaxVector.intReductionSimpleMin               100    2048  thrpt    4   460.490 ± 0.099   ops/ms
+MinMaxVector.longReductionSimpleMax              100    2048  thrpt    4   460.436 ± 0.449   ops/ms
+MinMaxVector.longReductionSimpleMin              100    2048  thrpt    4   459.197 ± 0.352   ops/ms
+#+end_src
+** MinMaxVector aarch64
+*** Summary
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt       Base      Patch   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    8   1831.026   5094.259  ops/ms (+178%)
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    8   1827.194   5096.835  ops/ms (+180%)
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    8   2643.383   2636.438  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    8   2640.417   2644.069  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    8   1244.321   2646.250  ops/ms (+112%)
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    8   3239.234   2648.504  ops/ms (-18%)
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    8   3252.713   2658.082  ops/ms (-18%)
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    8   1204.370   2647.532  ops/ms (+119%)
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    8   2536.322   2536.254  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    8   2536.318   2536.209  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    8   1395.273   2536.342  ops/ms (+81%)
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    8   2536.325   2536.271  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    8   2536.265   2536.250  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    8   1389.982   2536.246  ops/ms (+82%)
+#+end_src
+*** Without patch
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt      Score    Error   Units
+MinMaxVector.intClippingRange             N/A       90       0    1000  thrpt    8  12565.427 ± 37.538  ops/ms
+MinMaxVector.intClippingRange             N/A      100       0    1000  thrpt    8  12462.072 ± 84.067  ops/ms
+MinMaxVector.intLoopMax                    50      N/A     N/A    2048  thrpt    8   5113.090 ± 68.720  ops/ms
+MinMaxVector.intLoopMax                    80      N/A     N/A    2048  thrpt    8   5129.857 ± 35.005  ops/ms
+MinMaxVector.intLoopMax                   100      N/A     N/A    2048  thrpt    8   5116.081 ±  8.946  ops/ms
+MinMaxVector.intLoopMin                    50      N/A     N/A    2048  thrpt    8   6174.544 ± 52.573  ops/ms
+MinMaxVector.intLoopMin                    80      N/A     N/A    2048  thrpt    8   6110.884 ± 54.447  ops/ms
+MinMaxVector.intLoopMin                   100      N/A     N/A    2048  thrpt    8   6178.661 ± 48.450  ops/ms
+MinMaxVector.intReductionMax               50      N/A     N/A    2048  thrpt    8   5109.270 ± 10.525  ops/ms
+MinMaxVector.intReductionMax               80      N/A     N/A    2048  thrpt    8   5123.426 ± 28.229  ops/ms
+MinMaxVector.intReductionMax              100      N/A     N/A    2048  thrpt    8   5133.799 ±  7.693  ops/ms
+MinMaxVector.intReductionMin               50      N/A     N/A    2048  thrpt    8   5130.209 ± 15.491  ops/ms
+MinMaxVector.intReductionMin               80      N/A     N/A    2048  thrpt    8   5127.823 ± 27.767  ops/ms
+MinMaxVector.intReductionMin              100      N/A     N/A    2048  thrpt    8   5118.217 ± 22.186  ops/ms
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    8   1831.026 ± 15.502  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    8   1827.194 ± 22.076  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    8   2643.383 ±  9.830  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    8   2640.417 ±  7.797  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    8   1244.321 ±  1.001  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    8   3239.234 ±  8.813  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    8   3252.713 ±  3.446  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    8   1204.370 ± 10.537  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    8   2536.322 ±  0.127  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    8   2536.318 ±  0.277  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    8   1395.273 ± 13.862  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    8   2536.325 ±  0.146  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    8   2536.265 ±  0.272  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    8   1389.982 ±  5.345  ops/ms
+#+end_src
+*** With patch
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt      Score    Error   Units
+MinMaxVector.intClippingRange             N/A       90       0    1000  thrpt    8  12598.201 ± 52.631  ops/ms
+MinMaxVector.intClippingRange             N/A      100       0    1000  thrpt    8  12555.284 ± 62.472  ops/ms
+MinMaxVector.intLoopMax                    50      N/A     N/A    2048  thrpt    8   5079.499 ± 16.392  ops/ms
+MinMaxVector.intLoopMax                    80      N/A     N/A    2048  thrpt    8   5100.673 ± 30.376  ops/ms
+MinMaxVector.intLoopMax                   100      N/A     N/A    2048  thrpt    8   5082.544 ± 23.540  ops/ms
+MinMaxVector.intLoopMin                    50      N/A     N/A    2048  thrpt    8   6137.512 ± 30.198  ops/ms
+MinMaxVector.intLoopMin                    80      N/A     N/A    2048  thrpt    8   6136.233 ±  7.726  ops/ms
+MinMaxVector.intLoopMin                   100      N/A     N/A    2048  thrpt    8   6142.262 ± 96.510  ops/ms
+MinMaxVector.intReductionMax               50      N/A     N/A    2048  thrpt    8   5116.055 ± 23.270  ops/ms
+MinMaxVector.intReductionMax               80      N/A     N/A    2048  thrpt    8   5111.481 ± 12.236  ops/ms
+MinMaxVector.intReductionMax              100      N/A     N/A    2048  thrpt    8   5106.367 ±  9.035  ops/ms
+MinMaxVector.intReductionMin               50      N/A     N/A    2048  thrpt    8   5115.666 ± 15.539  ops/ms
+MinMaxVector.intReductionMin               80      N/A     N/A    2048  thrpt    8   5133.127 ±  4.918  ops/ms
+MinMaxVector.intReductionMin              100      N/A     N/A    2048  thrpt    8   5120.469 ± 24.355  ops/ms
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    8   5094.259 ± 14.092  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    8   5096.835 ± 16.517  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    8   2636.438 ± 18.760  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    8   2644.069 ±  3.933  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    8   2646.250 ±  2.007  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    8   2648.504 ± 18.294  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    8   2658.082 ±  3.362  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    8   2647.532 ±  5.600  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    8   2536.254 ±  0.086  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    8   2536.209 ±  0.129  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    8   2536.342 ±  0.068  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    8   2536.271 ±  0.203  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    8   2536.250 ±  0.343  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    8   2536.246 ±  0.179  ops/ms
+#+end_src
+** MinMaxVector.int PR comment
+*** avx512
+**** CANCELLED intLoopMin 50% avx512 improvement
+No perfasm signs
+**** DONE intReductionMultiplyMax avx512 100% regression
+CLOSED: [2025-02-20 Thu 06:50]
+***** -max
+#+begin_src bash
+   7.64%  │││││││   │││││↗    │             0x00007fb1f00f6a19:   imull		$0xb, 0x20(%rbp, %r11, 4), %r10d
+          │││││││   ││││││    │                                                                       ;*imul {reexecute=0 rethrow=0 return_oop=0}
+          │││││││   ││││││    │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMax@20 (line 221)
+          │││││││   ││││││    │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   3.00%  │││││││   ││││││    │             0x00007fb1f00f6a1f:   nop
+   1.33%  │││││││   ││││││    │             0x00007fb1f00f6a20:   cmpl		%r10d, %ecx
+          │││││││╭  ││││││    │             0x00007fb1f00f6a23:   jge		0x7fb1f00f6a71      ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││  ││││││    │                                                                       ; - java.lang.Math::max@10 (line 2023)
+          ││││││││  ││││││    │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMax@26 (line 222)
+          ││││││││  ││││││    │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +max
+#+begin_src bash
+   2.02%  │││    │   0x00007f73280f6e35:   cmpl		%edi, %r10d
+   4.31%  │││    │   0x00007f73280f6e38:   cmovll		%edi, %r10d         ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMax@26 (line 222)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** DONE intReductionSimpleMax avx512 100% regression
+CLOSED: [2025-02-20 Thu 06:52]
+***** -max
+#+begin_src bash
+   4.79%  ││││││││││││││││↗ │     0x00007ff1a00f58c9:   movl		0x2c(%rbp, %r11, 4), %r10d
+          │││││││││││││││││ │                                                               ;*iaload {reexecute=0 rethrow=0 return_oop=0}
+          │││││││││││││││││ │                                                               ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMax@17 (line 231)
+          │││││││││││││││││ │                                                               ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMax_jmhTest::intReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+   4.50%  │││││││││││││││││ │     0x00007ff1a00f58ce:   cmpl		%r10d, %r8d
+          ││││││││╰││││││││ │     0x00007ff1a00f58d1:   jl		0x7ff1a00f5850      ;*if_icmplt {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││ ││││││││ │                                                               ; - java.lang.Math::max@2 (line 2023)
+          ││││││││ ││││││││ │                                                               ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMax@23 (line 232)
+          ││││││││ ││││││││ │                                                               ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMax_jmhTest::intReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +max
+#+begin_src bash
+   3.17%  ││││    │   0x00007f73280f8369:   cmpl		%edi, %r10d
+   2.97%  ││││    │   0x00007f73280f836c:   cmovll		%edi, %r10d         ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMax@23 (line 232)
+          ││││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMax_jmhTest::intReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** DONE intReductionMultiplyMin avx512 100% equals
+CLOSED: [2025-02-20 Thu 06:59]
+***** -min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_max,_min -XX:-UseSuperWord
+...
+   1.94%  │││    │   0x00007f24b00f9435:   cmpl		%edi, %r10d
+   4.32%  │││    │   0x00007f24b00f9438:   cmovgl		%edi, %r10d         ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - java.lang.Math::min@10 (line 2119)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+...
+               ││││  0x00007ffbd80f79ef:   cmpl		%r13d, %r10d
+   0.01%       ││││  0x00007ffbd80f79f2:   cmovgl		%r13d, %r10d        ;*invokestatic min {reexecute=0 rethrow=0 return_oop=0}
+               ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+               ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** DONE intReductionSimpleMin avx512 100% equals
+CLOSED: [2025-02-20 Thu 07:02]
+***** -min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_max,_min -XX:-UseSuperWord
+...
+   3.04%  ││││    │   0x00007f49280f76e9:   cmpl		%edi, %r10d
+   3.14%  ││││    │   0x00007f49280f76ec:   cmovgl		%edi, %r10d         ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││    │                                                             ; - java.lang.Math::min@10 (line 2119)
+          ││││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin@23 (line 212)
+          ││││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMin_jmhTest::intReductionSimpleMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+...
+   3.10%  ││      │   0x00007fbf340f6b97:   cmpl		%edi, %r10d
+   3.08%  ││      │   0x00007fbf340f6b9a:   cmovgl		%edi, %r10d         ;*invokestatic min {reexecute=0 rethrow=0 return_oop=0}
+          ││      │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMin@23 (line 212)
+          ││      │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMin_jmhTest::intReductionSimpleMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** avx2
+**** CANCELLED intLoopMin 80% avx2 improvement
+No perfasm signs
+**** DUPLICATE intReductionMultiplyMax avx2 100% regression
+**** DUPLICATE intReductionSimpleMax avx512 100% regression
+**** DONE intReductionMultiplyMin avx2 equals
+CLOSED: [2025-02-20 Thu 07:08]
+***** -min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_max,_min -XX:UseAVX=2 -XX:-UseSuperWord
+...
+   2.08%  │││    │   0x00007f46740f64b5:   cmpl		%edi, %r10d
+   4.30%  │││    │   0x00007f46740f64b8:   cmovgl		%edi, %r10d         ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - java.lang.Math::min@10 (line 2119)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+***** +min
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:UseAVX=2 -XX:-UseSuperWord
+...
+   1.95%  │││    │   0x00007f999c0f70b5:   cmpl		%edi, %r10d
+   4.36%  │││    │   0x00007f999c0f70b8:   cmovgl		%edi, %r10d         ;*invokestatic min {reexecute=0 rethrow=0 return_oop=0}
+          │││    │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMin@26 (line 202)
+          │││    │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMin_jmhTest::intReductionMultiplyMin_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** CANCELLED intReductionSimpleMin avx2 100% regression
+No perfasm signs
+** MinMaxVector.int scalar differences
+*** avx512
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt  -min/-max  +min/+max   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4   1067.050   1038.640  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4   1041.922   1039.004  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4    605.173    604.337  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4    605.106    604.309  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4    604.547    604.432  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4    495.042    605.216  ops/ms (+22%)
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4    495.105    495.217  ops/ms
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4    495.040    495.176  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4    407.920    407.984  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4    407.710    407.965  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4    874.881    407.922  ops/ms (-53%)
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4    407.911    407.947  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4    408.015    408.024  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4    407.978    407.994  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4    460.538    460.439  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4    460.579    460.542  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4    998.211    460.404  ops/ms (-53%)
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4    460.570    460.447  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4    460.552    460.493  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4    460.455    460.485  ops/ms
+#+end_src
+*** avx2
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt  -min/-max  +min/+max   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4   1068.265   1039.087  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4   1067.705   1038.760  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4    605.015    604.364  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4    605.169    604.366  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4    604.527    604.494  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4    605.099    605.057  ops/ms
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4    495.071    605.080  ops/ms (+22%)
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4    495.134    495.047  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4    407.953    407.987  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4    407.861    408.005  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4    873.915    407.995  ops/ms (-53%)
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4    408.019    407.987  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4    407.971    408.009  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4    407.970    407.956  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4    460.443    460.514  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4    460.484    460.581  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   1015.601    460.446  ops/ms (-54%)
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4    460.494    460.532  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4    460.489    460.451  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   1021.420    460.435  ops/ms (-55%)
+#+end_src
+** MinMaxVector.int scalar raw data
+*** avx512 -max -min
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4  1067.050 ±  6.338  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4  1041.922 ±  0.683  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4   605.173 ±  0.243  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4   605.106 ±  0.404  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4   604.547 ±  0.093  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4   495.042 ±  0.500  ops/ms
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4   495.105 ±  0.197  ops/ms
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4   495.040 ±  0.233  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   407.920 ±  0.125  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   407.710 ±  2.269  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   874.881 ±  2.588  ops/ms
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   407.911 ±  0.164  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   408.015 ±  0.107  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   407.978 ±  0.104  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.538 ±  0.051  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.579 ±  0.019  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   998.211 ± 11.563  ops/ms
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   460.570 ±  0.080  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   460.552 ±  0.103  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   460.455 ±  0.090  ops/ms
+#+end_src
+*** avx2 -max -min
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4  1068.265 ± 0.884  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4  1067.705 ± 4.147  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4   605.015 ± 0.222  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4   605.169 ± 0.140  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4   604.527 ± 0.102  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4   605.099 ± 0.293  ops/ms
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4   495.071 ± 0.208  ops/ms
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4   495.134 ± 0.108  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   407.953 ± 0.332  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   407.861 ± 0.861  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   873.915 ± 0.790  ops/ms
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   408.019 ± 0.177  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   407.971 ± 0.470  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   407.970 ± 0.150  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.443 ± 0.502  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.484 ± 0.096  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4  1015.601 ± 1.192  ops/ms
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   460.494 ± 0.136  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   460.489 ± 0.223  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4  1021.420 ± 2.002  ops/ms
+#+end_src
+*** avx512 +max +min
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4  1038.640 ± 1.633  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4  1039.004 ± 0.943  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4   604.337 ± 0.201  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4   604.309 ± 0.089  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4   604.432 ± 0.320  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4   605.216 ± 0.130  ops/ms
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4   495.217 ± 0.151  ops/ms
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4   495.176 ± 0.101  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   407.984 ± 0.456  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   407.965 ± 0.093  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   407.922 ± 0.749  ops/ms
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   407.947 ± 0.431  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   408.024 ± 0.158  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   407.994 ± 0.102  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.439 ± 0.105  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.542 ± 0.112  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   460.404 ± 0.626  ops/ms
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   460.447 ± 0.403  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   460.493 ± 0.408  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   460.485 ± 0.067  ops/ms
+#+end_src
+*** avx2 +max +min
+#+begin_src bash
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intClippingRange                   N/A       90       0    1000  thrpt    4  1039.087 ± 1.380  ops/ms
+MinMaxVector.intClippingRange                   N/A      100       0    1000  thrpt    4  1038.760 ± 1.288  ops/ms
+MinMaxVector.intLoopMax                          50      N/A     N/A    2048  thrpt    4   604.364 ± 0.038  ops/ms
+MinMaxVector.intLoopMax                          80      N/A     N/A    2048  thrpt    4   604.366 ± 0.572  ops/ms
+MinMaxVector.intLoopMax                         100      N/A     N/A    2048  thrpt    4   604.494 ± 0.214  ops/ms
+MinMaxVector.intLoopMin                          50      N/A     N/A    2048  thrpt    4   605.057 ± 0.241  ops/ms
+MinMaxVector.intLoopMin                          80      N/A     N/A    2048  thrpt    4   605.080 ± 0.080  ops/ms
+MinMaxVector.intLoopMin                         100      N/A     N/A    2048  thrpt    4   495.047 ± 0.206  ops/ms
+MinMaxVector.intReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   407.987 ± 0.143  ops/ms
+MinMaxVector.intReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   408.005 ± 0.331  ops/ms
+MinMaxVector.intReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   407.995 ± 0.206  ops/ms
+MinMaxVector.intReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   407.987 ± 0.314  ops/ms
+MinMaxVector.intReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   408.009 ± 0.117  ops/ms
+MinMaxVector.intReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   407.956 ± 0.397  ops/ms
+MinMaxVector.intReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.514 ± 0.457  ops/ms
+MinMaxVector.intReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.581 ± 0.040  ops/ms
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   460.446 ± 0.191  ops/ms
+MinMaxVector.intReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   460.532 ± 0.100  ops/ms
+MinMaxVector.intReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   460.451 ± 0.051  ops/ms
+MinMaxVector.intReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   460.435 ± 0.284  ops/ms
+#+end_src
+* 19.2.25
+** MinMaxVector.long PR comment
+*** longLoopMax 100% regression
+**** -maxL
+#+begin_src asm
+   4.18%  ││││  │││   │           0x00007fb7580f84b2:   cmpq		%r13, %r11
+          ││││╭ │││   │           0x00007fb7580f84b5:   jl		0x7fb7580f84ec      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││││ │││   │                                                                     ; - java.lang.Math::max@11 (line 2038)
+          │││││ │││   │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@27 (line 256)
+          │││││ │││   │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+   4.23%  │││││ │││↗  │           0x00007fb7580f84bb:   movq		%r11, 0x10(%rbp, %rsi, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@30 (line 256)
+          │││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** +maxL
+#+begin_src asm
+   1.06%  │││  0x00007fe1b40f5ed1:   movq		0x20(%rbx, %r10, 8), %r14;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@26 (line 256)
+          │││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+   1.34%  │││  0x00007fe1b40f5ed6:   cmpq		%r14, %r9
+   2.78%  │││  0x00007fe1b40f5ed9:   cmovlq		%r14, %r9
+   2.58%  │││  0x00007fe1b40f5edd:   movq		%r9, 0x20(%rax, %r10, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@30 (line 256)
+          │││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** longReductionMultiplyMax 100% regression
+**** -maxL
+#+begin_src bash
+   6.71%  ││  ││↗    0x00007f8af40f6278:   imulq		$0xb, 0x18(%r14, %r8, 8), %rdx
+          ││  │││                                                              ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││  │││                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@24 (line 285)
+          ││  │││                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   5.28%  ││  │││    0x00007f8af40f627e:   nop
+  10.23%  ││  │││    0x00007f8af40f6280:   cmpq		%rdx, %rdi
+          ││╭ │││    0x00007f8af40f6283:   jge		0x7f8af40f62a7      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││ │││                                                              ; - java.lang.Math::max@11 (line 2038)
+          │││ │││                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+          │││ │││                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** +maxL
+#+begin_src bash
+  11.07%  ││  0x00007f47000f5c4d:   imulq		$0xb, 0x18(%r14, %r11, 8), %rax
+          ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@24 (line 285)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.07%  ││  0x00007f47000f5c53:   cmpq		%rdx, %rax
+  11.87%  ││  0x00007f47000f5c56:   cmovlq		%rdx, %rax          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** longReductionSimpleMax 100% regression
+**** -maxL
+#+begin_src bash
+   5.71%  │││││     │││↗      │             0x00007fc2380f75f9:   movq		0x20(%r14, %r8, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │││││     ││││      │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@20 (line 295)
+          │││││     ││││      │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+   1.85%  │││││     ││││      │             0x00007fc2380f75fe:   nop
+   4.52%  │││││     ││││      │             0x00007fc2380f7600:   cmpq		%rdi, %rdx
+          │││││╭    ││││      │             0x00007fc2380f7603:   jge		0x7fc2380f7667      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││││    ││││      │                                                                       ; - java.lang.Math::max@11 (line 2038)
+          ││││││    ││││      │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+          ││││││    ││││      │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+**** +maxL
+#+begin_src bash
+   3.06%   ││││││  0x00007fa6d00f6020:   movq		0x70(%r14, %r11, 8), %r8;*laload {reexecute=0 rethrow=0 return_oop=0}
+           ││││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@20 (line 295)
+           ││││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+           ││││││  0x00007fa6d00f6025:   cmpq		%r8, %r13
+   2.88%   ││││││  0x00007fa6d00f6028:   cmovlq		%r8, %r13           ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+           ││││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+           ││││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+** MinMaxVector.long scalar differences
+*** avx512
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     -maxL     +maxLr   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1012.017  1011.8109  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1012.113  1011.9530  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   463.946   473.9408  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   465.391   473.8063  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   510.992   471.6280  ops/ms (-8%)
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   496.036   495.3142  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   495.797   497.1214  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   495.302   495.1535  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.495   405.3936  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.342   405.4505  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   846.492   405.4779  ops/ms (-52%)
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.755   414.7036  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.705   414.7093  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.761   414.7150  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.435   460.3764  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.438   460.4718  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4  1023.005   460.5417  ops/ms (-55%)
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.184   459.1662  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.265   459.2588  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.263   459.1304  ops/ms
+#+end_src
+*** avx2
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     -maxL      +maxL   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1012.157  1012.0630  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1011.796  1011.8056  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   461.679   471.1739  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   472.941   472.9467  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   516.947   473.9604  ops/ms (-8%)
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   492.063   492.3021  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   496.746   496.1306  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   494.533   495.2382  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.467   405.4241  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.431   405.4197  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   847.402   405.3737  ops/ms (-52%)
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.751   414.7208  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.629   414.6079  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.738   414.7458  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.503   460.5500  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.460   460.4132  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4  1030.280   460.4964  ops/ms (-55%)
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.041   459.3118  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.253   459.2341  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.228   459.2851  ops/ms
+#+end_src
+** MinMaxVector.long scalar raw data
+*** avx512 -maxL
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1012.017 ±  0.692  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1012.113 ±  0.420  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   463.946 ±  0.189  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   465.391 ±  0.115  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   510.992 ±  1.659  ops/ms
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   496.036 ±  0.233  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   495.797 ±  0.180  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   495.302 ±  0.238  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.495 ±  0.117  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.342 ±  0.968  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   846.492 ± 14.033  ops/ms
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.755 ±  0.131  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.705 ±  0.266  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.761 ±  0.298  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.435 ±  0.176  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.438 ±  0.339  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4  1023.005 ±  1.797  ops/ms
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.184 ±  0.119  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.265 ±  0.130  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.263 ±  0.101  ops/ms
+#+end_src
+*** avx2 -maxL
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1012.157 ±  0.271  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1011.796 ±  1.228  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   461.679 ±  0.490  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   472.941 ±  0.127  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   516.947 ±  1.830  ops/ms
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   492.063 ±  0.389  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   496.746 ±  0.714  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   494.533 ±  0.113  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.467 ±  0.126  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.431 ±  0.343  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   847.402 ±  8.766  ops/ms
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.751 ±  0.096  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.629 ±  0.948  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.738 ±  0.119  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.503 ±  0.085  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.460 ±  0.029  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4  1030.280 ± 15.269  ops/ms
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.041 ±  0.291  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.253 ±  0.052  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.228 ±  0.115  ops/ms
+#+end_src
+*** avx512 +maxL
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1011.810 ± 0.939  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1011.953 ± 0.700  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   473.940 ± 0.178  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   473.806 ± 0.133  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   471.628 ± 1.460  ops/ms
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   495.314 ± 0.102  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   497.121 ± 0.174  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   495.153 ± 0.495  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.393 ± 0.196  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.450 ± 0.135  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   405.477 ± 0.049  ops/ms
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.703 ± 0.116  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.709 ± 0.083  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.715 ± 0.150  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.376 ± 0.114  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.471 ± 0.098  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   460.541 ± 0.017  ops/ms
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.166 ± 0.042  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.258 ± 0.048  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.130 ± 0.524  ops/ms
+#+end_src
+*** avx2 +maxL
+#+begin_src bash
+Benchmark                              (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.longClippingRange                   N/A       90       0    1000  thrpt    4  1012.063 ± 0.510  ops/ms
+MinMaxVector.longClippingRange                   N/A      100       0    1000  thrpt    4  1011.805 ± 1.486  ops/ms
+MinMaxVector.longLoopMax                          50      N/A     N/A    2048  thrpt    4   471.173 ± 0.219  ops/ms
+MinMaxVector.longLoopMax                          80      N/A     N/A    2048  thrpt    4   472.946 ± 1.147  ops/ms
+MinMaxVector.longLoopMax                         100      N/A     N/A    2048  thrpt    4   473.960 ± 0.234  ops/ms
+MinMaxVector.longLoopMin                          50      N/A     N/A    2048  thrpt    4   492.302 ± 0.071  ops/ms
+MinMaxVector.longLoopMin                          80      N/A     N/A    2048  thrpt    4   496.130 ± 1.246  ops/ms
+MinMaxVector.longLoopMin                         100      N/A     N/A    2048  thrpt    4   495.238 ± 0.352  ops/ms
+MinMaxVector.longReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   405.424 ± 0.121  ops/ms
+MinMaxVector.longReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   405.419 ± 0.177  ops/ms
+MinMaxVector.longReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   405.373 ± 0.557  ops/ms
+MinMaxVector.longReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   414.720 ± 0.278  ops/ms
+MinMaxVector.longReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   414.607 ± 0.149  ops/ms
+MinMaxVector.longReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   414.745 ± 0.138  ops/ms
+MinMaxVector.longReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   460.550 ± 0.180  ops/ms
+MinMaxVector.longReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   460.413 ± 0.142  ops/ms
+MinMaxVector.longReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   460.496 ± 0.184  ops/ms
+MinMaxVector.longReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   459.311 ± 0.128  ops/ms
+MinMaxVector.longReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   459.234 ± 0.181  ops/ms
+MinMaxVector.longReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   459.285 ± 0.421  ops/ms
+#+end_src
+* 18.2.25
+** longReductionMax
+#+begin_src bash
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionSimpleMax" MICRO="FORK=1"
+Benchmark                            (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionSimpleMax             50    2048  thrpt    4  460.392 ± 0.076  ops/ms
+MinMaxVector.longReductionSimpleMax             80    2048  thrpt    4  460.459 ± 0.438  ops/ms
+MinMaxVector.longReductionSimpleMax            100    2048  thrpt    4  460.469 ± 0.057  ops/ms
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionSimpleMax" MICRO="FORK=1;OPTIONS=-jvmArgs -XX:CompileCommand=option,org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub,ccstrlist,DisableIntrinsic,_maxL"
+Benchmark                            (probability)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.longReductionSimpleMax             50    2048  thrpt    4   460.453 ± 0.188  ops/ms
+MinMaxVector.longReductionSimpleMax             80    2048  thrpt    4   460.507 ± 0.192  ops/ms
+MinMaxVector.longReductionSimpleMax            100    2048  thrpt    4  1013.498 ± 1.607  ops/ms
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax" MICRO="FORK=1"
+Benchmark                              (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionMultiplyMax             50    2048  thrpt    4  966.429 ± 0.359  ops/ms
+MinMaxVector.longReductionMultiplyMax             80    2048  thrpt    4  966.569 ± 0.338  ops/ms
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    4  966.548 ± 0.575  ops/ms
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax" MICRO="FORK=1;OPTIONS=-jvmArgs -XX:CompileCommand=option,org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub,ccstrlist,DisableIntrinsic,_maxL"
+Benchmark                              (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionMultiplyMax             50    2048  thrpt    4  966.130 ± 5.549  ops/ms
+MinMaxVector.longReductionMultiplyMax             80    2048  thrpt    4  966.380 ± 0.663  ops/ms
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    4  859.233 ± 7.817  ops/ms
+#+end_src
+** intReductionMax
+#+begin_src bash
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMax" MICRO="FORK=1"
+Benchmark                           (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.intReductionSimpleMax             50    2048  thrpt    4  460.585 ± 0.348  ops/ms
+MinMaxVector.intReductionSimpleMax             80    2048  thrpt    4  460.633 ± 0.103  ops/ms
+MinMaxVector.intReductionSimpleMax            100    2048  thrpt    4  460.580 ± 0.091  ops/ms
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionSimpleMax" MICRO="FORK=1;OPTIONS=-jvmArgs -XX:CompileCommand=option,org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMax_jmhTest::intReductionSimpleMax_thrpt_jmhStub,ccstrlist,DisableIntrinsic,_max"
+Benchmark                           (probability)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intReductionSimpleMax             50    2048  thrpt    4   460.479 ± 0.044  ops/ms
+MinMaxVector.intReductionSimpleMax             80    2048  thrpt    4   460.587 ± 0.106  ops/ms
+MinMaxVector.intReductionSimpleMax            100    2048  thrpt    4  1027.831 ± 9.353  ops/ms
+80%:
+          ││      │   0x00007ffb200fa089:   cmpl		%r11d, %r10d
+   3.04%  ││      │   0x00007ffb200fa08c:   cmovll		%r11d, %r10d
+   4.38%  ││      │   0x00007ffb200fa090:   cmpl		%ebx, %r10d
+   1.61%  ││      │   0x00007ffb200fa093:   cmovll		%ebx, %r10d
+   2.79%  ││      │   0x00007ffb200fa097:   cmpl		%edi, %r10d
+   2.92%  ││      │   0x00007ffb200fa09a:   cmovll		%edi, %r10d         ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          ││      │                                                             ; - java.lang.Math::max@10 (line 2023)
+          ││      │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMax@23 (line 232)
+100%:
+   3.11%  │││││││   ││││││    │             0x00007f26c00f8f9c:   nopl		(%rax)
+   3.31%  │││││││   ││││││    │             0x00007f26c00f8fa0:   cmpl		%r10d, %ecx
+          │││││││╭  ││││││    │             0x00007f26c00f8fa3:   jge		0x7f26c00f8ff1      ;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││  ││││││    │                                                                       ; - java.lang.Math::max@10 (line 2023)
+          ││││││││  ││││││    │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionSimpleMax@23 (line 232)
+          ││││││││  ││││││    │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionSimpleMax_jmhTest::intReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionMultiplyMax" MICRO="FORK=1"
+Benchmark                             (probability)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intReductionMultiplyMax             50    2048  thrpt    4  2815.614 ± 0.406  ops/ms
+MinMaxVector.intReductionMultiplyMax             80    2048  thrpt    4  2814.943 ± 2.174  ops/ms
+MinMaxVector.intReductionMultiplyMax            100    2048  thrpt    4  2815.285 ± 1.725  ops/ms
+
+make test TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.intReductionMultiplyMax" MICRO="FORK=1;OPTIONS=-jvmArgs -XX:CompileCommand=option,org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub,ccstrlist,DisableIntrinsic,_max"
+Benchmark                             (probability)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.intReductionMultiplyMax             50    2048  thrpt    4  2802.062 ± 0.710  ops/ms
+MinMaxVector.intReductionMultiplyMax             80    2048  thrpt    4  2814.874 ± 4.058  ops/ms
+MinMaxVector.intReductionMultiplyMax            100    2048  thrpt    4   883.879 ± 0.327  ops/ms
+80%:
+   3.54%  │    ││ │││││  0x00007faa700fa177:   vpmaxsd		%ymm4, %ymm5, %ymm13;*ireturn {reexecute=0 rethrow=0 return_oop=0}
+          │    ││ │││││                                                            ; - java.lang.Math::max@10 (line 2023)
+
+100:
+   7.50%  ││││││││││││││││││↗ │             0x00007f75280f8849:   imull		$0xb, 0x2c(%rbp, %r11, 4), %r10d
+          │││││││││││││││││││ │                                                                       ;*imul {reexecute=0 rethrow=0 return_oop=0}
+          │││││││││││││││││││ │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMax@20 (line 221)
+          │││││││││││││││││││ │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   3.85%  │││││││││││││││││││ │             0x00007f75280f884f:   cmpl		%r10d, %r8d
+          ││││││││││╰││││││││ │             0x00007f75280f8852:   jl		0x7f75280f87d0      ;*if_icmplt {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ ││││││││ │                                                                       ; - java.lang.Math::max@2 (line 2023)
+          ││││││││││ ││││││││ │                                                                       ; - org.openjdk.bench.java.lang.MinMaxVector::intReductionMultiplyMax@26 (line 222)
+          ││││││││││ ││││││││ │                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intReductionMultiplyMax_jmhTest::intReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+* 10.2.25
+** Question for compiler meeting
+HotSpot inling meeting setup
+
+Trying to understand the baseline behaviour of MinL/MaxL.
+With branch 80 MinL/MaxL node found in ideal and vectorization kicks in.
+With branch 100 no MinL/MaxL node found in ideal and instead you see the if/else control flow.
+  This stops vectorization happening.
+I do see branch 100 creating MinL/MaxL nodes even though they're not eventually used,
+  is that right?
+** Branch 100 vs branch 80
+In branch 100 this section:
+#+begin_src c++
+  // Check for highly predictable branch.  No point in CMOV'ing if
+  // we are going to predict accurately all the time.
+  if (C->use_cmove() && (cmp_op == Op_CmpF || cmp_op == Op_CmpD)) {
+    //keep going
+  } else if (iff->_prob < infrequent_prob ||
+      iff->_prob > (1.0f - infrequent_prob))
+    return nullptr;
+#+end_src
+In:
+#+begin_src bash
+PhaseIdealLoop::conditional_move(Node *) loopopts.cpp:821
+PhaseIdealLoop::split_if_with_blocks_pre(Node *) loopopts.cpp:1128
+PhaseIdealLoop::split_if_with_blocks(VectorSet &, Node_Stack &) loopopts.cpp:1981
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4890
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2369
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+Causes the CMoveLNode not to be constructed.
+** longLoopMax at 80 MaxL remains
+*** Stacktraces fir CMoveLNode creation
+**** PhaseIdealLoop::conditional_move
+#+begin_src bash
+CMoveLNode::CMoveLNode(Node *, Node *, Node *, const TypeLong *) movenode.hpp:83
+CMoveNode::make(Node *, Node *, Node *, const Type *) movenode.cpp:193
+PhaseIdealLoop::conditional_move(Node *) loopopts.cpp:859
+PhaseIdealLoop::split_if_with_blocks_pre(Node *) loopopts.cpp:1128
+PhaseIdealLoop::split_if_with_blocks(VectorSet &, Node_Stack &) loopopts.cpp:1981
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4890
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2369
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+**** MaxNode::build_min_max
+#+begin_src bash
+CMoveLNode::CMoveLNode(Node *, Node *, Node *, const TypeLong *) movenode.hpp:83
+CMoveNode::make(Node *, Node *, Node *, const Type *) movenode.cpp:193
+MaxNode::build_min_max(Node *, Node *, bool, bool, const Type *, PhaseGVN &) addnode.cpp:1122
+MaxNode::signed_max(Node *, Node *, const Type *, PhaseGVN &) addnode.hpp:284
+PhaseMacroExpand::expand_macro_nodes() macro.cpp:2520
+Compile::Optimize() compile.cpp:2440
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+*** Stacktraces for MaxL creation
+**** CMoveNode::Ideal_minmax
+#+begin_src bash
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:344
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:343
+MaxNode::build_min_max_long(PhaseGVN *, Node *, Node *, bool) addnode.cpp:1092
+CMoveNode::Ideal_minmax(PhaseGVN *, CMoveNode *) movenode.cpp:255
+CMoveNode::Ideal(PhaseGVN *, bool) movenode.cpp:96
+PhaseGVN::apply_ideal(Node *, bool) phaseX.cpp:668
+PhaseIterGVN::transform_old(Node *) phaseX.cpp:1198
+PhaseIterGVN::optimize() phaseX.cpp:1046
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1221
+Compile::Optimize() compile.cpp:2369
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+**** PhaseIdealLoop::adjust_limit
+#+begin_src bash
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:344
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:343
+PhaseIdealLoop::adjust_limit(bool, Node *, Node *, Node *, Node *, Node *, bool) loopTransform.cpp:2112
+PhaseIdealLoop::add_constraint(long, long, Node *, Node *, Node *, Node *, Node **, Node **) loopTransform.cpp:2159
+PhaseIdealLoop::do_range_check(IdealLoopTree *) loopTransform.cpp:2682
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3422
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3470
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3454
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4919
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2385
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+**** PhaseIdealLoop::do_unroll
+#+begin_src bash
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:344
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:343
+PhaseIdealLoop::do_unroll(IdealLoopTree *, Node_List &, bool) loopTransform.cpp:1924
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3434
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3470
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3454
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4919
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2385
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+** longLoopMax at 100 MaxL gone
+*** Stacktraces fir CMoveLNode creation
+
+**** MaxNode::build_min_max
+#+begin_src bash
+CMoveLNode::CMoveLNode(Node *, Node *, Node *, const TypeLong *) movenode.hpp:83
+CMoveNode::make(Node *, Node *, Node *, const Type *) movenode.cpp:193
+MaxNode::build_min_max(Node *, Node *, bool, bool, const Type *, PhaseGVN &) addnode.cpp:1122
+MaxNode::signed_max(Node *, Node *, const Type *, PhaseGVN &) addnode.hpp:284
+PhaseMacroExpand::expand_macro_nodes() macro.cpp:2520
+Compile::Optimize() compile.cpp:2440
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+*** Stacktraces for MaxL creation
+**** PhaseIdealLoop::adjust_limit
+#+begin_src bash
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:344
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:343
+PhaseIdealLoop::adjust_limit(bool, Node *, Node *, Node *, Node *, Node *, bool) loopTransform.cpp:2112
+PhaseIdealLoop::add_constraint(long, long, Node *, Node *, Node *, Node *, Node **, Node **) loopTransform.cpp:2159
+PhaseIdealLoop::do_range_check(IdealLoopTree *) loopTransform.cpp:2682
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3422
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3470
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3454
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4919
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2385
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+**** PhaseIdealLoop::do_unroll
+#+begin_src bash
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:344
+MaxLNode::MaxLNode(Compile *, Node *, Node *) addnode.hpp:343
+PhaseIdealLoop::do_unroll(IdealLoopTree *, Node_List &, bool) loopTransform.cpp:1924
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3434
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3470
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3454
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4919
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1122
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1120
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1216
+Compile::Optimize() compile.cpp:2385
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:848
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:683
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2317
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1975
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:231
+thread_native_entry(Thread *) os_bsd.cpp:611
+#+end_src
+* 7.2.25
+** IN-PROGRESS longLoopMax at 80
+#+begin_src bash
+ 1115  CountedLoop  === 1115 598 463  [[ 1101 1115 1116 1118 451 594 ]] inner stride: 2 main of N1115 strip mined !orig=[599],[590],[307] !jvms: MinMaxVector::longLoopMax @ bci:10 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  451  StoreL  === 1115 1101 449 747  [[ 1116 454 911 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9;  Memory: @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=9; !orig=1124 !jvms: MinMaxVector::longLoopMax @ bci:30 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+
+  692  LoadL  === 1083 1101 393  [[ 747 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[395] !jvms: MinMaxVector::longLoopMax @ bci:26 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  651  LoadL  === 1095 1101 355  [[ 747 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[357] !jvms: MinMaxVector::longLoopMax @ bci:20 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  747  MaxL  === _ 651 692  [[ 451 ]]  !orig=[608],[416] !jvms: Math::max @ bci:11 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+
+  594  CountedLoopEnd  === 1115 593  [[ 1123 463 ]] [lt] P=0.999731, C=780799.000000 !orig=[462] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+#+end_src
+** IN-PROGRESS longLoopMax at 100
+#+begin_src bash
+VLoop::check_preconditions
+      Loop: N1256/N463  limit_check counted [int,int),+4 (3153 iters)  main rc  has_sfpt strip_mined
+ 1256  CountedLoop  === 1256 598 463  [[ 1256 1257 1271 1272 ]] inner stride: 4 main of N1256 strip mined !orig=[1126],[599],[590],[307] !jvms: MinMaxVector::longLoopMax @ bci:10 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+VLoop::check_preconditions: fails because of control flow.
+  cl_exit 594  594  CountedLoopEnd  === 415 593  [[ 1275 463 ]] [lt] P=0.999683, C=706030.000000 !orig=[462] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  cl_exit->in(0) 415  415  Region  === 415 411 412  [[ 415 594 416 451 ]]  !orig=[423] !jvms: Math::max @ bci:11 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  lpt->_head 1256 1256  CountedLoop  === 1256 598 463  [[ 1256 1257 1271 1272 ]] inner stride: 4 main of N1256 strip mined !orig=[1126],[599],[590],[307] !jvms: MinMaxVector::longLoopMax @ bci:10 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+      Loop: N1256/N463  limit_check counted [int,int),+4 (3153 iters)  main rc  has_sfpt strip_mined
+#+end_src
+
+#+begin_src bash
+
+  650  LoadL  === 1105 1119 355  [[ 416 408 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[357] !jvms: MinMaxVector::longLoopMax @ bci:20 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  691  LoadL  === 1093 1119 393  [[ 416 408 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[395] !jvms: MinMaxVector::longLoopMax @ bci:26 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  408  CmpL  === _ 650 691  [[ 409 ]]  !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  409  Bool  === _ 408  [[ 410 ]] [lt] !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  410  If  === 1132 409  [[ 411 412 ]] P=0.019892, C=79127.000000 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  411  IfTrue  === 410  [[ 415 ]] #1 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  412  IfFalse  === 410  [[ 415 ]] #0 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  415  Region  === 415 411 412  [[ 415 594 416 451 ]]  !orig=[423] !jvms: Math::max @ bci:11 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+
+  594  CountedLoopEnd  === 415 593  [[ 1139 463 ]] [lt] P=0.999683, C=706030.000000 !orig=[462] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+#+end_src
+
+#+begin_src bash
+  336  LoadRange  === _ 7 335  [[ 746 641 629 622 872 881 1029 1097 1050 1058 ]]  @bottom[int:>=0] (java/lang/Cloneable,java/io/Serializable)+12 * [narrow], idx=8; #int:>=0 !orig=[614],... !jvms: MinMaxVector::longLoopMax @ bci:20 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  410  If  === 1132 409  [[ 411 412 ]] P=0.019892, C=79127.000000 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  408  CmpL  === _ 650 691  [[ 409 ]]  !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  409  Bool  === _ 408  [[ 410 ]] [lt] !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  410  If  === 1132 409  [[ 411 412 ]] P=0.019892, C=79127.000000 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  411  IfTrue  === 410  [[ 415 ]] #1 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  412  IfFalse  === 410  [[ 415 ]] #0 !jvms: Math::max @ bci:3 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  415  Region  === 415 411 412  [[ 415 594 416 451 ]]  !orig=[423] !jvms: Math::max @ bci:11 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  452  AddI  === _ 1129 1069  [[ 923 592 1129 600 ]]  !orig=[591],... !jvms: MinMaxVector::longLoopMax @ bci:31 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  592  CmpI  === _ 452 1110  [[ 593 ]]  !orig=[460] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  593  Bool  === _ 592  [[ 594 ]] [lt] !orig=[461] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  594  CountedLoopEnd  === 415 593  [[ 1139 463 ]] [lt] P=0.999683, C=706030.000000 !orig=[462] !jvms: MinMaxVector::longLoopMax @ bci:7 (line 235) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  650  LoadL  === 1105 1119 355  [[ 416 408 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[357] !jvms: MinMaxVector::longLoopMax @ bci:20 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+  691  LoadL  === 1093 1119 393  [[ 416 408 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=9; #long (does not depend only on test, unknown control) !orig=[395] !jvms: MinMaxVector::longLoopMax @ bci:26 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+ 1069  ConI  === 0  [[ 939 452 982 1084 1025 ]]  #int:2
+ 1084  AddI  === _ 1165 1069  [[ 1085 1073 1097 ]]  !orig=985,776,[681]
+ 1097  CmpU  === _ 1084 336  [[ 1098 ]]  !orig=1029,641
+ 1098  Bool  === _ 1097  [[ 1100 ]] [lt] !orig=1030,642
+ 1100  OpaqueInitializedAssertionPredicate  === _ 1098  [[ 1101 ]]
+ 1132  Region  === 1132 1136 1131  [[ 1119 1132 1133 410 ]]  !orig=415,[423] !jvms: Math::max @ bci:11 (line 2037) MinMaxVector::longLoopMax @ bci:27 (line 236) MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub @ bci:19 (line 124)
+ 1165  CastII  === 1036 908  [[ 1084 ]]  #int:0..max-3:www !orig=[1157],[1095],1027,757,[640]
+#+end_src
+** DONE longReductionMax no avx512 -
+CLOSED: [2025-02-07 Fri 12:51]
+Base:
+#+begin_src bash
+          ││││ ││││  │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   6.30%  ││││ ││││  │           0x00007fd5580f678b:   cmpq		%rdi, %rdx
+          ││││╭││││  │           0x00007fd5580f678e:   jge		0x7fd5580f67ac      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││││││││  │                                                                     ; - java.lang.Math::max@11 (line 2037)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+  12.88%  │││││││││↗ │           0x00007fd5580f6790:   imulq		$0xb, 0x28(%r14, %r8, 8), %rbp
+          ││││││││││ │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   7.55%  ││││││││││ │           0x00007fd5580f6796:   cmpq		%rbp, %rdi
+          │││││╰││││ │           0x00007fd5580f6799:   jl		0x7fd5580f6760      ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││││ │                                                                     ; - java.lang.Math::max@3 (line 2037)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+   0.05%  ↗│  0x00007fc4700f5253:   imulq		$0xb, 0x28(%r14, %r11, 8), %rdx
+  10.62%  ││  0x00007fc4700f5259:   imulq		$0xb, 0x20(%r14, %r11, 8), %rax
+   0.63%  ││  0x00007fc4700f525f:   imulq		$0xb, 0x10(%r14, %r11, 8), %r8
+          ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+  10.34%  ││  0x00007fc4700f5265:   cmpq		%r8, %r13
+   2.37%  ││  0x00007fc4700f5268:   cmovlq		%r8, %r13           ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   1.15%  ││  0x00007fc4700f526c:   imulq		$0xb, 0x18(%r14, %r11, 8), %r8
+          ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   9.28%  ││  0x00007fc4700f5272:   cmpq		%r8, %r13
+   3.82%  ││  0x00007fc4700f5275:   cmovlq		%r8, %r13
+  21.61%  ││  0x00007fc4700f5279:   cmpq		%rax, %r13
+  11.55%  ││  0x00007fc4700f527c:   cmovlq		%rax, %r13
+   4.48%  ││  0x00007fc4700f5280:   cmpq		%rdx, %r13
+  11.76%  ││  0x00007fc4700f5283:   cmovlq		%rdx, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Why not?
+#+begin_src bash
+PackSet::print: 3 packs
+ Pack: 0
+    0:  1119  LoadL  === 1105 343 1120  [[ 1117 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=997,663,[457] !jvms: MinMaxVector::longReductionMax @ bci:23 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    1:  1112  LoadL  === 1105 343 1113  [[ 1111 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=663,[457] !jvms: MinMaxVector::longReductionMax @ bci:23 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    2:   997  LoadL  === 1105 343 998  [[ 996 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=663,[457] !jvms: MinMaxVector::longReductionMax @ bci:23 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    3:   663  LoadL  === 1105 343 455  [[ 458 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=[457] !jvms: MinMaxVector::longReductionMax @ bci:23 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+ Pack: 1
+    0:  1117  MulL  === _ 1119 162  [[ 1116 ]]  !orig=996,458 !jvms: MinMaxVector::longReductionMax @ bci:24 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    1:  1111  MulL  === _ 1112 162  [[ 1110 ]]  !orig=458 !jvms: MinMaxVector::longReductionMax @ bci:24 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    2:   996  MulL  === _ 997 162  [[ 995 ]]  !orig=458 !jvms: MinMaxVector::longReductionMax @ bci:24 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    3:   458  MulL  === _ 663 162  [[ 459 ]]  !jvms: MinMaxVector::longReductionMax @ bci:24 (line 255) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+ Pack: 2
+    0:  1116  MaxL  === _ 1128 1117  [[ 1110 ]]  !orig=995,459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    1:  1110  MaxL  === _ 1116 1111  [[ 995 ]]  !orig=459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    2:   995  MaxL  === _ 1110 996  [[ 459 ]]  !orig=459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    3:   459  MaxL  === _ 995 458  [[ 1128 923 570 ]]  !orig=1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+
+WARNING: Removed pack: not implemented at any smaller size:
+    0:  1116  MaxL  === _ 1128 1117  [[ 1110 ]]  !orig=995,459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    1:  1110  MaxL  === _ 1116 1111  [[ 995 ]]  !orig=459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    2:   995  MaxL  === _ 1110 996  [[ 459 ]]  !orig=459,1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+    3:   459  MaxL  === _ 995 458  [[ 1128 923 570 ]]  !orig=1012 !jvms: MinMaxVector::longReductionMax @ bci:30 (line 256) MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub @ bci:19 (line 124)
+
+After SuperWord::split_packs_only_implemented_with_smaller_size
+#+end_src
+** DONE longMaxSimple superword -
+CLOSED: [2025-02-07 Fri 13:06]
+Base:
+#+begin_src bash
+   8.05%  ││      ││↗       │    0x00007f9d580f569b:   movq		0x18(%r13, %r11, 8), %r8;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││      │││       │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1054)
+          ││      │││       │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+   0.23%  ││      │││       │    0x00007f9d580f56a0:   cmpq		%r8, %rsi
+          ││╭     │││       │    0x00007f9d580f56a3:   jl		0x7f9d580f5713      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││     │││       │                                                              ; - java.lang.Math::max@11 (line 2037)
+          │││     │││       │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1055)
+          │││     │││       │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+#+end_src
+Patch:
+#+begin_src bash
+   2.76%  ││    0x00007fcd180f695c:   movq		0x18(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1054)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+          ││    0x00007fcd180f6961:   cmpq		%rdi, %r13
+   3.11%  ││    0x00007fcd180f6964:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1055)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+#+end_src
+Why not vectorize?
+#+begin_src bash
+PackSet::print: 2 packs
+ Pack: 0
+    0:  733  LoadL  === 721 184 734  [[ 732 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=669,500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    1:  728  LoadL  === 721 184 729  [[ 727 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    2:  669  LoadL  === 721 184 670  [[ 668 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    3:  500  LoadL  === 721 184 317  [[ 320 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+ Pack: 1
+    0:  732  MaxL  === _ 743 733  [[ 727 ]]  !orig=668,320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    1:  727  MaxL  === _ 732 728  [[ 668 ]]  !orig=320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    2:  668  MaxL  === _ 727 669  [[ 320 ]]  !orig=320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    3:  320  MaxL  === _ 668 500  [[ 743 593 456 ]]  !orig=685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+
+WARNING: Removed pack: not profitable:
+    0:  732  MaxL  === _ 743 733  [[ 727 ]]  !orig=668,320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    1:  727  MaxL  === _ 732 728  [[ 668 ]]  !orig=320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    2:  668  MaxL  === _ 727 669  [[ 320 ]]  !orig=320,685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    3:  320  MaxL  === _ 668 500  [[ 743 593 456 ]]  !orig=685 !jvms: VectorReduction2::longMaxSimple @ bci:28 (line 1055) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+
+WARNING: Removed pack: not profitable:
+    0:  733  LoadL  === 721 184 734  [[ 732 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=669,500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    1:  728  LoadL  === 721 184 729  [[ 727 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    2:  669  LoadL  === 721 184 670  [[ 668 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=500,[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+    3:  500  LoadL  === 721 184 317  [[ 320 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=8; #long (does not depend only on test, unknown control) !orig=[319] !jvms: VectorReduction2::longMaxSimple @ bci:22 (line 1054) VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub @ bci:17 (line 190)
+
+After Superword::filter_packs_for_profitable
+
+PackSet::print: 0 packs
+
+SuperWord::transform_loop failed: SuperWord::SLP_extract did not vectorize
+#+end_src
+** DONE longMaxDotProduct no superword -
+CLOSED: [2025-02-07 Fri 13:37]
+Base:
+#+begin_src bash
+   5.67%  │││ │││↗  │    0x00007f3fcc0fa71d:   movq		0x20(%r14, %r8, 8), %r9
+   5.19%  │││ ││││  │    0x00007f3fcc0fa722:   imulq		0x20(%rax, %r8, 8), %r9;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          │││ ││││  │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@30 (line 1125)
+          │││ ││││  │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+   8.46%  │││ ││││  │    0x00007f3fcc0fa728:   cmpq		%r9, %rsi
+          │││╭││││  │    0x00007f3fcc0fa72b:   jl		0x7f3fcc0fa751      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││  │                                                              ; - java.lang.Math::max@11 (line 2037)
+          ││││││││  │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@36 (line 1126)
+          ││││││││  │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+#+end_src
+Patch:
+#+begin_src bash
+
+  11.00%  │  0x00007f66f40f70b2:   movq		0x18(%r13, %rcx, 8), %rax
+          │  0x00007f66f40f70b7:   imulq		0x18(%r9, %rcx, 8), %rax;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@30 (line 1125)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+          │  0x00007f66f40f70bd:   cmpq		%rdx, %rax
+  13.07%  │  0x00007f66f40f70c0:   cmovlq		%rdx, %rax          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@36 (line 1126)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+#+end_src
+Why not vectorize? Because no superword is used.
+* 6.2.25
+** DONE longClippingRange avx512 +
+CLOSED: [2025-02-07 Fri 11:09]
+Base:
+#+begin_src bash
+   3.39%  ││ │      ││ │            0x00007febb40fb175:   cmpq		%rbp, %rcx
+          ││ │╭     ││ │            0x00007febb40fb178:   jge		0x7febb40fb17d      ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          ││ ││     ││ │                                                                      ; - java.lang.Math::max@3 (line 2037)
+          ││ ││     ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@25 (line 220)
+          ││ ││     ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   2.69%  ││ ││     ││ │            0x00007febb40fb17a:   movq		%rbp, %rcx          ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││ ││     ││ │                                                                      ; - java.lang.Math::max@11 (line 2037)
+          ││ ││     ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@25 (line 220)
+          ││ ││     ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   4.35%  ││ │↘     ││ │            0x00007febb40fb17d:   nop
+   2.93%  ││ │      ││ │            0x00007febb40fb180:   cmpq		%r8, %rcx
+          ││ │ ╭    ││ │            0x00007febb40fb183:   jle		0x7febb40fb188      ;*ifgt {reexecute=0 rethrow=0 return_oop=0}
+          ││ │ │    ││ │                                                                      ; - java.lang.Math::min@3 (line 2132)
+          ││ │ │    ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@32 (line 220)
+          ││ │ │    ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   3.51%  ││ │ │    ││ │            0x00007febb40fb185:   movq		%r8, %rcx           ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││ │ │    ││ │                                                                      ; - java.lang.Math::min@11 (line 2132)
+          ││ │ │    ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@32 (line 220)
+          ││ │ │    ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   4.26%  ││ │ ↘    ││ │            0x00007febb40fb188:   movq		%rcx, 0x10(%rsi, %r9, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          ││ │      ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 220)
+          ││ │      ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+   0.20%  ││↗        ↗   0x00007f10180fd15c:   vmovdqu		0x10(%r11, %rcx, 8), %ymm6
+          │││        │   0x00007f10180fd163:   vpmaxsq		%ymm6, %ymm7, %ymm6
+          │││        │   0x00007f10180fd169:   vpminsq		%ymm8, %ymm6, %ymm6
+          │││        │   0x00007f10180fd16f:   vmovdqu		%ymm6, 0x10(%r8, %rcx, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │││        │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 220)
+          │││        │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
+** DONE longLoopMax avx512 +
+CLOSED: [2025-02-07 Fri 18:04]
+Base:
+#+begin_src bash
+   4.53%  ││││  ││  │ │           0x00007f96b40faf33:   movq		0x18(%rax, %rsi, 8), %r13;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││││  ││  │ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@20 (line 236)
+          ││││  ││  │ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+   2.69%  ││││  ││  │ │           0x00007f96b40faf38:   cmpq		%r11, %r13
+          ││││╭ ││  │ │           0x00007f96b40faf3b:   jl		0x7f96b40faf67      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││  │ │                                                                     ; - java.lang.Math::max@11 (line 2037)
+          │││││ ││  │ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@27 (line 236)
+          │││││ ││  │ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+   8.75%  │││││ ││↗ │ │           0x00007f96b40faf3d:   movq		%r13, 0x18(%rbp, %rsi, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │││││ │││ │ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@30 (line 236)
+          │││││ │││ │ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+   3.55%  │  ││  0x00007f13c80fa18a:   vmovdqu		0xf0(%rbx, %r10, 8), %ymm5
+          │  ││  0x00007f13c80fa194:   vmovdqu		0xf0(%rdi, %r10, 8), %ymm6
+   2.35%  │  ││  0x00007f13c80fa19e:   vpmaxsq		%ymm6, %ymm5, %ymm5
+   5.03%  │  ││  0x00007f13c80fa1a4:   vmovdqu		%ymm5, 0xf0(%rax, %r10, 8)
+          │  ││                                                            ;*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │  ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@30 (line 236)
+          │  ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+** DONE longReductionMax avx512 +
+CLOSED: [2025-02-07 Fri 11:41]
+Base:
+#+begin_src bash
+   7.83%  ││││ │││↗  │           0x00007f4f700fb305:   imulq		$0xb, 0x20(%r14, %r8, 8), %rdi
+          ││││ ││││  │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   5.64%  ││││ ││││  │           0x00007f4f700fb30b:   cmpq		%rdi, %rdx
+          ││││╭││││  │           0x00007f4f700fb30e:   jge		0x7f4f700fb32c      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││││││││  │                                                                     ; - java.lang.Math::max@11 (line 2037)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+  12.82%  │││││││││↗ │           0x00007f4f700fb310:   imulq		$0xb, 0x28(%r14, %r8, 8), %rbp
+          ││││││││││ │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   7.46%  ││││││││││ │           0x00007f4f700fb316:   cmpq		%rbp, %rdi
+          │││││╰││││ │           0x00007f4f700fb319:   jl		0x7f4f700fb2e0      ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││││ │                                                                     ; - java.lang.Math::max@3 (line 2037)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+          │    ││ ↗││││  0x00007f56280fad10:   vpmullq		0xf0(%rdx, %rsi, 8), %ymm10, %ymm4
+   8.35%  │    ││ │││││  0x00007f56280fad1b:   vpmullq		0xd0(%rdx, %rsi, 8), %ymm10, %ymm5
+   4.27%  │    ││ │││││  0x00007f56280fad26:   vpmullq		0x10(%rdx, %rsi, 8), %ymm10, %ymm6
+          │    ││ │││││                                                            ;   {no_reloc}
+   4.22%  │    ││ │││││  0x00007f56280fad31:   vpmullq		0x30(%rdx, %rsi, 8), %ymm10, %ymm7
+   4.00%  │    ││ │││││  0x00007f56280fad3c:   vpmullq		0xb0(%rdx, %rsi, 8), %ymm10, %ymm8
+   4.13%  │    ││ │││││  0x00007f56280fad47:   vpmullq		0x50(%rdx, %rsi, 8), %ymm10, %ymm11
+   4.10%  │    ││ │││││  0x00007f56280fad52:   vpmullq		0x70(%rdx, %rsi, 8), %ymm10, %ymm12
+   4.13%  │    ││ │││││  0x00007f56280fad5d:   vpmullq		0x90(%rdx, %rsi, 8), %ymm10, %ymm13
+   4.03%  │    ││ │││││  0x00007f56280fad68:   vpmaxsq		%ymm6, %ymm3, %ymm3
+          │    ││ │││││  0x00007f56280fad6e:   vpmaxsq		%ymm7, %ymm3, %ymm3
+   4.72%  │    ││ │││││  0x00007f56280fad74:   vpmaxsq		%ymm11, %ymm3, %ymm3
+          │    ││ │││││  0x00007f56280fad7a:   vpmaxsq		%ymm12, %ymm3, %ymm3
+   8.40%  │    ││ │││││  0x00007f56280fad80:   vpmaxsq		%ymm13, %ymm3, %ymm3
+  23.11%  │    ││ │││││  0x00007f56280fad86:   vpmaxsq		%ymm8, %ymm3, %ymm3
+   2.15%  │    ││ │││││  0x00007f56280fad8c:   vpmaxsq		%ymm5, %ymm3, %ymm3
+   8.79%  │    ││ │││││  0x00007f56280fad92:   vpmaxsq		%ymm4, %ymm3, %ymm3 ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │    ││ │││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │    ││ │││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+** DONE longClippingRange no avx512 +
+CLOSED: [2025-02-07 Fri 11:48]
+Base:
+#+begin_src bash
+   3.89%  ││ │      ││ │            0x00007f02140f6fa0:   cmpq		%rbp, %rcx
+          ││ │  ╭   ││ │            0x00007f02140f6fa3:   jge		0x7f02140f6fa8      ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          ││ │  │   ││ │                                                                      ; - java.lang.Math::max@3 (line 2037)
+          ││ │  │   ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@25 (line 220)
+          ││ │  │   ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   1.96%  ││ │  │   ││ │            0x00007f02140f6fa5:   movq		%rbp, %rcx          ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││ │  │   ││ │                                                                      ; - java.lang.Math::max@11 (line 2037)
+          ││ │  │   ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@25 (line 220)
+          ││ │  │   ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   3.49%  ││ │  ↘   ││ │            0x00007f02140f6fa8:   cmpq		%r8, %rcx
+          ││ │   ╭  ││ │            0x00007f02140f6fab:   jle		0x7f02140f6fb0      ;*ifgt {reexecute=0 rethrow=0 return_oop=0}
+          ││ │   │  ││ │                                                                      ; - java.lang.Math::min@3 (line 2132)
+          ││ │   │  ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@32 (line 220)
+          ││ │   │  ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   4.44%  ││ │   │  ││ │            0x00007f02140f6fad:   movq		%r8, %rcx           ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││ │   │  ││ │                                                                      ; - java.lang.Math::min@11 (line 2132)
+          ││ │   │  ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@32 (line 220)
+          ││ │   │  ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   3.58%  ││ │   ↘  ││ │            0x00007f02140f6fb0:   movq		%rcx, 0x18(%rsi, %r9, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          ││ │      ││ │                                                                      ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 220)
+          ││ │      ││ │                                                                      ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+          │    │   ││││  0x00007f9aa40f94ac:   vpcmpgtq		%ymm6, %ymm7, %ymm12
+   3.79%  │    │   ││││  0x00007f9aa40f94b1:   vblendvpd		%ymm12, %ymm7, %ymm6, %ymm12
+   3.72%  │    │   ││││  0x00007f9aa40f94b7:   vpcmpgtq		%ymm8, %ymm12, %ymm10
+          │    │   ││││  0x00007f9aa40f94bc:   vblendvpd		%ymm10, %ymm8, %ymm12, %ymm10
+   3.78%  │    │   ││││  0x00007f9aa40f94c2:   vmovdqu		%ymm10, 0xf0(%r8, %rcx, 8)
+          │    │   ││││                                                            ;*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │    │   ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 220)
+          │    │   ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
+** DONE longReductionMax no avx512 -
+CLOSED: [2025-02-07 Fri 12:51]
+Base:
+#+begin_src bash
+          ││││ ││││  │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││ ││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   6.30%  ││││ ││││  │           0x00007fd5580f678b:   cmpq		%rdi, %rdx
+          ││││╭││││  │           0x00007fd5580f678e:   jge		0x7fd5580f67ac      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││││││││  │                                                                     ; - java.lang.Math::max@11 (line 2037)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││││││  │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+  12.88%  │││││││││↗ │           0x00007fd5580f6790:   imulq		$0xb, 0x28(%r14, %r8, 8), %rbp
+          ││││││││││ │                                                                     ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   7.55%  ││││││││││ │           0x00007fd5580f6796:   cmpq		%rbp, %rdi
+          │││││╰││││ │           0x00007fd5580f6799:   jl		0x7fd5580f6760      ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││││ │                                                                     ; - java.lang.Math::max@3 (line 2037)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Patch:
+#+begin_src bash
+   0.05%  ↗│  0x00007fc4700f5253:   imulq		$0xb, 0x28(%r14, %r11, 8), %rdx
+  10.62%  ││  0x00007fc4700f5259:   imulq		$0xb, 0x20(%r14, %r11, 8), %rax
+   0.63%  ││  0x00007fc4700f525f:   imulq		$0xb, 0x10(%r14, %r11, 8), %r8
+          ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+  10.34%  ││  0x00007fc4700f5265:   cmpq		%r8, %r13
+   2.37%  ││  0x00007fc4700f5268:   cmovlq		%r8, %r13           ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   1.15%  ││  0x00007fc4700f526c:   imulq		$0xb, 0x18(%r14, %r11, 8), %r8
+          ││                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@24 (line 255)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+   9.28%  ││  0x00007fc4700f5272:   cmpq		%r8, %r13
+   3.82%  ││  0x00007fc4700f5275:   cmovlq		%r8, %r13
+  21.61%  ││  0x00007fc4700f5279:   cmpq		%rax, %r13
+  11.55%  ││  0x00007fc4700f527c:   cmovlq		%rax, %r13
+   4.48%  ││  0x00007fc4700f5280:   cmpq		%rdx, %r13
+  11.76%  ││  0x00007fc4700f5283:   cmovlq		%rdx, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMax@30 (line 256)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMax_jmhTest::longReductionMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+Why no superword?
+#+begin_src bash
+PackSet::print: 3 packs
+ Pack: 0
+    0:  406  LoadL  === 400 7 407  [[ 405 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=352,190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    1:  408  LoadL  === 400 7 409  [[ 403 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    2:  352  LoadL  === 400 7 353  [[ 351 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    3:  190  LoadL  === 400 7 118  [[ 121 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=[120] !jvms: Branch100::test @ bci:14 (line 46)
+ Pack: 1
+    0:  405  MulL  === _ 406 80  [[ 404 ]]  !orig=351,121 !jvms: Branch100::test @ bci:15 (line 46)
+    1:  403  MulL  === _ 408 80  [[ 402 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    2:  351  MulL  === _ 352 80  [[ 350 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    3:  121  MulL  === _ 190 80  [[ 122 ]]  !jvms: Branch100::test @ bci:15 (line 46)
+ Pack: 2
+    0:  404  MaxL  === _ 420 405  [[ 402 ]]  !orig=350,122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    1:  402  MaxL  === _ 404 403  [[ 350 ]]  !orig=122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    2:  350  MaxL  === _ 402 351  [[ 122 ]]  !orig=122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    3:  122  MaxL  === _ 350 121  [[ 420 281 148 ]]  !orig=367 !jvms: Branch100::test @ bci:21 (line 47)
+
+WARNING: Removed pack: not implemented at any smaller size:
+    0:  404  MaxL  === _ 420 405  [[ 402 ]]  !orig=350,122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    1:  402  MaxL  === _ 404 403  [[ 350 ]]  !orig=122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    2:  350  MaxL  === _ 402 351  [[ 122 ]]  !orig=122,367 !jvms: Branch100::test @ bci:21 (line 47)
+    3:  122  MaxL  === _ 350 121  [[ 420 281 148 ]]  !orig=367 !jvms: Branch100::test @ bci:21 (line 47)
+
+After SuperWord::split_packs_only_implemented_with_smaller_size
+
+...
+
+PackSet::print: 2 packs
+ Pack: 0
+    0:  406  LoadL  === 400 7 407  [[ 405 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=352,190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    1:  408  LoadL  === 400 7 409  [[ 403 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    2:  352  LoadL  === 400 7 353  [[ 351 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    3:  190  LoadL  === 400 7 118  [[ 121 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=[120] !jvms: Branch100::test @ bci:14 (line 46)
+ Pack: 1
+    0:  405  MulL  === _ 406 80  [[ 404 ]]  !orig=351,121 !jvms: Branch100::test @ bci:15 (line 46)
+    1:  403  MulL  === _ 408 80  [[ 402 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    2:  351  MulL  === _ 352 80  [[ 350 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    3:  121  MulL  === _ 190 80  [[ 122 ]]  !jvms: Branch100::test @ bci:15 (line 46)
+
+WARNING: Removed pack: not profitable:
+    0:  405  MulL  === _ 406 80  [[ 404 ]]  !orig=351,121 !jvms: Branch100::test @ bci:15 (line 46)
+    1:  403  MulL  === _ 408 80  [[ 402 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    2:  351  MulL  === _ 352 80  [[ 350 ]]  !orig=121 !jvms: Branch100::test @ bci:15 (line 46)
+    3:  121  MulL  === _ 190 80  [[ 122 ]]  !jvms: Branch100::test @ bci:15 (line 46)
+
+WARNING: Removed pack: not profitable:
+    0:  406  LoadL  === 400 7 407  [[ 405 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=352,190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    1:  408  LoadL  === 400 7 409  [[ 403 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    2:  352  LoadL  === 400 7 353  [[ 351 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=190,[120] !jvms: Branch100::test @ bci:14 (line 46)
+    3:  190  LoadL  === 400 7 118  [[ 121 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=[120] !jvms: Branch100::test @ bci:14 (line 46)
+
+After Superword::filter_packs_for_profitable
+
+PackSet::print: 0 packs
+
+SuperWord::transform_loop failed: SuperWord::SLP_extract did not vectorize
+
+VLoop::check_preconditions
+    Loop: N417/N133  limit_check counted [int,1021),+4 (1025 iters)  main has_sfpt strip_mined
+ 417  CountedLoop  === 417 146 133  [[ 417 142 420 423 ]] inner stride: 4 main of N417 strip mined !orig=[356],[147],[138],[73] !jvms: Branch100::test @ bci:9 (line 46)
+VLoop::check_preconditions: failed: loop only wants to be unrolled
+#+end_src
+** DONE longMaxSimple superword -
+CLOSED: [2025-02-07 Fri 13:06]
+Base:
+#+begin_src bash
+   8.05%  ││      ││↗       │    0x00007f9d580f569b:   movq		0x18(%r13, %r11, 8), %r8;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││      │││       │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1054)
+          ││      │││       │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+   0.23%  ││      │││       │    0x00007f9d580f56a0:   cmpq		%r8, %rsi
+          ││╭     │││       │    0x00007f9d580f56a3:   jl		0x7f9d580f5713      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          │││     │││       │                                                              ; - java.lang.Math::max@11 (line 2037)
+          │││     │││       │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1055)
+          │││     │││       │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+#+end_src
+Patch:
+#+begin_src bash
+   2.76%  ││    0x00007fcd180f695c:   movq		0x18(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1054)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+          ││    0x00007fcd180f6961:   cmpq		%rdi, %r13
+   3.11%  ││    0x00007fcd180f6964:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1055)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_WithSuperword_longMaxSimple_jmhTest::longMaxSimple_avgt_jmhStub@17 (line 190)
+#+end_src
+Why not vectorize?
+#+begin_src bash
+PackSet::print: 2 packs
+ Pack: 0
+    0:  399  LoadL  === 395 7 400  [[ 398 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=347,188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    1:  401  LoadL  === 395 7 402  [[ 397 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    2:  347  LoadL  === 395 7 348  [[ 346 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    3:  188  LoadL  === 395 7 117  [[ 120 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+ Pack: 1
+    0:  398  MaxL  === _ 416 399  [[ 397 ]]  !orig=346,120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    1:  397  MaxL  === _ 398 401  [[ 346 ]]  !orig=120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    2:  346  MaxL  === _ 397 347  [[ 120 ]]  !orig=120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    3:  120  MaxL  === _ 346 188  [[ 416 277 146 ]]  !orig=362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+
+WARNING: Removed pack: not profitable:
+    0:  398  MaxL  === _ 416 399  [[ 397 ]]  !orig=346,120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    1:  397  MaxL  === _ 398 401  [[ 346 ]]  !orig=120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    2:  346  MaxL  === _ 397 347  [[ 120 ]]  !orig=120,362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+    3:  120  MaxL  === _ 346 188  [[ 416 277 146 ]]  !orig=362 !jvms: LongMaxSingle::test @ bci:17 (line 25)
+
+WARNING: Removed pack: not profitable:
+    0:  399  LoadL  === 395 7 400  [[ 398 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=347,188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    1:  401  LoadL  === 395 7 402  [[ 397 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    2:  347  LoadL  === 395 7 348  [[ 346 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=188,[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+    3:  188  LoadL  === 395 7 117  [[ 120 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=[119] !jvms: LongMaxSingle::test @ bci:11 (line 24)
+
+After Superword::filter_packs_for_profitable
+
+PackSet::print: 0 packs
+
+SuperWord::transform_loop failed: SuperWord::SLP_extract did not vectorize
+
+VLoop::check_preconditions
+    Loop: N583/N131  limit_check counted [int,1009),+16 (1025 iters)  main has_sfpt strip_mined
+ 583  CountedLoop  === 583 144 131  [[ 583 140 586 595 ]] inner stride: 16 main of N583 strip mined !orig=[484],[410],[352],[145],[136],[73] !jvms: LongMaxSingle::test @ bci:9 (line 24)
+VLoop::check_preconditions: failed: loop only wants to be unrolled
+#+end_src
+** CANCELLED longMaxDotProduct no superword -
+Base:
+#+begin_src bash
+   5.67%  │││ │││↗  │    0x00007f3fcc0fa71d:   movq		0x20(%r14, %r8, 8), %r9
+   5.19%  │││ ││││  │    0x00007f3fcc0fa722:   imulq		0x20(%rax, %r8, 8), %r9;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          │││ ││││  │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@30 (line 1125)
+          │││ ││││  │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+   8.46%  │││ ││││  │    0x00007f3fcc0fa728:   cmpq		%r9, %rsi
+          │││╭││││  │    0x00007f3fcc0fa72b:   jl		0x7f3fcc0fa751      ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││  │                                                              ; - java.lang.Math::max@11 (line 2037)
+          ││││││││  │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@36 (line 1126)
+          ││││││││  │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+#+end_src
+Patch:
+#+begin_src bash
+  11.00%  │  0x00007f66f40f70b2:   movq		0x18(%r13, %rcx, 8), %rax
+          │  0x00007f66f40f70b7:   imulq		0x18(%r9, %rcx, 8), %rax;*lmul {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@30 (line 1125)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+          │  0x00007f66f40f70bd:   cmpq		%rdx, %rax
+  13.07%  │  0x00007f66f40f70c0:   cmovlq		%rdx, %rax          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxDotProduct@36 (line 1126)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxDotProduct_jmhTest::longMaxDotProduct_avgt_jmhStub@17 (line 190)
+#+end_src
+Why not vectorize?
+#+begin_src bash
+#+end_src
+* 5.2.25
+** Observations
+*** DONE longClippingRange avx512
+CLOSED: [2025-02-07 Fri 11:10]
+clippingRange performance improves with the patch when AVX-512 is enabled:
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4   834.127 ±  7.474  ops/ms # base
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  1147.010 ± 17.475  ops/ms # base
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4  3688.961 ±  1.491  ops/ms # patch
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  3687.721 ±  0.637  ops/ms # patch
+#+end_src
+*** DONE longLoopMax avx512
+CLOSED: [2025-02-07 Fri 18:04]
+With AVX-512, min/max loop performance doubles when one side of the branch is taken always or almost always.
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4   510.483 ±  0.088  ops/ms # base
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4   536.582 ±  0.300  ops/ms # base
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4  1073.081 ±  2.736  ops/ms # patch
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4  1017.337 ±  1.768  ops/ms # patch
+#+end_src
+
+With AVX-512, min/max loop performance remains the same for situations where the branch is only taken 80% or less:
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4  1126.718 ±  0.675  ops/ms # base
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4  1070.921 ±  6.057  ops/ms # base
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4   935.658 ±  6.184  ops/ms # base
+
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4  1007.410 ±  1.291  ops/ms # base
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4  1072.812 ±  1.383  ops/ms # patch
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4  1070.538 ±  4.630  ops/ms # patch
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4  1016.910 ±  1.030  ops/ms # patch
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4   933.774 ±  2.539  ops/ms # patch
+#+end_src
+*** DONE longReductionMax avx512
+CLOSED: [2025-02-07 Fri 11:41]
+On AVX-512, min/max loop reduction performance slightly increases when one side of the branch is taken always or almost always:
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   849.689 ±  1.882  ops/ms # base
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   880.921 ±  0.524  ops/ms # base
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   967.327 ±  0.268  ops/ms # patch
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   967.233 ±  0.135  ops/ms # patch
+#+end_src
+*** DONE longClippingRange no avx512
+CLOSED: [2025-02-07 Fri 11:45]
+In systems without AVX-512, we see improvements as well:
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4   832.132 ±  2.422  ops/ms # base
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4   832.546 ±  0.643  ops/ms # base
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4  1813.609 ±  1.051  ops/ms # patch
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  1814.477 ±  0.866  ops/ms # patch
+#+end_src
+TODO: show why
+*** DONE longReductionMax no avx512
+CLOSED: [2025-02-07 Fri 12:41]
+But it's also noticeable that on systems without AVX-512, there is a regression on reduction tests when one side of the branch is taken always or almost always:
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   883.614 ±  1.237  ops/ms # base
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   848.784 ±  0.814  ops/ms # base
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   409.318 ±  0.324  ops/ms # patch
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   404.669 ±  0.224  ops/ms # patch
+#+end_src
+*** DONE VectorReduction2 superword
+CLOSED: [2025-02-07 Fri 13:08]
+Base:
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.WithSuperword.longMaxBig           2048       0  avgt    3  3970.527 ±   6.462  ns/op
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  avgt    3  1369.634 ± 136.738  ns/op
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  avgt    3   722.314 ±   1.555  ns/op
+VectorReduction2.WithSuperword.longMinBig           2048       0  avgt    3  3996.694 ±  21.437  ns/op
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  avgt    3  1363.687 ±  86.452  ns/op
+VectorReduction2.WithSuperword.longMinSimple        2048       0  avgt    3   718.150 ±   4.879  ns/op
+#+end_src
+Patch:
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.WithSuperword.longMaxBig           2048       0  avgt    3  1918.821 ±   5.071  ns/op
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  avgt    3  1055.762 ±   2.436  ns/op
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  avgt    3  2172.064 ±   2.321  ns/op
+VectorReduction2.WithSuperword.longMinBig           2048       0  avgt    3  1918.398 ±   8.415  ns/op
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  avgt    3  1056.375 ±   2.326  ns/op
+VectorReduction2.WithSuperword.longMinSimple        2048       0  avgt    3  2179.478 ±   4.483  ns/op
+#+end_src
+*** DONE VectorReduction2 no superword
+CLOSED: [2025-02-07 Fri 13:14]
+Base:
+#+begin_src bash
+Benchmark                                       (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.NoSuperword.longMaxBig           2048       0  avgt    3  3964.403 ±   6.720  ns/op
+VectorReduction2.NoSuperword.longMaxDotProduct    2048       0  avgt    3  1686.373 ±  19.197  ns/op
+VectorReduction2.NoSuperword.longMaxSimple        2048       0  avgt    3   722.219 ±   3.258  ns/op
+VectorReduction2.NoSuperword.longMinBig           2048       0  avgt    3  3994.685 ±   9.166  ns/op
+VectorReduction2.NoSuperword.longMinDotProduct    2048       0  avgt    3  1366.291 ±  34.797  ns/op
+VectorReduction2.NoSuperword.longMinSimple        2048       0  avgt    3   719.218 ±   4.133  ns/op
+#+end_src
+Patch:
+#+begin_src bash
+Benchmark                                       (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.NoSuperword.longMaxBig           2048       0  avgt    3  2966.258 ±  23.584  ns/op
+VectorReduction2.NoSuperword.longMaxDotProduct    2048       0  avgt    3  2462.876 ±   3.705  ns/op
+VectorReduction2.NoSuperword.longMaxSimple        2048       0  avgt    3  2171.859 ±   9.999  ns/op
+VectorReduction2.NoSuperword.longMinBig           2048       0  avgt    3  2971.143 ±  63.406  ns/op
+VectorReduction2.NoSuperword.longMinDotProduct    2048       0  avgt    3  2428.173 ±  10.744  ns/op
+VectorReduction2.NoSuperword.longMinSimple        2048       0  avgt    3  2179.546 ±   1.547  ns/op
+#+end_src
+** DONE VectorReduction2 no superword base
+CLOSED: [2025-02-07 Fri 13:14]
+#+begin_src bash
+Benchmark                                       (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.NoSuperword.longAddBig           2048       0  avgt    3  2537.888 ±  14.925  ns/op
+VectorReduction2.NoSuperword.longAddDotProduct    2048       0  avgt    3  1430.144 ±  17.099  ns/op
+VectorReduction2.NoSuperword.longAddSimple        2048       0  avgt    3  1086.747 ±   1.184  ns/op
+VectorReduction2.NoSuperword.longAndBig           2048       0  avgt    3  2556.007 ±  83.504  ns/op
+VectorReduction2.NoSuperword.longAndDotProduct    2048       0  avgt    3  1414.412 ±  33.863  ns/op
+VectorReduction2.NoSuperword.longAndSimple        2048       0  avgt    3  1086.960 ±   1.327  ns/op
+VectorReduction2.NoSuperword.longMaxBig           2048       0  avgt    3  3964.403 ±   6.720  ns/op
+VectorReduction2.NoSuperword.longMaxDotProduct    2048       0  avgt    3  1686.373 ±  19.197  ns/op
+VectorReduction2.NoSuperword.longMaxSimple        2048       0  avgt    3   722.219 ±   3.258  ns/op
+VectorReduction2.NoSuperword.longMinBig           2048       0  avgt    3  3994.685 ±   9.166  ns/op
+VectorReduction2.NoSuperword.longMinDotProduct    2048       0  avgt    3  1366.291 ±  34.797  ns/op
+VectorReduction2.NoSuperword.longMinSimple        2048       0  avgt    3   719.218 ±   4.133  ns/op
+VectorReduction2.NoSuperword.longMulBig           2048       0  avgt    3  5515.299 ±  36.194  ns/op
+VectorReduction2.NoSuperword.longMulDotProduct    2048       0  avgt    3  3258.541 ±   8.074  ns/op
+VectorReduction2.NoSuperword.longMulSimple        2048       0  avgt    3  3202.197 ±   4.103  ns/op
+VectorReduction2.NoSuperword.longOrBig            2048       0  avgt    3  2490.760 ± 102.818  ns/op
+VectorReduction2.NoSuperword.longOrDotProduct     2048       0  avgt    3  1390.159 ±  34.267  ns/op
+VectorReduction2.NoSuperword.longOrSimple         2048       0  avgt    3  1086.802 ±   3.238  ns/op
+VectorReduction2.NoSuperword.longXorBig           2048       0  avgt    3  2539.615 ±  25.418  ns/op
+VectorReduction2.NoSuperword.longXorDotProduct    2048       0  avgt    3  1429.190 ±  71.557  ns/op
+VectorReduction2.NoSuperword.longXorSimple        2048       0  avgt    3  1086.932 ±   3.131  ns/op
+#+end_src
+** DONE VectorReduction2 superword base
+CLOSED: [2025-02-07 Fri 13:05]
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.WithSuperword.longAddBig           2048       0  avgt    3  1912.731 ± 142.091  ns/op
+VectorReduction2.WithSuperword.longAddDotProduct    2048       0  avgt    3   849.183 ±   4.849  ns/op
+VectorReduction2.WithSuperword.longAddSimple        2048       0  avgt    3  1086.779 ±   2.233  ns/op
+VectorReduction2.WithSuperword.longAndBig           2048       0  avgt    3  1857.181 ±  17.968  ns/op
+VectorReduction2.WithSuperword.longAndDotProduct    2048       0  avgt    3   775.550 ±  48.200  ns/op
+VectorReduction2.WithSuperword.longAndSimple        2048       0  avgt    3  1086.751 ±   1.252  ns/op
+VectorReduction2.WithSuperword.longMaxBig           2048       0  avgt    3  3970.527 ±   6.462  ns/op
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  avgt    3  1369.634 ± 136.738  ns/op
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  avgt    3   722.314 ±   1.555  ns/op
+VectorReduction2.WithSuperword.longMinBig           2048       0  avgt    3  3996.694 ±  21.437  ns/op
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  avgt    3  1363.687 ±  86.452  ns/op
+VectorReduction2.WithSuperword.longMinSimple        2048       0  avgt    3   718.150 ±   4.879  ns/op
+VectorReduction2.WithSuperword.longMulBig           2048       0  avgt    3  5512.613 ±  57.648  ns/op
+VectorReduction2.WithSuperword.longMulDotProduct    2048       0  avgt    3  5164.547 ±  27.127  ns/op
+VectorReduction2.WithSuperword.longMulSimple        2048       0  avgt    3  3202.035 ±   1.617  ns/op
+VectorReduction2.WithSuperword.longOrBig            2048       0  avgt    3  1845.030 ±   7.613  ns/op
+VectorReduction2.WithSuperword.longOrDotProduct     2048       0  avgt    3   777.455 ±  42.214  ns/op
+VectorReduction2.WithSuperword.longOrSimple         2048       0  avgt    3  1086.917 ±   1.588  ns/op
+VectorReduction2.WithSuperword.longXorBig           2048       0  avgt    3  1847.031 ± 142.156  ns/op
+VectorReduction2.WithSuperword.longXorDotProduct    2048       0  avgt    3   776.417 ±  40.045  ns/op
+VectorReduction2.WithSuperword.longXorSimple        2048       0  avgt    3  1086.847 ±   1.187  ns/op
+#+end_src
+** DONE VectorReduction2 no superword patch
+CLOSED: [2025-02-07 Fri 13:14]
+#+begin_src bash
+Benchmark                                       (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.NoSuperword.longAddBig           2048       0  avgt    3  2541.545 ±  21.476  ns/op
+VectorReduction2.NoSuperword.longAddDotProduct    2048       0  avgt    3  1439.763 ± 132.247  ns/op
+VectorReduction2.NoSuperword.longAddSimple        2048       0  avgt    3  1088.049 ±  32.892  ns/op
+VectorReduction2.NoSuperword.longAndBig           2048       0  avgt    3  2542.043 ±   3.770  ns/op
+VectorReduction2.NoSuperword.longAndDotProduct    2048       0  avgt    3  1424.613 ±  43.635  ns/op
+VectorReduction2.NoSuperword.longAndSimple        2048       0  avgt    3  1086.832 ±   2.947  ns/op
+VectorReduction2.NoSuperword.longMaxBig           2048       0  avgt    3  2966.258 ±  23.584  ns/op
+VectorReduction2.NoSuperword.longMaxDotProduct    2048       0  avgt    3  2462.876 ±   3.705  ns/op
+VectorReduction2.NoSuperword.longMaxSimple        2048       0  avgt    3  2171.859 ±   9.999  ns/op
+VectorReduction2.NoSuperword.longMinBig           2048       0  avgt    3  2971.143 ±  63.406  ns/op
+VectorReduction2.NoSuperword.longMinDotProduct    2048       0  avgt    3  2428.173 ±  10.744  ns/op
+VectorReduction2.NoSuperword.longMinSimple        2048       0  avgt    3  2179.546 ±   1.547  ns/op
+VectorReduction2.NoSuperword.longMulBig           2048       0  avgt    3  5516.194 ±  35.040  ns/op
+VectorReduction2.NoSuperword.longMulDotProduct    2048       0  avgt    3  3258.022 ±  11.414  ns/op
+VectorReduction2.NoSuperword.longMulSimple        2048       0  avgt    3  3202.914 ±   4.224  ns/op
+VectorReduction2.NoSuperword.longOrBig            2048       0  avgt    3  2488.693 ±   6.731  ns/op
+VectorReduction2.NoSuperword.longOrDotProduct     2048       0  avgt    3  1374.897 ±  18.156  ns/op
+VectorReduction2.NoSuperword.longOrSimple         2048       0  avgt    3  1086.819 ±   2.495  ns/op
+VectorReduction2.NoSuperword.longXorBig           2048       0  avgt    3  2542.282 ±  13.333  ns/op
+VectorReduction2.NoSuperword.longXorDotProduct    2048       0  avgt    3  1450.067 ± 100.834  ns/op
+VectorReduction2.NoSuperword.longXorSimple        2048       0  avgt    3  1086.848 ±   4.009  ns/op
+#+end_src
+** DONE VectorReduction2 superword patch
+CLOSED: [2025-02-07 Fri 13:05]
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)  Mode  Cnt     Score     Error  Units
+VectorReduction2.WithSuperword.longAddBig           2048       0  avgt    3  1911.808 ±  40.537  ns/op
+VectorReduction2.WithSuperword.longAddDotProduct    2048       0  avgt    3   848.211 ±  40.394  ns/op
+VectorReduction2.WithSuperword.longAddSimple        2048       0  avgt    3  1086.876 ±   0.694  ns/op
+VectorReduction2.WithSuperword.longAndBig           2048       0  avgt    3  1858.534 ±  10.820  ns/op
+VectorReduction2.WithSuperword.longAndDotProduct    2048       0  avgt    3   769.989 ±  77.747  ns/op
+VectorReduction2.WithSuperword.longAndSimple        2048       0  avgt    3  1086.805 ±   0.776  ns/op
+VectorReduction2.WithSuperword.longMaxBig           2048       0  avgt    3  1918.821 ±   5.071  ns/op
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  avgt    3  1055.762 ±   2.436  ns/op
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  avgt    3  2172.064 ±   2.321  ns/op
+VectorReduction2.WithSuperword.longMinBig           2048       0  avgt    3  1918.398 ±   8.415  ns/op
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  avgt    3  1056.375 ±   2.326  ns/op
+VectorReduction2.WithSuperword.longMinSimple        2048       0  avgt    3  2179.478 ±   4.483  ns/op
+VectorReduction2.WithSuperword.longMulBig           2048       0  avgt    3  5513.603 ±  65.494  ns/op
+VectorReduction2.WithSuperword.longMulDotProduct    2048       0  avgt    3  5163.268 ±  12.265  ns/op
+VectorReduction2.WithSuperword.longMulSimple        2048       0  avgt    3  3202.403 ±   0.918  ns/op
+VectorReduction2.WithSuperword.longOrBig            2048       0  avgt    3  1844.341 ±   8.471  ns/op
+VectorReduction2.WithSuperword.longOrDotProduct     2048       0  avgt    3   764.858 ±  21.108  ns/op
+VectorReduction2.WithSuperword.longOrSimple         2048       0  avgt    3  1086.862 ±   0.244  ns/op
+VectorReduction2.WithSuperword.longXorBig           2048       0  avgt    3  1840.702 ± 229.949  ns/op
+VectorReduction2.WithSuperword.longXorDotProduct    2048       0  avgt    3   769.307 ±  22.568  ns/op
+VectorReduction2.WithSuperword.longXorSimple        2048       0  avgt    3  1086.797 ±   0.523  ns/op
+#+end_src
+** DONE avx-512 on with patch
+CLOSED: [2025-02-07 Fri 11:07]
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4  3688.961 ± 1.491  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  3687.721 ± 0.637  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4  1072.812 ± 1.383  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4  1070.538 ± 4.630  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4  1073.081 ± 2.736  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4  1016.910 ± 1.030  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4   933.774 ± 2.539  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4  1017.337 ± 1.768  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    4   966.945 ± 0.424  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    4   967.382 ± 0.064  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   967.327 ± 0.268  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    4   967.275 ± 0.319  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    4   967.228 ± 0.359  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   967.233 ± 0.135  ops/ms
+#+end_src
+** DONE avx-512 off with patch
+CLOSED: [2025-02-07 Fri 11:45]
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4  1813.609 ±  1.051  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  1814.477 ±  0.866  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4   939.313 ±  9.636  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4   945.124 ±  7.884  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4   937.287 ±  9.732  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4   689.750 ±  1.259  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4   876.326 ± 13.461  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4   999.475 ±  1.456  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    4   409.363 ±  0.256  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    4   409.141 ±  2.175  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   409.318 ±  0.324  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    4   404.705 ±  0.224  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    4   404.748 ±  0.178  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   404.669 ±  0.224  ops/ms
+#+end_src
+** DONE avx-512 on without patch
+CLOSED: [2025-02-07 Fri 11:07]
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4   834.127 ±  7.474  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4  1147.010 ± 17.475  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4  1126.718 ±  0.675  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4  1070.921 ±  6.057  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4   510.483 ±  0.088  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4   935.658 ±  6.184  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4  1007.410 ±  1.291  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4   536.582 ±  0.300  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    4   967.288 ±  0.202  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    4   967.327 ±  0.290  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   849.689 ±  1.882  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    4   966.323 ±  0.210  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    4   967.340 ±  0.158  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   880.921 ±  0.524  ops/ms
+#+end_src
+** DONE avx-512 off without patch
+CLOSED: [2025-02-07 Fri 11:45]
+#+begin_src bash
+Benchmark                       (probability)  (range)  (seed)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longClippingRange            N/A       90       0    1000  thrpt    4   832.132 ±  2.422  ops/ms
+MinMaxVector.longClippingRange            N/A      100       0    1000  thrpt    4   832.546 ±  0.643  ops/ms
+MinMaxVector.longLoopMax                   50      N/A     N/A    2048  thrpt    4   938.372 ± 14.703  ops/ms
+MinMaxVector.longLoopMax                   80      N/A     N/A    2048  thrpt    4   934.964 ±  5.206  ops/ms
+MinMaxVector.longLoopMax                  100      N/A     N/A    2048  thrpt    4   512.076 ±  0.161  ops/ms
+MinMaxVector.longLoopMin                   50      N/A     N/A    2048  thrpt    4   999.455 ±  3.220  ops/ms
+MinMaxVector.longLoopMin                   80      N/A     N/A    2048  thrpt    4  1000.352 ±  1.208  ops/ms
+MinMaxVector.longLoopMin                  100      N/A     N/A    2048  thrpt    4   536.359 ±  0.509  ops/ms
+MinMaxVector.longReductionMax              50      N/A     N/A    2048  thrpt    4   409.413 ±  0.147  ops/ms
+MinMaxVector.longReductionMax              80      N/A     N/A    2048  thrpt    4   409.374 ±  0.429  ops/ms
+MinMaxVector.longReductionMax             100      N/A     N/A    2048  thrpt    4   883.614 ±  1.237  ops/ms
+MinMaxVector.longReductionMin              50      N/A     N/A    2048  thrpt    4   404.723 ±  0.038  ops/ms
+MinMaxVector.longReductionMin              80      N/A     N/A    2048  thrpt    4   404.755 ±  0.139  ops/ms
+MinMaxVector.longReductionMin             100      N/A     N/A    2048  thrpt    4   848.784 ±  0.814  ops/ms
+#+end_src
+
