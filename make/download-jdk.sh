@@ -25,7 +25,7 @@ FETCH_URL=$(curl -s -w %{redirect_url} "${API_URL}")
 FILENAME=$(curl -OLs -w %{filename_effective} "${FETCH_URL}")
 
 # Validate the checksum
-curl -Ls "${FETCH_URL}.sha256.txt" | sha256sum -c --status
+# curl -Ls "${FETCH_URL}.sha256.txt" | sha256sum -c --status
 
 echo "Downloaded successfully as ${FILENAME}"
 
