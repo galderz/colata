@@ -17,6 +17,6 @@ BASE=21 ID=translet-name-ignored make checkout-worktree
 Build and test a backport for JDK 21:
 
 ```shell
-ID=21.translet-name-ignored BOOT_JDK_VERSION=21 TEST="tier1 tier2" make configure build-jdk test
+TEST="tier1 tier2" BASE=21 ID=translet-name-ignored make configure build-jdk test
 ```
 
