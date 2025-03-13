@@ -1,6 +1,6 @@
 * 17.02.2025
 ** floatToRawIntBits macos
-gContinue exploration in macos to understand assembly.
+Continue exploration in macos to understand assembly.
 #+begin_src asm
  ;; B14: #	out( B14 B15 ) <- in( B13 B14 ) Loop( B14-B14 inner main of N71 strip mined) Freq: 1.04898e+08
   0x000000010cf740d0:   sbfiz		x12, x4, #2, #0x20  ;*iastore {reexecute=0 rethrow=0 return_oop=0}
