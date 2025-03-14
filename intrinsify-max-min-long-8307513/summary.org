@@ -4,7 +4,139 @@
 * 13.3.25
 Working on the int version of https://bugs.openjdk.org/browse/JDK-8351409
 - [X] int reduction simple
-- [ ] int loop min? check results from 20.2
+** draft
+One of the scenarios mentioned in JDK-8351409 int min/max loops:
+
+Given a loop with a int min/max reduction pattern with one side of branch taken near 100% of time, when Supeword finds the pattern not profitable, then HotSpot will use scalar instructions (cmov) and performance will regress.
+
+Example java code:
+```
+import java.util.Random;
+
+public class TestIntMaxEmanuel {
+  private static Random RANDOM = new Random();
+
+  public static void main(String[] args) {
+    int[] a = new int[64 * 1024];
+    for (int i = 0; i < a.length; i++) {
+      a[i] = RANDOM.nextInt();
+    }
+
+
+    {
+      System.out.println("Warmup");
+      for (int i = 0; i < 10_000; i++) { test1(a); }
+      System.out.println("Run");
+      long t0 = System.nanoTime();
+      for (int i = 0; i < 10_000; i++) { test1(a); }
+      long t1 = System.nanoTime();
+      System.out.println("Time: " + (t1 - t0));
+    }
+
+    {
+      System.out.println("Warmup");
+      for (int i = 0; i < 10_000; i++) { test2(a); }
+      System.out.println("Run");
+      long t0 = System.nanoTime();
+      for (int i = 0; i < 10_000; i++) { test2(a); }
+      long t1 = System.nanoTime();
+      System.out.println("Time: " + (t1 - t0));
+    }
+  }
+
+  public static int test1(int[] a) {
+    int x = Integer.MIN_VALUE;
+    for (int i = 0; i < a.length; i++) {
+      x = Math.max(x, a[i]);
+    }
+    return x;
+  }
+
+  public static int test2(int[] a) {
+    int x = Integer.MIN_VALUE;
+    for (int i = 0; i < a.length; i++) {
+      x = (x >= a[i]) ? x : a[i];
+    }
+    return x;
+  }
+}
+```
+
+Running:
+```
+$ java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=printcompilation,TestIntMaxEmanuel::test* TestIntMaxEmanuel.java
+CompileCommand: compileonly TestIntMaxEmanuel.test* bool compileonly = true
+CompileCommand: PrintCompilation TestIntMaxEmanuel.test* bool PrintCompilation = true
+Warmup
+3774   93 %     3       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+3775   94       3       TestIntMaxEmanuel::test1 (27 bytes)
+3776   95 %     4       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+3782   96       4       TestIntMaxEmanuel::test1 (27 bytes)
+Run
+Time: 699 568 502
+Warmup
+5193  101 %     3       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+5193  102       3       TestIntMaxEmanuel::test2 (34 bytes)
+5194  103 %     4       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+5198  104       4       TestIntMaxEmanuel::test2 (34 bytes)
+Run
+Time: 243 859 789
+```
+
+Tracing the auto vectorizer we observe that `test1` was not vectorized because it's not profitable:
+
+```
+WARNING: Removed pack: not profitable:
+    0:  577  MaxI  === _ 602 578  [[ 574 ]]  !orig=519,448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    1:  574  MaxI  === _ 577 575  [[ 567 ]]  !orig=516,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    2:  567  MaxI  === _ 574 568  [[ 564 ]]  !orig=448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    3:  564  MaxI  === _ 567 565  [[ 519 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    4:  519  MaxI  === _ 564 520  [[ 516 ]]  !orig=448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    5:  516  MaxI  === _ 519 517  [[ 448 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    6:  448  MaxI  === _ 516 449  [[ 199 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    7:  199  MaxI  === _ 448 200  [[ 602 357 252 ]]  !orig=175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+
+After Superword::filter_packs_for_profitable
+
+PackSet::print: 0 packs
+
+SuperWord::transform_loop failed: SuperWord::SLP_extract did not vectorize
+```
+
+`test2` is not vectorized because it contains control flow.
+
+The assembly for `test1` looks like this:
+
+```
+  0x00007f3c7cad9e37:   cmpl		(%rsp), %eax
+  0x00007f3c7cad9e3a:   movl		(%rsp), %r11d
+  0x00007f3c7cad9e3e:   cmovll		%r11d, %eax         ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test1@15 (line 37)
+```
+
+And for `test2`:
+
+```
+  0x00007f3c7cadb300:   cmpl		%r11d, %eax
+  0x00007f3c7cadb303:   jl		0x7f3c7cadb367      ;*istore_1 {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test2@25 (line 45)
+```
+
+This issue can also be observed with the `MinMaxVector` benchmark added in JDK-8307513.
+The test scenarios above are represented by `intReductionSimpleMax`.
+To emulate `test2`, simply disable the `_max` intrinsic (-max below).
+The results are on an AVX-512 machine are:
+
+```
+Benchmark                             (probability)  (range)  (seed)  (size)   Mode  Cnt       -max       +max   Units
+MinMaxVector.intReductionSimpleMax              100      N/A     N/A    2048  thrpt    4    998.211    460.404  ops/ms (-53%)
+```
+
+Again we observe that `test2` equivalent is faster.
+
+Please also note that testing int min has to be done with care, as explained in this [jmh-dev](https://mail.openjdk.org/pipermail/jmh-dev/2025-February/004094.html) mailing thread. One way to mitigate might be to use compiler threshold scaling, to make Math.min(II) be compiled later. This needs to be verified.
+
+One important difference between int and long min/max is that the support for int vectorized min/max instructions are more widely available. So this regression should happen less often compared to long min/max.
 ** int loop
 #+begin_src bash
 # VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_max,_min -XX:-UseSuperWord
