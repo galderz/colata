@@ -3,6 +3,195 @@
 
 * 13.3.25
 Working on the int version of https://bugs.openjdk.org/browse/JDK-8351409
+- [X] int reduction simple
+- [ ] int loop min? check results from 20.2
+** int loop
+#+begin_src bash
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:+UnlockDiagnosticVMOptions -XX:DisableIntrinsic=_max,_min -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.intLoopMax
+# Parameters: (probability = 100, size = 2048)
+  17.18%  ││││││││││ │           0x00007f441c0f78df:   movl		0x1c(%r9, %rdi, 4), %r8d;*iaload {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::intLoopMax@26 (line 192)
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intLoopMax_jmhTest::intLoopMax_thrpt_jmhStub@19 (line 124)
+   3.01%  ││││││││││ │           0x00007f441c0f78e4:   movl		0x1c(%rbx, %rdi, 4), %esi;*iaload {reexecute=0 rethrow=0 return_oop=0}
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::intLoopMax@20 (line 192)
+          ││││││││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intLoopMax_jmhTest::intLoopMax_thrpt_jmhStub@19 (line 124)
+   1.70%  ││││││││││ │           0x00007f441c0f78e8:   cmpl		%r8d, %esi          ;   {no_reloc}
+          │││││╰││││ │           0x00007f441c0f78eb:   jl		0x7f441c0f7885      ;*if_icmplt {reexecute=0 rethrow=0 return_oop=0}
+          │││││ ││││ │                                                                     ; - java.lang.Math::max@2 (line 2023)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.MinMaxVector::intLoopMax@27 (line 192)
+          │││││ ││││ │                                                                     ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intLoopMax_jmhTest::intLoopMax_thrpt_jmhStub@19 (line 124)
+
+# VM options: -Djava.library.path=/home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.intLoopMax
+# Parameters: (probability = 100, size = 2048)
+
+# Run progress: 20.00% complete, ETA 00:10:45
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 573.606 ops/ms
+# Warmup Iteration   2: 579.319 ops/ms
+# Warmup Iteration   3: 579.619 ops/ms
+Iteration   1: 579.518 ops/ms
+Iteration   2: 579.465 ops/ms
+Iteration   3: 579.518 ops/ms
+Iteration   4: 579.482 ops/ms
+
+   0.01%  │↗   ↗   0x00007f74ec0f6ea8:   movl		0x10(%rbx, %rcx, 4), %r8d
+   0.02%  ││   │   0x00007f74ec0f6ead:   movl		0x10(%rbp, %rcx, 4), %r11d							
+   0.15%  ││   │   0x00007f74ec0f6eb2:   cmpl		%r8d, %r11d
+   0.02%  ││   │   0x00007f74ec0f6eb5:   cmovll		%r8d, %r11d
+   0.03%  ││   │   0x00007f74ec0f6eb9:   movl		%r11d, 0x10(%r9, %rcx, 4);*iastore {reexecute=0 rethrow=0 return_oop=0}
+          ││   │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::intLoopMax@30 (line 192)
+          ││   │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_intLoopMax_jmhTest::intLoopMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+** int reduction  
+*** fast build assembly
+#+begin_src bash
+[vagrant@centos9s intrinsify-max-min-long-8307513]$ /home/vagrant/1/jdk-intrinsify-max-min-long/build/fast-linux-x86_64/jdk/bin/java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=print,TestIntMaxEmanuel::test* TestIntMaxEmanuel.java
+
+Warmup
+ ;; B10: #	out( B10 B11 ) <- in( B9 B10 ) Loop( B10-B10 inner main of N78 strip mined) Freq: 4.43231e+09
+  0x00007f3c7cad9d70:   movl		0x4c(%rsi, %rdx, 4), %r11d
+  0x00007f3c7cad9d75:   movl		%r11d, (%rsp)
+  0x00007f3c7cad9d79:   movl		0x48(%rsi, %rdx, 4), %r10d
+  0x00007f3c7cad9d7e:   movl		%r10d, 4(%rsp)
+  0x00007f3c7cad9d83:   movl		0x10(%rsi, %rdx, 4), %r11d
+  0x00007f3c7cad9d88:   movl		0x14(%rsi, %rdx, 4), %r9d
+  0x00007f3c7cad9d8d:   movl		0x44(%rsi, %rdx, 4), %r10d
+  0x00007f3c7cad9d92:   movl		%r10d, 8(%rsp)
+  0x00007f3c7cad9d97:   movl		0x18(%rsi, %rdx, 4), %r8d
+  0x00007f3c7cad9d9c:   cmpl		%r11d, %eax
+  0x00007f3c7cad9d9f:   cmovll		%r11d, %eax
+  0x00007f3c7cad9da3:   cmpl		%r9d, %eax
+  0x00007f3c7cad9da6:   cmovll		%r9d, %eax
+  0x00007f3c7cad9daa:   movl		0x20(%rsi, %rdx, 4), %r10d
+  0x00007f3c7cad9daf:   cmpl		%r8d, %eax
+  0x00007f3c7cad9db2:   cmovll		%r8d, %eax
+  0x00007f3c7cad9db6:   movl		0x24(%rsi, %rdx, 4), %r8d
+  0x00007f3c7cad9dbb:   movl		0x28(%rsi, %rdx, 4), %r11d
+                                                            ;   {other}
+  0x00007f3c7cad9dc0:   movl		0x2c(%rsi, %rdx, 4), %ecx
+  0x00007f3c7cad9dc4:   movl		0x30(%rsi, %rdx, 4), %r9d
+  0x00007f3c7cad9dc9:   movl		0x34(%rsi, %rdx, 4), %edi
+  0x00007f3c7cad9dcd:   movl		0x38(%rsi, %rdx, 4), %ebx
+  0x00007f3c7cad9dd1:   movl		0x3c(%rsi, %rdx, 4), %ebp
+  0x00007f3c7cad9dd5:   movl		0x40(%rsi, %rdx, 4), %r13d
+  0x00007f3c7cad9dda:   movl		0x1c(%rsi, %rdx, 4), %r14d
+  0x00007f3c7cad9ddf:   cmpl		%r14d, %eax
+  0x00007f3c7cad9de2:   cmovll		%r14d, %eax
+  0x00007f3c7cad9de6:   cmpl		%r10d, %eax
+  0x00007f3c7cad9de9:   cmovll		%r10d, %eax
+  0x00007f3c7cad9ded:   cmpl		%r8d, %eax
+  0x00007f3c7cad9df0:   cmovll		%r8d, %eax
+  0x00007f3c7cad9df4:   cmpl		%r11d, %eax
+  0x00007f3c7cad9df7:   cmovll		%r11d, %eax
+  0x00007f3c7cad9dfb:   cmpl		%ecx, %eax
+  0x00007f3c7cad9dfd:   cmovll		%ecx, %eax
+  0x00007f3c7cad9e00:   cmpl		%r9d, %eax
+  0x00007f3c7cad9e03:   cmovll		%r9d, %eax
+  0x00007f3c7cad9e07:   cmpl		%edi, %eax
+  0x00007f3c7cad9e09:   cmovll		%edi, %eax
+  0x00007f3c7cad9e0c:   cmpl		%ebx, %eax
+  0x00007f3c7cad9e0e:   cmovll		%ebx, %eax
+  0x00007f3c7cad9e11:   cmpl		%ebp, %eax
+  0x00007f3c7cad9e13:   cmovll		%ebp, %eax
+  0x00007f3c7cad9e16:   cmpl		%r13d, %eax
+  0x00007f3c7cad9e19:   cmovll		%r13d, %eax
+  0x00007f3c7cad9e1d:   cmpl		8(%rsp), %eax
+  0x00007f3c7cad9e21:   movl		8(%rsp), %r11d
+  0x00007f3c7cad9e26:   cmovll		%r11d, %eax
+  0x00007f3c7cad9e2a:   cmpl		4(%rsp), %eax
+  0x00007f3c7cad9e2e:   movl		4(%rsp), %r10d
+  0x00007f3c7cad9e33:   cmovll		%r10d, %eax
+  0x00007f3c7cad9e37:   cmpl		(%rsp), %eax
+  0x00007f3c7cad9e3a:   movl		(%rsp), %r11d
+  0x00007f3c7cad9e3e:   cmovll		%r11d, %eax         ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test1@15 (line 37)
+  0x00007f3c7cad9e42:   addl		$0x10, %edx         ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test1@19 (line 36)
+  0x00007f3c7cad9e45:   cmpl		0x10(%rsp), %edx
+  0x00007f3c7cad9e49:   jl		0x7f3c7cad9d70      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test1@8 (line 36)
+Run
+Time: 699 684 807
+
+ ;; B13: #	out( B22 B14 ) <- in( B21 B12 )  Freq: 6.44376e+09
+  0x00007f3c7cadb2f7:   movl		0x18(%rsi, %rcx, 4), %r11d
+                                                            ;*iaload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test2@14 (line 45)
+  0x00007f3c7cadb2fc:   nop
+  0x00007f3c7cadb2fd:   nop
+  0x00007f3c7cadb2fe:   nop
+  0x00007f3c7cadb2ff:   nop
+  0x00007f3c7cadb300:   cmpl		%r11d, %eax
+  0x00007f3c7cadb303:   jl		0x7f3c7cadb367      ;*istore_1 {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestIntMaxEmanuel::test2@25 (line 45)
+
+Run
+Time: 418 516 019
+#+end_src
+*** fast build
+In fast build we can see that test1 is not vectorized because it's not profitable.
+And test2 because it has flow control.
+#+begin_src bash
+[vagrant@centos9s intrinsify-max-min-long-8307513]$ /home/vagrant/1/jdk-intrinsify-max-min-long/build/fast-linux-x86_64/jdk/bin/java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=printcompilation,TestIntMaxEmanuel::test* TestIntMaxEmanuel.java
+CompileCommand: compileonly TestIntMaxEmanuel.test* bool compileonly = true
+CompileCommand: PrintCompilation TestIntMaxEmanuel.test* bool PrintCompilation = true
+Warmup
+7213   93 %     3       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+7214   94       3       TestIntMaxEmanuel::test1 (27 bytes)
+7215   95 %     4       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+7230   96       4       TestIntMaxEmanuel::test1 (27 bytes)
+Run
+Time: 699 541 654
+Warmup
+8651  101 %     3       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+8652  102 %     4       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+8665  103       4       TestIntMaxEmanuel::test2 (34 bytes)
+Run
+Time: 461 819 971
+#+end_src
+
+#+begin_src bash
+[vagrant@centos9s intrinsify-max-min-long-8307513]$ /home/vagrant/1/jdk-intrinsify-max-min-long/build/fast-linux-x86_64/jdk/bin/java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=printcompilation,TestIntMaxEmanuel::test* -XX:CompileCommand=TraceAutoVectorization,*::*,ALL TestIntMaxEmanuel.java
+Warmup
+7168   93 %     3       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+7170   94       3       TestIntMaxEmanuel::test1 (27 bytes)
+7171   95 %     4       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+
+WARNING: Removed pack: not profitable:
+    0:  577  MaxI  === _ 602 578  [[ 574 ]]  !orig=519,448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    1:  574  MaxI  === _ 577 575  [[ 567 ]]  !orig=516,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    2:  567  MaxI  === _ 574 568  [[ 564 ]]  !orig=448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    3:  564  MaxI  === _ 567 565  [[ 519 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    4:  519  MaxI  === _ 564 520  [[ 516 ]]  !orig=448,199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    5:  516  MaxI  === _ 519 517  [[ 448 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    6:  448  MaxI  === _ 516 449  [[ 199 ]]  !orig=199,175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+    7:  199  MaxI  === _ 448 200  [[ 602 357 252 ]]  !orig=175 !jvms: TestIntMaxEmanuel::test1 @ bci:15 (line 37)
+
+After Superword::filter_packs_for_profitable
+
+PackSet::print: 0 packs
+
+SuperWord::transform_loop failed: SuperWord::SLP_extract did not vectorize
+
+7283   96       4       TestIntMaxEmanuel::test1 (27 bytes)
+
+Run
+Time: 699 564 730
+
+Warmup
+8773  101 %     3       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+8775  102       3       TestIntMaxEmanuel::test2 (34 bytes)
+8776  103 %     4       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+
+VLoop::check_preconditions: failed: control flow in loop not allowed
+Run
+Time: 396 187 083
+#+end_src
+*** release build
 Copied Emanuel's example in https://github.com/openjdk/jdk/pull/20098#issuecomment-2662706564 and run it on AVX-512:
 #+begin_src bash
 [vagrant@centos9s intrinsify-max-min-long-8307513]$ /home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/jdk/bin/java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=printcompilation,TestIntMaxEmanuel::test* TestIntMaxEmanuel.java
