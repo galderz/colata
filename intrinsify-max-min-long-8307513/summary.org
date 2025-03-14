@@ -1,6 +1,30 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 13.3.25
+Working on the int version of https://bugs.openjdk.org/browse/JDK-8351409
+Copied Emanuel's example in https://github.com/openjdk/jdk/pull/20098#issuecomment-2662706564 and run it on AVX-512:
+#+begin_src bash
+[vagrant@centos9s intrinsify-max-min-long-8307513]$ /home/vagrant/1/jdk-intrinsify-max-min-long/build/release-linux-x86_64/jdk/bin/java -XX:CompileCommand=compileonly,TestIntMaxEmanuel::test* -XX:CompileCommand=printcompilation,TestIntMaxEmanuel::test* TestIntMaxEmanuel.java
+CompileCommand: compileonly TestIntMaxEmanuel.test* bool compileonly = true
+CompileCommand: PrintCompilation TestIntMaxEmanuel.test* bool PrintCompilation = true
+Warmup
+3774   93 %     3       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+3775   94       3       TestIntMaxEmanuel::test1 (27 bytes)
+3776   95 %     4       TestIntMaxEmanuel::test1 @ 5 (27 bytes)
+3782   96       4       TestIntMaxEmanuel::test1 (27 bytes)
+Run
+Time: 699 568 502
+Warmup
+5193  101 %     3       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+5193  102       3       TestIntMaxEmanuel::test2 (34 bytes)
+5194  103 %     4       TestIntMaxEmanuel::test2 @ 5 (34 bytes)
+5198  104       4       TestIntMaxEmanuel::test2 (34 bytes)
+Run
+Time: 243 859 789
+#+end_src
+~test2~ appears to be faster, why is that?
+We need ~-XX:+TraceNewVectors~ to see that? Need fast compile for that
 * 27.2.25
 #+begin_src bash
 static java.util.Arrays::copyOfRange([BII)[B
