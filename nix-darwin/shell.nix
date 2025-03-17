@@ -6,7 +6,6 @@ in
 pkgs.mkShell {
   packages = [
     pkgs.autoconf
-    pkgs.clang
     pkgs.temurin-bin-23
 
     devkit
@@ -17,6 +16,6 @@ pkgs.mkShell {
     export DEVKIT_ROOT=${devkit}
 
     echo "Setting MIGCC to clang compiler cc binary."
-    export MIGCC="${pkgs.clang}/bin/cc"
+    export MIGCC="${devkit}/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc"
   '' ;
 }
