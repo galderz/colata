@@ -6,8 +6,8 @@ in
 pkgs.mkShell {
   packages = [
     pkgs.autoconf
-    pkgs.jdk23
     pkgs.clang
+    pkgs.temurin-bin-23
 
     devkit
   ];
