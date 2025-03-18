@@ -1,0 +1,116 @@
+BUILD_LOG ?= info
+CONF ?= fast
+JDK_HOME = jdk
+WORKTREE ?= topic
+BOOT_JDK_HOME ?= boot-jdk
+CAPSTONE_HOME ?= $(usr_home)
+
+boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
+java = $(java_home)/bin/java
+java_build_dir = $(JDK_HOME)/build/$(conf_name)
+java_home = $(java_build_dir)/jdk
+jmh = $(JDK_HOME)/build/jmh/jars/.jmh
+lldbinit = $(TOPDIR)/make/.lldbinit
+modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
+os = $(shell uname | tr A-Z a-z)
+
+ifeq ($(BASE),latest)
+  base_branch = master
+  base_remote = upstream
+  jdk_tree_name = jdk-$(ID)
+  worktree_id = $(WORKTREE).$(ID)
+else ifeq ($(BASE),21)
+  BOOT_JDK_VERSION = 21
+  base_branch = jdk21u-dev-master
+  base_remote = jdk21u-dev
+  jdk_tree_name = jdk-$(BASE).$(ID)
+  worktree_id = backport.$(BASE).$(ID)
+else
+  jdk_tree_name = jdk-$(ID)
+endif
+
+ifeq ($(CONF),slow)
+  conf_args += --with-debug-level=slowdebug
+  conf_args += --with-native-debug-symbols=internal
+else ifeq ($(CONF),fast)
+  conf_args += --with-debug-level=fastdebug
+  conf_args += --with-native-debug-symbols=internal
+endif
+
+CPU ?=
+ifdef CPU
+  cpu = $(CPU)
+else
+  cpu = $(shell uname -m | tr A-Z a-z)
+endif
+conf_name = $(CONF)-$(os)-$(cpu)
+
+$(java): $(shell find $(JDK_HOME)/src -type f -name '*.java')
+$(java): $(shell find $(JDK_HOME)/src -type f -name '*pp')
+$(java): $(shell find $(JDK_HOME)/test -type f -name '*.java')
+$(java): $(shell find $(JDK_HOME)/test -type f -name '*pp')
+$(java): $(shell find $(JDK_HOME)/src -type f -name '*.ad')
+$(java):
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) LOG=$(BUILD_LOG) make hotspot
+ifeq ($(UNAME_S),Linux)
+>  cp $(modules_libs_dir)/libjvm.so $(java_libs_dir)
+else ifeq ($(UNAME_S),Darwin)
+>  cp $(modules_libs_dir)/libjvm.dylib $(java_libs_dir)
+>  rm -drf $(java_libs_dir)/libjvm.dylib.dSYM
+>  cp -r $(modules_libs_dir)/libjvm.dylib.dSYM $(java_libs_dir) || true
+endif
+> popd
+> touch $@
+
+ifndef NO_HSDIS
+  conf_args += --enable-hsdis-bundling
+  conf_args += --with-capstone=$(CAPSTONE_HOME)
+  conf_args += --with-hsdis=capstone
+endif
+
+configure: $(boot_jdk_java) $(jmh)
+> pushd $(JDK_HOME)
+> bash configure \
+>   --disable-precompiled-headers \
+>   --with-boot-jdk=$(BOOT_JDK_HOME) \
+>   --with-conf-name=$(conf_name) \
+>   --with-jmh=build/jmh/jars \
+>   --with-devkit=$(DEVKIT_ROOT) \
+>   $(conf_args)
+> popd
+ifeq ($(UNAME_S),Darwin)
+> cp $(lldbinit) $(JDK_HOME)/build/$(conf_name)
+endif
+.PHONY: configure
+
+build-jdk:
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) LOG=$(BUILD_LOG) make -s
+> popd
+> touch $(java)
+.PHONY: build-jdk
+
+$(jmh):
+> pushd $(JDK_HOME)
+> sh make/devkit/createJMHBundle.sh
+> popd
+> touch $@
+
+clean-jdk:
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) make clean
+.PHONY: clean-jdk
+
+new-worktree:
+> pushd $(HOME)/1/jdk
+> git fetch $(base_remote)
+> git pull $(base_remote)
+> git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
+> popd
+> ln -s $(HOME)/1/$(jdk_tree_name) jdk
+.PHONY: new-worktree
+
+clear-logs:
+> rm -f *.log
+.PHONY: clear-logs
