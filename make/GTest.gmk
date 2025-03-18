@@ -1,5 +1,0 @@
-GTEST_HOME ?= $(opt)/googletest
-
-$(gtest_opt):
-> cd $(opt)
-> git clone -b v1.14.0 https://github.com/google/googletest

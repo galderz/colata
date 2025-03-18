@@ -1,5 +1,4 @@
 include $(TOPDIR)/make/Capstone.gmk
-# include $(TOPDIR)/make/JTreg.gmk
 
 CONF ?= fast
 BUILD_LOG ?= info
@@ -9,7 +8,7 @@ WORKTREE ?= topic
 ifeq ($(BASE),latest)
   base_branch = master
   base_remote = upstream
-  jdk_tree_name = jdk-$(ID)
+  jdk_tree_name = jdk-$(worktree_id)
   worktree_id = $(WORKTREE).$(ID)
 else ifeq ($(BASE),21)
   BOOT_JDK_VERSION = 21
@@ -21,32 +20,38 @@ else
   jdk_tree_name = jdk-$(ID)
 endif
 
-JDK_HOME = jdk
-# todo replace the default with boot-jdk
-BOOT_JDK_HOME ?= $(opt)/boot-java-$(BOOT_JDK_VERSION)
-CAPSTONE_hHOME ?= $(usr_home)
+ifdef JDK
+  JDK_HOME = $(HOME)/1/$(JDK)
+else
+  JDK_HOME = $(HOME)/1/$(jdk_tree_name)
+endif
 
 ant_home = $(opt)/ant
 ant_bin = $(opt)/ant/bin/ant
-boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
+boot_jdk_home = $(opt)/boot-java-$(BOOT_JDK_VERSION)
+boot_jdk_java = $(boot_jdk_home)/bin/java
 call_java += $(java)
+gtest_opt = $(opt)/googletest
 java = $(java_home)/bin/java
 java_home = $(java_build_dir)/jdk
 java_build_dir = $(JDK_HOME)/build/$(conf_name)
 java_libs_dir = $(java_home)/lib/server
 jmh = $(JDK_HOME)/build/jmh/jars/.jmh
-# todo copy lldbinit only if darwin
+# todo use JTreg.gmk instead?
+jtreg_bin = $(jtreg_home)/bin/jtreg
+jtreg_opt = $(opt)/jtreg
+jtreg_home = $(jtreg_opt)/build/images/jtreg
 lldbinit = $(TOPDIR)/make/.lldbinit
 make += make
 make += -s
 modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
 os = $(shell uname | tr A-Z a-z)
 
-# ifeq ($(UNAME_S),Linux)
-#   autoconf = /usr/bin/autoconf
-# else ifeq ($(UNAME_S),Darwin)
-#   autoconf = /opt/homebrew/bin/autoconf
-# endif
+ifeq ($(UNAME_S),Linux)
+  autoconf = /usr/bin/autoconf
+else ifeq ($(UNAME_S),Darwin)
+  autoconf = /opt/homebrew/bin/autoconf
+endif
 
 CPU ?=
 ifdef CPU
@@ -74,7 +79,7 @@ endif
 
 ifndef NO_HSDIS
   conf_args += --enable-hsdis-bundling
-  conf_args += --with-capstone=$(CAPSTONE_HOME)
+  conf_args += --with-capstone=$(usr_home)
   conf_args += --with-hsdis=capstone
 endif
 
@@ -95,7 +100,6 @@ else ifeq ($(UNAME_S),Darwin)
 >  rm -drf $(java_libs_dir)/libjvm.dylib.dSYM
 >  cp -r $(modules_libs_dir)/libjvm.dylib.dSYM $(java_libs_dir) || true
 endif
-> popd
 > touch $@
 
 build-hotspot: $(java)
@@ -104,7 +108,6 @@ build-hotspot: $(java)
 build-jdk:
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) LOG=$(BUILD_LOG) $(make) -s
-> popd
 > touch $(java)
 .PHONY: build-jdk
 
@@ -119,31 +122,28 @@ clean-jdk:
 > CONF=$(conf_name) $(make) clean
 .PHONY: clean-jdk
 
-# > cp $(lib_home)/libcapstone* $(JDK_HOME)/build/$(conf_name)/jdk/lib || true
-# > cp $(capstone_dylib) . || true
-# configure: $(boot_jdk_java) $(jmh) $(capstone_lib) $(jtreg_bin) $(gtest_opt) $(autoconf)
-# >   --with-gtest=$(gtest_opt) \
-# >   --with-jtreg=$(jtreg_home) \
-
-configure: $(boot_jdk_java) $(jmh)
+configure: $(boot_jdk_java) $(jmh) $(capstone_lib) $(jtreg_bin) $(gtest_opt) $(autoconf)
 > pushd $(JDK_HOME)
 > bash configure \
 >   --disable-precompiled-headers \
->   --with-boot-jdk=$(BOOT_JDK_HOME) \
+>   --with-boot-jdk=$(boot_jdk_home) \
 >   --with-conf-name=$(conf_name) \
+>   --with-gtest=$(gtest_opt) \
 >   --with-jmh=build/jmh/jars \
->   --with-devkit=$(DEVKIT_ROOT) \
+>   --with-jtreg=$(jtreg_home) \
 >   $(conf_args)
+> cp $(lib_home)/libcapstone* $(JDK_HOME)/build/$(conf_name)/jdk/lib || true
 > popd
+> cp $(capstone_dylib) . || true
 > cp $(lldbinit) $(JDK_HOME)/build/$(conf_name)
 .PHONY: configure
 
-# $(autoconf):
-# ifeq ($(UNAME_S),Linux)
-# > $(call tools)
-# else ifeq ($(UNAME_S),Darwin)
-# > brew install autoconf
-# endif
+$(autoconf):
+ifeq ($(UNAME_S),Linux)
+> $(call tools)
+else ifeq ($(UNAME_S),Darwin)
+> brew install autoconf
+endif
 
 # todo trim it for linux
 define tools
@@ -162,8 +162,7 @@ sudo dnf install -y \
   zip
 endef
 
-# tools: $(autoconf)
-tools:
+tools: $(autoconf)
 > $(call tools)
 .PHONY: tools
 
@@ -200,14 +199,17 @@ $(ant_bin):
 > ln -s apache-ant-1.10.14 ant
 
 $(jmh):
-> pushd $(JDK_HOME)
+> cd $(JDK_HOME)
 > sh make/devkit/createJMHBundle.sh
-> popd
 > touch $@
+
+$(gtest_opt):
+> cd $(opt)
+> git clone -b v1.14.0 https://github.com/google/googletest
 
 $(jtreg_bin): $(jtreg_opt)
 > cd $<
-> sh make/build.sh --jdk $(BOOT_JDK_HOME)
+> sh make/build.sh --jdk $(boot_jdk_home)
 
 $(jtreg_opt):
 > cd $(opt)
@@ -264,7 +266,7 @@ jtreg_args += -timeout:4
 test-jtreg: build-jdk
 > cp $(TEST_FILE) $(JDK_HOME)/$(TEST_DIR)
 > cd $(JDK_HOME)
-> JAVA_HOME=$(BOOT_JDK_HOME) $(jtreg_bin) $(jtreg_args) $(JDK_HOME)/$(TEST_DIR)/$(TEST_FILE)
+> JAVA_HOME=$(boot_jdk_home) $(jtreg_bin) $(jtreg_args) $(JDK_HOME)/$(TEST_DIR)/$(TEST_FILE)
 .PHONY: test-jtreg
 
 igv:
@@ -284,18 +286,16 @@ print-flags: $(java)
 .PHONY: print-flags
 
 new-worktree:
-> pushd $(HOME)/1/jdk
+> cd $(HOME)/1/jdk
 > git fetch $(base_remote)
-> git pull $(base_remote)
+> git pull
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
-> popd
-> ln -s $(HOME)/1/$(jdk_tree_name) jdk
 .PHONY: new-worktree
 
 checkout-worktree:
 > cd $(HOME)/1/jdk
 > git fetch origin
-> git pull origin
+> git pull
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
 .PHONY: checkout-worktree
 
