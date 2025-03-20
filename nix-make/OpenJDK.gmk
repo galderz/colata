@@ -97,10 +97,10 @@ $(jmh):
 > popd
 > touch $@
 
-clean-jdk:
-> pushd $(JDK_HOME)
-> CONF=$(conf_name) make clean
-.PHONY: clean-jdk
+compile-commands:
+> cd $(JDK_HOME)
+> CONF=$(conf_name) make compile-commands
+.PHONY: compile-commands
 
 new-worktree:
 > pushd $(ROOT)/jdk
@@ -111,6 +111,15 @@ new-worktree:
 > ln -s $(HOME)/1/$(jdk_tree_name) jdk
 .PHONY: new-worktree
 
+clion:
+> $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
+.PHONY: clion
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
+
+clean-jdk:
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) make clean
+.PHONY: clean-jdk
