@@ -1,9 +1,9 @@
-BUILD_LOG ?= info
-CONF ?= fast
-JDK_HOME = jdk
-WORKTREE ?= topic
 BOOT_JDK_HOME ?= boot-jdk
+BUILD_LOG ?= info
 CAPSTONE_HOME ?= $(usr_home)
+CONF ?= fast
+ROOT ?= $(HOME)/1
+WORKTREE ?= topic
 
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 java = $(java_home)/bin/java
@@ -14,20 +14,20 @@ lldbinit = $(TOPDIR)/make/.lldbinit
 modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
 os = $(shell uname | tr A-Z a-z)
 
-ifeq ($(BASE),latest)
-  base_branch = master
-  base_remote = upstream
-  jdk_tree_name = jdk-$(ID)
-  worktree_id = $(WORKTREE).$(ID)
-else ifeq ($(BASE),21)
+ifeq ($(BASE),21)
   BOOT_JDK_VERSION = 21
   base_branch = jdk21u-dev-master
   base_remote = jdk21u-dev
   jdk_tree_name = jdk-$(BASE).$(ID)
   worktree_id = backport.$(BASE).$(ID)
 else
+  base_branch = master
+  base_remote = upstream
   jdk_tree_name = jdk-$(ID)
+  worktree_id = $(WORKTREE).$(ID)
 endif
+
+JDK_HOME ?= $(ROOT)/$(jdk_tree_name)
 
 ifeq ($(CONF),slow)
   conf_args += --with-debug-level=slowdebug
@@ -103,7 +103,7 @@ clean-jdk:
 .PHONY: clean-jdk
 
 new-worktree:
-> pushd $(HOME)/1/jdk
+> pushd $(ROOT)/jdk
 > git fetch $(base_remote)
 > git pull $(base_remote)
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)

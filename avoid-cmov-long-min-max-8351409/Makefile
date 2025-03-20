@@ -1,5 +1,4 @@
 ID ?= avoid-cmov-long-min-max
-BASE ?= latest
 CLASS ?= Test
 
 default: run

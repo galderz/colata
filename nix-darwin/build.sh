@@ -3,4 +3,4 @@
 set -e -x
 
 #pushd jdk && LOG=debug,cmdlines make
-pushd jdk && make
+pushd $(HOME)/1/jdk && make

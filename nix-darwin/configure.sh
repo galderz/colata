@@ -2,6 +2,6 @@
 
 set -e -x
 
-pushd jdk && bash configure \
+pushd $(HOME)/1/jdk && bash configure \
     --with-boot-jdk=$(dirname $(dirname $(readlink -f $(which java)))) \
     --with-devkit=$DEVKIT_ROOT
