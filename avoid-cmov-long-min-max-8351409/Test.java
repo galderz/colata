@@ -1,3 +1,5 @@
+import java.util.Arrays;
+
 public class Test
 {
     static final int RANGE = 1024;
@@ -13,23 +15,37 @@ public class Test
         }
     }
 
-    static long test(long[] data, long sum)
+    static long test(long[] data)
     {
+        long max = Long.MIN_VALUE;
         for (int i = 0; i < RANGE; i++)
         {
-            final long v = 11 * data[i];
-            sum = Math.max(sum, v);
+            final long value = 11 * data[i];
+            final long tmp = Math.max(max, value);
+            max = tmp;
         }
-        return sum;
+        return max;
     }
 
     public static void main(String[] args)
     {
         long[] data = new long[RANGE];
         init(data);
+
+        long result = 0;
         for (long i = 0; i < ITER; i++)
         {
-            test(data, i);
+            result = test(data);
+        }
+
+        // Validate
+        if (result == 11 * Arrays.stream(data).max().getAsLong())
+        {
+            System.out.println("Success");
+        }
+        else
+        {
+            throw new AssertionError("Failed");
         }
     }
 }
