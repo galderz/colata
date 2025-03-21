@@ -15,8 +15,14 @@ base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 comp_jvm_args += -XX:CompileCommand=print,$(CLASS)::test
 #comp_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::test
 
+ideal_jvm_args += -XX:+PrintIdeal
+
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
+endif
+
+ifdef IDEAL_ARGS
+  jvm_args += $(ideal_jvm_args)
 endif
 
 jvm_args += $(base_jvm_args)
