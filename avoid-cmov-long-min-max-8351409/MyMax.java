@@ -1,6 +1,6 @@
 import java.util.Arrays;
 
-public class Test
+public class MyMax
 {
     static final int RANGE = 1024;
     static final int ITER = 10_000;
@@ -21,7 +21,7 @@ public class Test
         for (int i = 0; i < RANGE; i++)
         {
             final long value = 11 * data[i];
-            final long tmp = Math.max(max, value);
+            final long tmp = (max >= value) ? max : value;
             max = tmp;
         }
         return max;
