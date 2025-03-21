@@ -1,0 +1,84 @@
+* 21.3.25
+Trying to add backend implementation for MinL/MaxL.
+Used code in here as base to decide how to approach it:
+https://github.com/openjdk/jdk/compare/master...galderz:jdk:topic.intrinsify-max-min-long.0528?expand=1
+Removed macro expansion for the nodes.
+
+Java code:
+#+begin_src java
+     1	import java.util.Arrays;
+     2
+     3	public class Test
+     4	{
+     5	    static final int RANGE = 1024;
+     6	    static final int ITER = 10_000;
+     7
+     8	    // Initializes data with increasing values,
+     9	    // so max one of the branches is the one that is always taken
+    10	    static void init(long[] data)
+    11	    {
+    12	        for (int i = 0; i < RANGE; i++)
+    13	        {
+    14	            data[i] = i + 1;
+    15	        }
+    16	    }
+    17
+    18	    static long test(long[] data)
+    19	    {
+    20	        long max = Long.MIN_VALUE;
+    21	        for (int i = 0; i < RANGE; i++)
+    22	        {
+    23	            final long value = 11 * data[i];
+    24	            final long tmp = Math.max(max, value);
+    25	            max = tmp;
+    26	        }
+    27	        return max;
+    28	    }
+    29
+    30	    public static void main(String[] args)
+    31	    {
+    32	        long[] data = new long[RANGE];
+    33	        init(data);
+    34
+    35	        long result = 0;
+    36	        for (long i = 0; i < ITER; i++)
+    37	        {
+    38	            result = test(data);
+    39	        }
+    40
+    41	        // Validate
+    42	        if (result == 11 * Arrays.stream(data).max().getAsLong())
+    43	        {
+    44	            System.out.println("Success");
+    45	        }
+    46	        else
+    47	        {
+    48	            throw new AssertionError("Failed");
+    49	        }
+    50	    }
+    51	}
+#+end_src
+
+Before, ideal graph:
+#+begin_src bash
+ 467  CMoveL  === _ 466 430 415  [[ 469 471 ]]  #long !orig=[414],[360],[132],377 !jvms: Test::test @ bci:25 (line 24)
+ 469  CmpL  === _ 467 413  [[ 470 ]]
+ 470  Bool  === _ 469  [[ 471 ]] [lt]
+#+end_src
+
+Before, assemly:
+#+begin_src asm
+  0x0000000110607dfc:   csel		x0, x10, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@25 (line 24)
+#+end_src
+
+After, ideal graph:
+#+begin_src bash
+ 412  MaxL  === _ 414 413  [[ 360 ]]  !orig=132,377 !jvms: Test::test @ bci:25 (line 24)
+#+end_src
+
+After, assembly:
+#+begin_src asm
+  0x000000010e6d3db0:   csel		x0, x14, x12, gt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@25 (line 24)
+#+end_src
