@@ -45,7 +45,7 @@ public class Test
         }
         else
         {
-            throw new AssertionError("Failed");
+            throw new AssertionError("Failed, max: " + result);
         }
     }
 }
