@@ -28,5 +28,8 @@ pkgs.mkShell {
 
     export MIGCC="${devkit}/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc"
     echo "Setting MIGCC to $MIGCC"
+
+    unset SOURCE_DATE_EPOCH
+    echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
   '' ;
 }
