@@ -1,5 +1,5 @@
 BOOT_JDK_HOME ?= boot-jdk
-BUILD_LOG ?= info
+LOG ?= info
 CAPSTONE_HOME ?= $(usr_home)
 CONF ?= fast
 ROOT ?= $(HOME)/1
@@ -52,7 +52,7 @@ $(java): $(shell find $(JDK_HOME)/test -type f -name '*pp')
 $(java): $(shell find $(JDK_HOME)/src -type f -name '*.ad')
 $(java):
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make hotspot
+> CONF=$(conf_name) make hotspot
 ifeq ($(UNAME_S),Linux)
 >  cp $(modules_libs_dir)/libjvm.so $(java_libs_dir)
 else ifeq ($(UNAME_S),Darwin)
@@ -86,7 +86,7 @@ endif
 
 build-jdk:
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) LOG=$(BUILD_LOG) make -s
+> CONF=$(conf_name) make -s
 > popd
 > touch $(java)
 .PHONY: build-jdk
@@ -96,6 +96,11 @@ $(jmh):
 > sh make/devkit/createJMHBundle.sh
 > popd
 > touch $@
+
+test: build-jdk
+> cd $(JDK_HOME)
+> CONF=$(conf_name) make test
+.PHONY: test
 
 compile-commands:
 > cd $(JDK_HOME)
@@ -110,6 +115,13 @@ new-worktree:
 > popd
 > ln -s $(HOME)/1/$(jdk_tree_name) jdk
 .PHONY: new-worktree
+
+checkout-worktree:
+> cd $(ROOT)/jdk
+> git fetch origin
+> git pull
+> git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
+.PHONY: checkout-worktree
 
 clion:
 > $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
