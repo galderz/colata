@@ -115,6 +115,11 @@ clion:
 > $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
 .PHONY: clion
 
+idea:
+> cd $(JDK_HOME)
+> CONF=$(conf_name) sh bin/idea.sh
+.PHONY: idea
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
