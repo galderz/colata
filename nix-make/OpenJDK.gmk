@@ -92,9 +92,7 @@ build-jdk:
 .PHONY: build-jdk
 
 $(jmh):
-> pushd $(JDK_HOME)
-> sh make/devkit/createJMHBundle.sh
-> popd
+> $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
 > touch $@
 
 test: build-jdk
