@@ -134,6 +134,13 @@ idea:
 > CONF=$(conf_name) sh bin/idea.sh
 .PHONY: idea
 
+devkit:
+> cd $(JDK_HOME)/make/devkit
+> mkdir -p /tmp/usr-bin-tar
+> ln -sf /usr/bin/tar /tmp/usr-bin-tar/
+> PATH=/tmp/usr-bin-tar:$$PATH bash ./createMacosxDevkit.sh /Applications/XCode.app
+.PHONY: devkit
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
