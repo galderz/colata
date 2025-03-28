@@ -111,7 +111,6 @@ new-worktree:
 > git pull $(base_remote)
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
 > popd
-> ln -s $(HOME)/1/$(jdk_tree_name) jdk
 .PHONY: new-worktree
 
 checkout-worktree:
