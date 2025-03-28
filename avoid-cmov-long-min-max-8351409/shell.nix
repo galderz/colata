@@ -26,7 +26,10 @@ pkgs.mkShell {
     export DEVKIT_ROOT=${devkit}
     echo "Setting DEVKIT_ROOT to $DEVKIT_ROOT"
 
-    export MIGCC="${devkit}/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc"
+    export SDKROOT="${devkit}/Xcode/Contents/Developer"
+    echo "Setting SDKROOT to $SDKROOT"
+
+    export MIGCC="$SDKROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc"
     echo "Setting MIGCC to $MIGCC"
 
     unset SOURCE_DATE_EPOCH
