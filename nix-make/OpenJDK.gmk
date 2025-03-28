@@ -95,6 +95,7 @@ install-jmh:
 > $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
 .PHONY: install-jmh
 
+# todo depend on individual jars and run when any of those updated
 $(jmh):
 > $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
 > touch $@
