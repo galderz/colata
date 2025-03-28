@@ -91,6 +91,10 @@ build-jdk:
 > touch $(java)
 .PHONY: build-jdk
 
+install-jmh:
+> $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
+.PHONY: install-jmh
+
 $(jmh):
 > $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
 > touch $@
