@@ -8,6 +8,7 @@ pkgs.mkShell {
     pkgs.ant
     pkgs.autoconf
     pkgs.capstone
+    pkgs.pigz
     pkgs.temurin-bin-23
 
     devkit
