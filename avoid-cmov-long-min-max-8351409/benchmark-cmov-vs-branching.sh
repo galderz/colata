@@ -14,7 +14,7 @@ benchmark_all()
     local class="micro:org.openjdk.bench.java.lang.MinMaxVector"
     local micro_args="OPTIONS=-p probability=100 -jvmArgs -XX:-UseSuperWord"
 
-    CONF=release BUILD_LOG=warn make clean
+    CONF=release BUILD_LOG=warn make clean-jdk
 
     log TEST=\"${class}.longReductionMultiplyMax\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
     log TEST=\"${class}.longReductionSimpleMax\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
