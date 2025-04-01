@@ -19,3 +19,12 @@ $ make new-worktree
 ```shell
 $ make devkit
 ```
+
+# Add devkit to Nix store
+
+```shell
+$ make store-devkit
+cd .../build/devkit
+nix-store --add-fixed --recursive sha256 $(ls -d Xcode* | head -n 1)
+/nix/store/fqdg3ybx87d3kpg2gqqxl5h4xlwj4wrq-Xcode16.2-MacOSX15
+```
