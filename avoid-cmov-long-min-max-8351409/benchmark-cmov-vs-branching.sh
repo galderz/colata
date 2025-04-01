@@ -4,6 +4,14 @@ set -ex
 
 CLEAN="true"
 
+if [ "$(uname)" = "Darwin" ]; then
+  PROFILER="xctraceasm"
+  SDKROOT=/Applications/Xcode.app/Contents/Developer
+else
+  PROFILER="perfasm"
+  SDKROOT=$SDKROOT
+fi
+
 # Check for clean parameter
 if [[ "$1" == "--clean=false" ]]; then
     read -p "Are you sure you want to run without cleaning first? (yes/no): " RESPONSE
@@ -43,15 +51,11 @@ fi
 benchmark_all "topic.avoid-cmov-long-min-max.0327.cmov" ""
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-always" ""
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-never" ""
-
-if [ "$(uname)" = "Darwin" ]; then
-  PROFILER="xctraceasm"
-  SDKROOT=/Applications/Xcode.app/Contents/Developer
-else
-  PROFILER="perfasm"
-  SDKROOT=$SDKROOT
-fi
+# DisableIntrinsic requires UnlockDiagnosticVMOptions
+benchmark_all "topic.avoid-cmov-long-min-max.base" "-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_maxL"
 
 benchmark_all "topic.avoid-cmov-long-min-max.0327.cmov" "-prof $PROFILER;FORK=1"
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-always" "-prof $PROFILER;FORK=1"
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-never" "-prof $PROFILER;FORK=1"
+# DisableIntrinsic requires UnlockDiagnosticVMOptions
+benchmark_all "topic.avoid-cmov-long-min-max.base" "-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_maxL -prof $PROFILER;FORK=1"
