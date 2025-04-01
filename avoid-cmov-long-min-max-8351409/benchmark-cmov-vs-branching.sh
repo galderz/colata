@@ -24,12 +24,10 @@ benchmark_all()
     git checkout ${branch}
     popd
 
-    local class="micro:org.openjdk.bench.java.lang.MinMaxVector"
+    local prefix="micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.longReduction"
     local micro_args="OPTIONS=-p probability=100 -jvmArgs -XX:-UseSuperWord"
 
-
-    log TEST=\"${class}.longReductionMultiplyMax\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
-    log TEST=\"${class}.longReductionSimpleMax\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
+    log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
 }
 
 log()
