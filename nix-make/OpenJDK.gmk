@@ -141,6 +141,11 @@ devkit:
 > PATH=/tmp/usr-bin-tar:$$PATH bash ./createMacosxDevkit.sh /Applications/XCode.app
 .PHONY: devkit
 
+store-devkit:
+> cd $(JDK_HOME)/build/devkit
+> nix-store --add-fixed --recursive sha256 $$(ls -d Xcode* | head -n 1)
+.PHONY: store-devkit
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
