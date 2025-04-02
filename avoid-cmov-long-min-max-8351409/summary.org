@@ -2,6 +2,270 @@
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
 * 1.4.25
+** LoopMaxUnroll=8
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2150.509 ? 372.854  ops/ms # branch never
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2620.289 ?  64.740  ops/ms # disable _maxL
+MinMaxVector.longReductionSimpleMax              100    2048  thrpt    8  3423.275 ?  90.313  ops/ms # branch never
+MinMaxVector.longReductionSimpleMax              100    2048  thrpt    8  3559.058 ?  53.108  ops/ms # disable _maxL
+#+end_src
+Branch never:
+#+begin_src asm
+  10.44%          ?  0x0000000116f242b0:   ldp		x26, x27, [x12, #0x40]
+   0.12%          ?  0x0000000116f242b4:   mov		x12, x6
+   0.18%          ?  0x0000000116f242b8:   cmp		x6, x7
+   0.34%  ?       ?  0x0000000116f242bc:   b.ge		#0x116f242c4
+   9.08%  ?       ?  0x0000000116f242c0:   mov		x12, x7
+   1.04%  ?       ?  0x0000000116f242c4:   mov		x6, x12
+   0.45%          ?  0x0000000116f242c8:   cmp		x12, x21
+   0.18%   ?      ?  0x0000000116f242cc:   b.ge		#0x116f242d4
+   8.86%   ?      ?  0x0000000116f242d0:   mov		x6, x21
+   1.42%   ?      ?  0x0000000116f242d4:   mov		x12, x6
+   0.33%          ?  0x0000000116f242d8:   cmp		x6, x22
+   0.26%    ?     ?  0x0000000116f242dc:   b.ge		#0x116f242e4
+   9.42%    ?     ?  0x0000000116f242e0:   mov		x12, x22
+   1.32%    ?     ?  0x0000000116f242e4:   mov		x6, x12
+   0.28%          ?  0x0000000116f242e8:   cmp		x12, x23
+   0.15%     ?    ?  0x0000000116f242ec:   b.ge		#0x116f242f4
+  10.26%     ?    ?  0x0000000116f242f0:   mov		x6, x23
+   1.09%     ?    ?  0x0000000116f242f4:   mov		x12, x6
+   0.08%          ?  0x0000000116f242f8:   cmp		x6, x24
+   0.04%      ?   ?  0x0000000116f242fc:   b.ge		#0x116f24304
+   9.19%      ?   ?  0x0000000116f24300:   mov		x12, x24
+   1.64%      ?   ?  0x0000000116f24304:   mov		x6, x12
+   0.03%          ?  0x0000000116f24308:   cmp		x12, x25
+               ?  ?  0x0000000116f2430c:   b.ge		#0x116f24314
+   9.45%       ?  ?  0x0000000116f24310:   mov		x6, x25
+   1.51%       ?  ?  0x0000000116f24314:   mov		x12, x6
+   0.10%          ?  0x0000000116f24318:   cmp		x6, x26
+   0.18%        ? ?  0x0000000116f2431c:   b.ge		#0x116f24324
+   8.92%        ? ?  0x0000000116f24320:   mov		x12, x26
+   0.97%        ? ?  0x0000000116f24324:   add		w15, w15, #8        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                  ?                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@30 (line 294)
+                  ?                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+   0.35%          ?  0x0000000116f24328:   mov		x6, x12
+   0.26%          ?  0x0000000116f2432c:   cmp		x12, x27
+   0.24%         ??  0x0000000116f24330:   b.ge		#0x116f24338
+   9.34%         ??  0x0000000116f24334:   mov		x6, x27             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                 ??                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+                 ??                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+#+end_src
+Disable intrinsic:
+#+begin_src bash
+              ?  0x0000000112e37770:   add		x11, x6, w12, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              ?                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              ?                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              ?  0x0000000112e37774:   ldp		x21, x22, [x11, #0x10]
+              ?  0x0000000112e37778:   ldr		x23, [x11, #0x20]
+              ?  0x0000000112e3777c:   mul		x21, x21, x16
+  29.38%      ?  0x0000000112e37780:   ldr		x11, [x11, #0x28]
+              ?  0x0000000112e37784:   mul		x22, x22, x16
+              ?  0x0000000112e37788:   mul		x23, x23, x16
+              ?  0x0000000112e3778c:   mov		x24, x21
+   2.49%      ?  0x0000000112e37790:   cmp		x21, x7
+          ?   ?  0x0000000112e37794:   b.ge		#0x112e3779c
+          ?   ?  0x0000000112e37798:   mov		x24, x7
+  11.37%  ?   ?  0x0000000112e3779c:   mul		x11, x11, x16
+              ?  0x0000000112e377a0:   mov		x7, x22
+              ?  0x0000000112e377a4:   cmp		x22, x24
+           ?  ?  0x0000000112e377a8:   b.ge		#0x112e377b0
+           ?  ?  0x0000000112e377ac:   mov		x7, x24
+  19.38%   ?  ?  0x0000000112e377b0:   mov		x21, x23
+   3.11%      ?  0x0000000112e377b4:   cmp		x23, x7
+   0.44%    ? ?  0x0000000112e377b8:   b.ge		#0x112e377c0
+            ? ?  0x0000000112e377bc:   mov		x21, x7
+  10.61%    ? ?  0x0000000112e377c0:   add		w12, w12, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              ?                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              ?                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              ?  0x0000000112e377c4:   mov		x7, x11
+              ?  0x0000000112e377c8:   cmp		x11, x21
+             ??  0x0000000112e377cc:   b.ge		#0x112e377d4
+             ??  0x0000000112e377d0:   mov		x7, x21             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ??                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             ??                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  21.80%     ??  0x0000000112e377d4:   cmp		w12, w10
+              ?  0x0000000112e377d8:   b.lt		#0x112e37770        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.67%         0x0000000112e377dc:   ldr		x21, [x28, #0x30]   ; ImmutableOopMap {c_rarg0=Oop c_rarg2=Oop c_rarg3=Oop c_rarg5=Oop c_rarg4=Derived_oop_c_rarg5 c_rarg6=Oop r19=Oop }
+                                                                           ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                           ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.11%         0x0000000112e377e0:   ldr		wzr, [x21]          ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                           ;   {poll}
+                 0x0000000112e377e4:   cmp		w12, w17
+                 0x0000000112e377e8:   b.lt		#0x112e37750
+                 0x0000000112e377ec:   cmp		w12, w13
+                 0x0000000112e377f0:   b.lt		#0x112e376a8
+#+end_src
+** Observations and TraceLoopOpts
+Performance looks to be on par between disabling intrinsic and branch never.
+However, the assembly looks different in simple.
+Branch never:
+#+begin_src bash
+   5.80%                  ?      0x0000000113951b64:   ldr		x15, [x27, #0x10]
+   0.05%                  ?      0x0000000113951b68:   mov		x29, x25
+   0.04%                  ?      0x0000000113951b6c:   cmp		x25, x15
+   0.13%  ?               ?      0x0000000113951b70:   b.ge		#0x113951b78
+          ?               ?      0x0000000113951b74:   mov		x29, x15
+   5.50%  ?               ?      0x0000000113951b78:   ldr		x16, [x27, #0x18]
+   0.14%                  ?      0x0000000113951b7c:   mov		x15, x29
+   0.19%                  ?      0x0000000113951b80:   cmp		x29, x16
+   0.15%   ?              ?      0x0000000113951b84:   b.ge		#0x113951b8c
+           ?              ?      0x0000000113951b88:   mov		x15, x16
+   5.22%   ?              ?      0x0000000113951b8c:   ldr		x17, [x27, #0x20]
+   0.07%                  ?      0x0000000113951b90:   mov		x16, x15
+   0.03%                  ?      0x0000000113951b94:   cmp		x15, x17
+   0.07%    ?             ?      0x0000000113951b98:   b.ge		#0x113951ba0
+            ?             ?      0x0000000113951b9c:   mov		x16, x17
+   5.39%    ?             ?      0x0000000113951ba0:   ldr		x0, [x27, #0x28]
+   0.07%                  ?      0x0000000113951ba4:   mov		x15, x16
+   0.16%                  ?      0x0000000113951ba8:   cmp		x16, x0
+   0.11%     ?            ?      0x0000000113951bac:   b.ge		#0x113951bb4
+             ?            ?      0x0000000113951bb0:   mov		x15, x0
+   5.31%     ?            ?      0x0000000113951bb4:   ldr		x1, [x27, #0x30]
+   0.04%                  ?      0x0000000113951bb8:   mov		x16, x15
+   0.11%                  ?      0x0000000113951bbc:   cmp		x15, x1
+   0.03%      ?           ?      0x0000000113951bc0:   b.ge		#0x113951bc8
+              ?           ?      0x0000000113951bc4:   mov		x16, x1
+   5.33%      ?           ?      0x0000000113951bc8:   ldr		x2, [x27, #0x38]
+   0.08%                  ?      0x0000000113951bcc:   mov		x15, x16
+   0.17%                  ?      0x0000000113951bd0:   cmp		x16, x2
+   0.11%       ?          ?      0x0000000113951bd4:   b.ge		#0x113951bdc
+               ?          ?      0x0000000113951bd8:   mov		x15, x2
+   5.79%       ?          ?      0x0000000113951bdc:   ldr		x3, [x27, #0x40]
+   0.07%                  ?      0x0000000113951be0:   mov		x16, x15
+   0.04%                  ?      0x0000000113951be4:   cmp		x15, x3
+   0.02%        ?         ?      0x0000000113951be8:   b.ge		#0x113951bf0
+                ?         ?      0x0000000113951bec:   mov		x16, x3
+   5.32%        ?         ?      0x0000000113951bf0:   ldr		x4, [x27, #0x48]
+   0.08%                  ?      0x0000000113951bf4:   mov		x15, x16
+   0.07%                  ?      0x0000000113951bf8:   cmp		x16, x4
+   0.07%         ?        ?      0x0000000113951bfc:   b.ge		#0x113951c04
+   0.00%         ?        ?      0x0000000113951c00:   mov		x15, x4
+   5.77%         ?        ?      0x0000000113951c04:   ldr		x5, [x27, #0x50]
+   0.08%                  ?      0x0000000113951c08:   mov		x16, x15
+   0.04%                  ?      0x0000000113951c0c:   cmp		x15, x5
+   0.04%          ?       ?      0x0000000113951c10:   b.ge		#0x113951c18
+                  ?       ?      0x0000000113951c14:   mov		x16, x5
+   5.42%          ?       ?      0x0000000113951c18:   ldr		x6, [x27, #0x58]
+   0.09%                  ?      0x0000000113951c1c:   mov		x15, x16
+   0.15%                  ?      0x0000000113951c20:   cmp		x16, x6
+   0.08%           ?      ?      0x0000000113951c24:   b.ge		#0x113951c2c
+                   ?      ?      0x0000000113951c28:   mov		x15, x6
+   5.49%           ?      ?      0x0000000113951c2c:   ldr		x7, [x27, #0x60]
+   0.11%                  ?      0x0000000113951c30:   mov		x16, x15
+   0.06%                  ?      0x0000000113951c34:   cmp		x15, x7
+   0.06%            ?     ?      0x0000000113951c38:   b.ge		#0x113951c40
+                    ?     ?      0x0000000113951c3c:   mov		x16, x7
+   5.89%            ?     ?      0x0000000113951c40:   ldr		x20, [x27, #0x68]
+   0.07%                  ?      0x0000000113951c44:   mov		x15, x16
+   0.17%                  ?      0x0000000113951c48:   cmp		x16, x20
+   0.02%             ?    ?      0x0000000113951c4c:   b.ge		#0x113951c54
+                     ?    ?      0x0000000113951c50:   mov		x15, x20
+   5.52%             ?    ?      0x0000000113951c54:   ldr		x22, [x27, #0x70]
+   0.07%                  ?      0x0000000113951c58:   mov		x16, x15
+   0.10%                  ?      0x0000000113951c5c:   cmp		x15, x22
+   0.01%              ?   ?      0x0000000113951c60:   b.ge		#0x113951c68
+                      ?   ?      0x0000000113951c64:   mov		x16, x22
+   5.53%              ?   ?      0x0000000113951c68:   ldr		x23, [x27, #0x78]
+   0.06%                  ?      0x0000000113951c6c:   mov		x15, x16
+   0.14%                  ?      0x0000000113951c70:   cmp		x16, x23
+   0.12%               ?  ?      0x0000000113951c74:   b.ge		#0x113951c7c
+                       ?  ?      0x0000000113951c78:   mov		x15, x23
+   5.58%               ?  ?      0x0000000113951c7c:   ldr		x26, [x27, #0x80]
+   0.13%                  ?      0x0000000113951c80:   mov		x16, x15
+   0.07%                  ?      0x0000000113951c84:   cmp		x15, x26
+   0.14%                ? ?      0x0000000113951c88:   b.ge		#0x113951c90
+                        ? ?      0x0000000113951c8c:   mov		x16, x26
+   5.28%                ? ?      0x0000000113951c90:   ldr		x27, [x27, #0x88]
+   0.04%                  ?      0x0000000113951c94:   add		w12, w12, #0x10     ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                          ?                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@30 (line 294)
+                          ?                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+   0.14%                  ?      0x0000000113951c98:   mov		x25, x16
+   0.03%                  ?      0x0000000113951c9c:   cmp		x16, x27
+   0.12%                 ??      0x0000000113951ca0:   b.ge		#0x113951ca8
+   4.94%                 ??      0x0000000113951ca4:   mov		x25, x27            ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                         ??                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+                         ??                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+#+end_src
+Disable intrinsic:
+#+begin_src bash
+   1.07%           ?         0x000000012fae5dcc:   mov		x7, x13
+   9.59%          ??         0x000000012fae5dd0:   cmp		x7, x23
+   0.16%  ?       ??         0x000000012fae5dd4:   b.ge		#0x12fae5e3c        ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ?       ??                                                                   ; - java.lang.Math::max@11 (line 2038)
+          ?       ??                                                                   ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+          ?       ??                                                                   ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+  11.06%  ?       ???        0x000000012fae5dd8:   add		w11, w11, #8        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          ?       ???                                                                  ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@30 (line 294)
+          ?       ???                                                                  ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+   0.05%  ?       ???        0x000000012fae5ddc:   cmp		w11, w14
+   0.00%  ??      ???        0x000000012fae5de0:   b.ge		#0x12fae5e74        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@11 (line 294)
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+          ??      ???        0x000000012fae5de4:   mov		x25, x23            ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+          ??      ???        0x000000012fae5de8:   add		x13, x4, w11, sxtw #3
+          ??      ???        0x000000012fae5dec:   ldr		x23, [x13, #0x48]
+   0.00%  ??      ???        0x000000012fae5df0:   ldp		x5, x6, [x13, #0x10]
+   0.03%  ??      ???        0x000000012fae5df4:   ldr		x7, [x13, #0x40]
+   0.01%  ??      ???        0x000000012fae5df8:   ldp		x21, x22, [x13, #0x20]
+  11.10%  ??      ???        0x000000012fae5dfc:   ldp		x24, x13, [x13, #0x30];*laload {reexecute=0 rethrow=0 return_oop=0}
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@20 (line 295)
+          ??      ???                                                                  ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+          ??      ???        0x000000012fae5e00:   cmp		x25, x5
+   0.01%  ???     ???        0x000000012fae5e04:   b.ge		#0x12fae5e6c
+  10.83%  ???     ???     ?  0x000000012fae5e08:   cmp		x5, x6
+   0.14%  ????    ???     ?  0x000000012fae5e0c:   b.ge		#0x12fae5e44
+  10.79%  ????    ????    ?  0x000000012fae5e10:   cmp		x6, x21
+   0.27%  ?????   ????    ?  0x000000012fae5e14:   b.ge		#0x12fae5e64
+  10.53%  ?????   ????   ??  0x000000012fae5e18:   cmp		x21, x22
+   0.33%  ??????  ????   ??  0x000000012fae5e1c:   b.ge		#0x12fae5e4c
+  10.63%  ??????  ?????  ??  0x000000012fae5e20:   cmp		x22, x24
+   0.23%  ??????? ?????  ??  0x000000012fae5e24:   b.ge		#0x12fae5e54
+  10.74%  ??????? ?????? ??  0x000000012fae5e28:   cmp		x24, x13
+   0.08%  ?????????????? ??  0x000000012fae5e2c:   b.ge		#0x12fae5e5c        ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
+          ?????????????? ??                                                            ; - java.lang.Math::max@11 (line 2038)
+          ?????????????? ??                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+          ?????????????? ??                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+  11.29%  ?????????????????  0x000000012fae5e30:   cmp		x13, x7
+          ?????????????????  0x000000012fae5e34:   b.lt		#0x12fae5dd0        ;*iflt {reexecute=0 rethrow=0 return_oop=0}
+          ???????? ????????                                                            ; - java.lang.Math::max@3 (line 2038)
+          ???????? ????????                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 296)
+          ???????? ????????                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
+#+end_src
+Run with TraceLoopOpts to see if the difference is confirmed.
+Branch never:
+#+begin_src bash
+Unroll 16         Loop: N536/N165  limit_check counted [int,int),+8 (2072 iters)  main has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N297/N302  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre
+  Loop: N181/N180  limit_check sfpts={ 183 }
+    Loop: N641/N165  limit_check counted [int,int),+16 (2072 iters)  main has_sfpt strip_mined
+  Loop: N251/N256  limit_check counted [int,int),+1 (4 iters)  post
+#+end_src
+Disable intrinsic:
+#+begin_src bash
+Unroll 8         Loop: N1177/N246  limit_check counted [int,int),+4 (3475 iters)  main rc  has_sfpt strip_mined
+Unroll 8           Loop: N1232/N538  limit_check counted [int,int),+4 (3475 iters)  main rc  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N818/N827  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc 
+  Loop: N624/N623  limit_check sfpts={ 626 }
+    Loop: N1349/N246  limit_check counted [int,int),+8 (3475 iters)  main rc  has_sfpt strip_mined
+  Loop: N766/N775  limit_check counted [int,int),+1 (4 iters)  post rc 
+  Loop: N615/N589  limit_check profile_predicated predicated sfpts={ 580 }
+    Loop: N996/N1005  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc 
+    Loop: N635/N634  limit_check sfpts={ 637 }
+      Loop: N1428/N538  limit_check counted [int,int),+8 (3475 iters)  main rc  has_sfpt strip_mined
+    Loop: N944/N953  limit_check counted [int,int),+1 (4 iters)  post rc 
+#+end_src
+Chat with Roland.
+  He suggested limiting unrolling to 8 to make the comparison fair.
 ** Comparison
 #+begin_src bash
 Benchmark                              (probability)  (size)   Mode  Cnt     Score     Error   Units
