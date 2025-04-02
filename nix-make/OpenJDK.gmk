@@ -102,7 +102,7 @@ $(jmh):
 
 test: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make test
+> CONF=$(conf_name) make exploded-test
 .PHONY: test
 
 compile-commands:
