@@ -143,7 +143,7 @@ devkit:
 
 store-devkit:
 > cd $(JDK_HOME)/build/devkit
-> nix-store --add-fixed --recursive sha256 $$(ls -d Xcode* | head -n 1)
+> nix-store --add-fixed --recursive sha256 $$(ls -d Xcode*/ | sed 's:/$$::' | sort | tail -n 1)
 .PHONY: store-devkit
 
 clear-logs:
