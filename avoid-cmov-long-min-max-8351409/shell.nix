@@ -9,7 +9,7 @@ pkgs.mkShell {
     pkgs.autoconf
     pkgs.capstone
     pkgs.pigz
-    pkgs.temurin-bin-23
+    # pkgs.temurin-bin-23
 
     devkit
   ];
