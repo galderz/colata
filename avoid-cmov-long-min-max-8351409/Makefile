@@ -24,7 +24,7 @@ base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 # Disabling loop unrolling.
 # Can be useful when seeing different assembly in main loop and post/pre loop.
 # Disabling it temporarily can help focus on issues with assembly without having 2 sets of assembly to analyse.
-# base_jvm_args += -XX:LoopMaxUnroll=0
+base_jvm_args += -XX:LoopMaxUnroll=0
 
 comp_jvm_args += -XX:CompileCommand=print,$(CLASS)::test
 #comp_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::test
