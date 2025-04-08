@@ -6,10 +6,9 @@ CLEAN="true"
 
 if [ "$(uname)" = "Darwin" ]; then
   PROFILER="xctraceasm"
-  SDKROOT=/Applications/Xcode.app/Contents/Developer
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 else
   PROFILER="perfasm"
-  SDKROOT=$SDKROOT
 fi
 
 # Check for clean parameter
