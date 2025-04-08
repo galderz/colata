@@ -18,7 +18,8 @@ pkgs.mkShell {
     export ANT_HOME="${pkgs.ant}/share/ant"
     echo "Setting ANT_HOME to $ANT_HOME"
 
-    export BOOT_JDK_HOME="${pkgs.temurin-bin-23}"
+    # export BOOT_JDK_HOME="${pkgs.temurin-bin-23}"
+    export BOOT_JDK_HOME="$HOME/opt/boot-java-24"
     echo "Setting BOOT_JDK_HOME to $BOOT_JDK_HOME"
 
     export CAPSTONE_HOME="${pkgs.capstone}"
