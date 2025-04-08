@@ -1,6 +1,9 @@
 ID ?= avoid-cmov-long-min-max
 CLASS ?= Test
 
+# Temporary workaround lack of JDK 24 Nix packages
+BOOT_JDK_VERSION ?= 24
+
 default: run
 
 TOPDIR = ..

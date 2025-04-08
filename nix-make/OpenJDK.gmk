@@ -146,6 +146,12 @@ store-devkit:
 > nix-store --add-fixed --recursive sha256 $$(ls -d Xcode*/ | sed 's:/$$::' | sort | tail -n 1)
 .PHONY: store-devkit
 
+boot-jdk:
+> mkdir -p $(opt)
+> $(TOPDIR)/nix-make/download-jdk.sh $(BOOT_JDK_VERSION) $(opt)
+> touch $@
+.PHONY: boot-jdk
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
