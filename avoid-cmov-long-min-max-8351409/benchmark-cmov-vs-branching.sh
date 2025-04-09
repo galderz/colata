@@ -47,14 +47,14 @@ if [[ $CLEAN == "true" ]]; then
   CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
 fi
 
+# DisableIntrinsic requires UnlockDiagnosticVMOptions
+
 benchmark_all "topic.avoid-cmov-long-min-max.0327.cmov" ""
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-always" ""
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-never" ""
-# DisableIntrinsic requires UnlockDiagnosticVMOptions
 benchmark_all "topic.avoid-cmov-long-min-max.base" "-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_maxL"
 
 benchmark_all "topic.avoid-cmov-long-min-max.0327.cmov" "-prof $PROFILER;FORK=1"
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-always" "-prof $PROFILER;FORK=1"
 benchmark_all "topic.avoid-cmov-long-min-max.0327.branch-never" "-prof $PROFILER;FORK=1"
-# DisableIntrinsic requires UnlockDiagnosticVMOptions
 benchmark_all "topic.avoid-cmov-long-min-max.base" "-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_maxL -prof $PROFILER;FORK=1"
