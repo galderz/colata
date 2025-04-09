@@ -101,7 +101,13 @@ install-jmh:
 
 # todo depend on individual jars and run when any of those updated
 $(jmh):
+ifdef JMH_SNAPSHOT
 > $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
+else
+> pushd $(JDK_HOME)
+> sh make/devkit/createJMHBundle.sh
+> popd
+endif
 > touch $@
 
 test: build-jdk

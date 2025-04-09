@@ -10,6 +10,9 @@ BOOT_JDK_VERSION ?= 24
 #        |                                       ^~~~~
 NO_WARNINGS_ERRORS := true
 
+# Use JMH snapshot to access xctraceasm profiler
+JMH_SNAPSHOT := true
+
 default: run
 
 TOPDIR = ..
