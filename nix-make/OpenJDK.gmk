@@ -5,6 +5,7 @@ CONF ?= fast
 ROOT ?= $(HOME)/1
 WORKTREE ?= topic
 
+benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 java = $(java_home)/bin/java
 java_build_dir = $(JDK_HOME)/build/$(conf_name)
@@ -114,6 +115,10 @@ test: build-jdk
 > cd $(JDK_HOME)
 > CONF=$(conf_name) make exploded-test
 .PHONY: test
+
+debug-jmh: $(java)
+> $< -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 -jar $(benchmarks_jar) $(JMH_ARGS)
+.PHONY: debug-jmh
 
 compile-commands:
 > cd $(JDK_HOME)
