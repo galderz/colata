@@ -135,6 +135,11 @@ checkout-worktree:
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
 .PHONY: checkout-worktree
 
+remove-worktree:
+> cd $(ROOT)/jdk
+> git worktree remove ../$(jdk_tree_name)
+.PHONY: remove-worktree
+
 clion:
 > $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
 .PHONY: clion
