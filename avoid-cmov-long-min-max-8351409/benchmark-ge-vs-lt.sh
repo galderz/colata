@@ -51,7 +51,7 @@ benchmark_branch()
 
     benchmark_all ${branch} ""
     benchmark_all ${branch} "-prof $ASM_PROFILER;FORK=1"
-    benchmark_all ${branch} "-prof $NORM_PROFILER;FORK=1"
+    # benchmark_all ${branch} "-prof $NORM_PROFILER;FORK=1"
 }
 
 log()
