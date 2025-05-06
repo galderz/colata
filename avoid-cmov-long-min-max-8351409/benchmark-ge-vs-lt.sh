@@ -40,7 +40,7 @@ benchmark_branch()
 {
     local branch=$1
 
-    pushd $HOME/1/jdk-avoid-cmov-long-min-max
+    pushd $HOME/src/jdk-avoid-cmov-long-min-max
     git checkout ${branch}
     popd
 
