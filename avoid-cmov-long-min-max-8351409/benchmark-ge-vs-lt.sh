@@ -33,6 +33,7 @@ benchmark_all()
     local micro_args="OPTIONS=-p probability=100 -jvmArgs -XX:-UseSuperWord"
 
     log TEST=\"${test}\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
+    log TEST=\"${test}\" MICRO=\"${micro_args} ${extra_args} -jvmArgs -XX:LoopMaxUnroll=0\" CONF=release BUILD_LOG=warn make test
 }
 
 benchmark_branch()
