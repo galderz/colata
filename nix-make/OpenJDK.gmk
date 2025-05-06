@@ -2,7 +2,7 @@ BOOT_JDK_HOME ?= boot-jdk
 LOG ?= info
 CAPSTONE_HOME ?= $(usr_home)
 CONF ?= fast
-ROOT ?= $(HOME)/1
+ROOT ?= $(HOME)/src
 WORKTREE ?= topic
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
