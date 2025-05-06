@@ -1,6 +1,37 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 10.4.25
+** xtracenorm
+BRANCH_MISPRED_NONSPEC (203, 0xcb): Retired branch instructions including calls and returns that mispredicted
+INST_ALL (140, 0x8c): All retired instructions
+INST_BRANCH (141, 0x8d): Retired branch instructions including calls and returns
+*** lt
+#+begin_src bash
+Benchmark                                                             (probability)  (size)   Mode  Cnt      Score    Error      Units
+MinMaxVector.longReductionMultiplyMax                                           100    2048  thrpt    8   1441.373 ± 80.991     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_MISPRED_NONSPEC                    100    2048  thrpt    2      0.035                #/op
+MinMaxVector.longReductionMultiplyMax:Branch miss ratio                         100    2048  thrpt    2     ≈ 10⁻⁵            miss/brs
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                         100    2048  thrpt    2   2967.064                #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                       100    2048  thrpt    2      0.248           clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                                  100    2048  thrpt    2  11955.330                #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH                               100    2048  thrpt    2   2554.370                #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH density (of insns)            100    2048  thrpt    2      0.214              #/insn
+MinMaxVector.longReductionMultiplyMax:IPC                                       100    2048  thrpt    2      4.030           insns/clk
+#+end_src
+*** ge
+#+begin_src bash
+Benchmark                                                             (probability)  (size)   Mode  Cnt      Score     Error      Units
+MinMaxVector.longReductionMultiplyMax                                           100    2048  thrpt    8   2445.192 ± 156.219     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_MISPRED_NONSPEC                    100    2048  thrpt           0.900                 #/op
+MinMaxVector.longReductionMultiplyMax:Branch miss ratio                         100    2048  thrpt          ≈ 10⁻³             miss/brs
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                         100    2048  thrpt        1540.935                 #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                       100    2048  thrpt           0.148            clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                                  100    2048  thrpt       10444.169                 #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH                               100    2048  thrpt        2269.059                 #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH density (of insns)            100    2048  thrpt           0.217               #/insn
+MinMaxVector.longReductionMultiplyMax:IPC                                       100    2048  thrpt           6.778            insns/clk
+#+end_src
 * 9.4.25
 ** aarch64 0408.branch-never-ge vs 0408.branch-never-lt
 #+begin_src bash
