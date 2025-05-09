@@ -9,6 +9,11 @@ pkgs.mkShell {
     capstone
     fontconfig
     freetype
+    xorg.libXtst
+    xorg.libXt
+    xorg.libXrender
+    xorg.libXi
+    xorg.libXrandr
 
     # temurin-bin-23
   ];
