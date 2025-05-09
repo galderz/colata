@@ -1,6 +1,810 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 7.5.25
+** pipeline stalls
+*** ge
+#+begin_src bash
+Benchmark                                                          (probability)  (size)   Mode  Cnt      Score     Error      Units
+MinMaxVector.longReductionMultiplyMax                                        100    2048  thrpt    4   2002.891 ± 622.302     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC            100    2048  thrpt           0.977                 #/op
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                      100    2048  thrpt        1935.728                 #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                    100    2048  thrpt           0.168            clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                               100    2048  thrpt       11507.732                 #/op
+MinMaxVector.longReductionMultiplyMax:IPC                                    100    2048  thrpt           5.945            insns/clk
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE                    100    2048  thrpt           0.717                 #/op
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE_IC                 100    2048  thrpt           0.151                 #/op
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE_ITLB               100    2048  thrpt           0.020                 #/op
+MinMaxVector.longReductionMultiplyMax:MAP_STALL_DISPATCH                     100    2048  thrpt           0.160                 #/op
+MinMaxVector.longReductionMultiplyMax:RETIRE_UOP                             100    2048  thrpt       10244.432                 #/op
+#+end_src
+*** lt
+#+begin_src bash
+Benchmark                                                          (probability)  (size)   Mode  Cnt      Score    Error      Units
+MinMaxVector.longReductionMultiplyMax                                        100    2048  thrpt    4   1358.165 ± 71.286     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC            100    2048  thrpt           0.060                #/op
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                      100    2048  thrpt        2903.718                #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                    100    2048  thrpt           0.245           clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                               100    2048  thrpt       11831.397                #/op
+MinMaxVector.longReductionMultiplyMax:IPC                                    100    2048  thrpt           4.075           insns/clk
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE                    100    2048  thrpt         483.435                #/op
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE_IC                 100    2048  thrpt           0.803                #/op
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE_ITLB               100    2048  thrpt           0.134                #/op
+MinMaxVector.longReductionMultiplyMax:MAP_STALL_DISPATCH                     100    2048  thrpt           0.790                #/op
+MinMaxVector.longReductionMultiplyMax:RETIRE_UOP                             100    2048  thrpt       10023.440                #/op
+#+end_src
+** pipeline cond branch
+*** ge
+#+begin_src bash
+Benchmark                                                          (probability)  (size)   Mode  Cnt      Score     Error      Units
+MinMaxVector.longReductionMultiplyMax                                        100    2048  thrpt    4   2370.269 ± 894.659     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC            100    2048  thrpt           0.989                 #/op
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                      100    2048  thrpt        1657.699                 #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                    100    2048  thrpt           0.143            clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                               100    2048  thrpt       11600.537                 #/op
+MinMaxVector.longReductionMultiplyMax:IPC                                    100    2048  thrpt           6.998            insns/clk
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE                    100    2048  thrpt           0.562                 #/op
+MinMaxVector.longReductionMultiplyMax:MAP_STALL                              100    2048  thrpt           0.316                 #/op
+MinMaxVector.longReductionMultiplyMax:RETIRE_UOP                             100    2048  thrpt       10740.165                 #/op
+#+end_src
+*** lt
+#+begin_src bash
+Benchmark                                                          (probability)  (size)   Mode  Cnt      Score    Error      Units
+MinMaxVector.longReductionMultiplyMax                                        100    2048  thrpt    4   1367.168 ± 22.211     ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC            100    2048  thrpt           0.025                #/op
+MinMaxVector.longReductionMultiplyMax:CORE_ACTIVE_CYCLE                      100    2048  thrpt        2886.518                #/op
+MinMaxVector.longReductionMultiplyMax:CPI                                    100    2048  thrpt           0.244           clks/insn
+MinMaxVector.longReductionMultiplyMax:INST_ALL                               100    2048  thrpt       11839.732                #/op
+MinMaxVector.longReductionMultiplyMax:IPC                                    100    2048  thrpt           4.102           insns/clk
+MinMaxVector.longReductionMultiplyMax:MAP_DISPATCH_BUBBLE                    100    2048  thrpt         472.260                #/op
+MinMaxVector.longReductionMultiplyMax:MAP_STALL                              100    2048  thrpt           0.415                #/op
+MinMaxVector.longReductionMultiplyMax:RETIRE_UOP                             100    2048  thrpt       10028.665                #/op
+#+end_src
+** Exploring performance monitoring counters in macos
+Memory Order Violation Density:
+<Ev ST_MEMORY_ORDER_VIOLATION_NONSPEC> / <Ev ST_UNIT_UOP>
+Proportion retired stores that caused a pipeline flush
+and replay of loads and subsequent instructions of all
+stores.
+
+ST_UNIT_UOP Uops that flowed through the Store Unit
+ST_MEMORY_ORDER_VIOLATION_NONSPEC Retired stores that triggered memory order violations
+
+MAP_DISPATCH_BUBBLE Cycles while the Map Unit was not stalled and Decode Unit did not send any uops
+MAP_STALL Cycles while the Map Unit was stalled for any reason
+SCHEDULE_UOP Uops issued by the scheduler to any execution unit
+RETIRE_UOP All retired uops
+CORE_ACTIVE_CYCLE Cycles while the core was active
+IPC
+BRANCH_COND_MISPRED_NONSPEC Retired conditional branch instructions that mispredicted
+INST_ALL All retired instructions
+* 6.5.25
+** comparison
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2175.597 ± 128.123  ops/ms # ge, loop unroll
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  1281.837 ±  82.221  ops/ms # le, loop unroll
+#+end_src
+
+asm, ge, loop unroll
+#+begin_src bash
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 820
+
+                 0x000000010e96b290:   cmp		w17, w12
+                 0x000000010e96b294:   sub		w11, w17, w12
+                 0x000000010e96b298:   csel		w10, wzr, w11, lt
+                 0x000000010e96b29c:   cmp		w10, #0xfa0
+                 0x000000010e96b2a0:   csel		w11, w14, w10, hi
+                 0x000000010e96b2a4:   add		w10, w11, w12
+                 0x000000010e96b2a8:   nop
+                 0x000000010e96b2ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.00%      ↗  0x000000010e96b2b0:   add		x11, x6, w12, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.00%      │  0x000000010e96b2b4:   ldp		x21, x22, [x11, #0x10]
+              │  0x000000010e96b2b8:   ldr		x23, [x11, #0x20]
+              │  0x000000010e96b2bc:   mul		x21, x21, x16
+  35.87%      │  0x000000010e96b2c0:   ldr		x11, [x11, #0x28]
+              │  0x000000010e96b2c4:   mul		x22, x22, x16
+              │  0x000000010e96b2c8:   mul		x23, x23, x16
+              │  0x000000010e96b2cc:   mov		x24, x21
+   1.32%      │  0x000000010e96b2d0:   cmp		x21, x7
+          ╭   │  0x000000010e96b2d4:   b.ge		#0x10e96b2dc
+          │   │  0x000000010e96b2d8:   mov		x24, x7
+   7.22%  ↘   │  0x000000010e96b2dc:   mul		x11, x11, x16
+              │  0x000000010e96b2e0:   mov		x7, x22
+              │  0x000000010e96b2e4:   cmp		x22, x24
+           ╭  │  0x000000010e96b2e8:   b.ge		#0x10e96b2f0
+           │  │  0x000000010e96b2ec:   mov		x7, x24
+  19.64%   ↘  │  0x000000010e96b2f0:   mov		x21, x23
+   2.35%      │  0x000000010e96b2f4:   cmp		x23, x7
+   1.13%    ╭ │  0x000000010e96b2f8:   b.ge		#0x10e96b300
+            │ │  0x000000010e96b2fc:   mov		x21, x7
+   6.24%    ↘ │  0x000000010e96b300:   add		w12, w12, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              │  0x000000010e96b304:   mov		x7, x11
+              │  0x000000010e96b308:   cmp		x11, x21
+             ╭│  0x000000010e96b30c:   b.ge		#0x10e96b314
+             ││  0x000000010e96b310:   mov		x7, x21             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  24.82%     ↘│  0x000000010e96b314:   cmp		w12, w10
+              ╰  0x000000010e96b318:   b.lt		#0x10e96b2b0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.74%         0x000000010e96b31c:   ldr		x21, [x28, #0x30]   ; ImmutableOopMap {c_rarg0=Oop c_rarg2=Oop c_rarg3=Oop c_rarg5=Oop c_rarg4=Derived_oop_c_rarg5 c_rarg6=Oop r19=Oop }
+                                                                           ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                           ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.09%         0x000000010e96b320:   ldr		wzr, [x21]          ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                           ;   {poll}
+                 0x000000010e96b324:   cmp		w12, w17
+                 0x000000010e96b328:   b.lt		#0x10e96b290
+                 0x000000010e96b32c:   cmp		w12, w13
+                 0x000000010e96b330:   b.lt		#0x10e96b1e8
+#+end_src
+
+asm, lt, loop unroll
+#+begin_src bash
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 842
+
+                 0x000000010cde2690:   cmp		w17, w12
+                 0x000000010cde2694:   sub		w11, w17, w12
+                 0x000000010cde2698:   csel		w10, wzr, w11, lt
+                 0x000000010cde269c:   cmp		w10, #0xfa0
+                 0x000000010cde26a0:   csel		w11, w14, w10, hi
+                 0x000000010cde26a4:   add		w10, w11, w12
+                 0x000000010cde26a8:   nop
+                 0x000000010cde26ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   2.90%      ↗  0x000000010cde26b0:   add		x11, x6, w12, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              │  0x000000010cde26b4:   ldp		x21, x22, [x11, #0x10]
+              │  0x000000010cde26b8:   ldr		x23, [x11, #0x20]
+              │  0x000000010cde26bc:   mul		x21, x21, x16
+  20.85%      │  0x000000010cde26c0:   ldr		x11, [x11, #0x28]
+              │  0x000000010cde26c4:   mul		x22, x22, x16
+              │  0x000000010cde26c8:   mul		x23, x23, x16
+              │  0x000000010cde26cc:   mov		x24, x21
+   0.01%      │  0x000000010cde26d0:   cmp		x7, x21
+   0.00%  ╭   │  0x000000010cde26d4:   b.lt		#0x10cde26dc
+   0.88%  │   │  0x000000010cde26d8:   mov		x24, x7
+  15.39%  ↘   │  0x000000010cde26dc:   mul		x11, x11, x16
+              │  0x000000010cde26e0:   mov		x7, x22
+              │  0x000000010cde26e4:   cmp		x24, x22
+           ╭  │  0x000000010cde26e8:   b.lt		#0x10cde26f0
+   1.63%   │  │  0x000000010cde26ec:   mov		x7, x24
+  18.11%   ↘  │  0x000000010cde26f0:   mov		x21, x23
+              │  0x000000010cde26f4:   cmp		x7, x23
+            ╭ │  0x000000010cde26f8:   b.lt		#0x10cde2700
+   2.03%    │ │  0x000000010cde26fc:   mov		x21, x7
+  17.38%    ↘ │  0x000000010cde2700:   add		w12, w12, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.02%      │  0x000000010cde2704:   mov		x7, x11
+              │  0x000000010cde2708:   cmp		x21, x11
+             ╭│  0x000000010cde270c:   b.lt		#0x10cde2714
+   0.97%     ││  0x000000010cde2710:   mov		x7, x21             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  19.15%     ↘│  0x000000010cde2714:   cmp		w12, w10
+   0.07%      ╰  0x000000010cde2718:   b.lt		#0x10cde26b0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.03%         0x000000010cde271c:   ldr		x21, [x28, #0x30]   ; ImmutableOopMap {c_rarg0=Oop c_rarg2=Oop c_rarg3=Oop c_rarg5=Oop c_rarg4=Derived_oop_c_rarg5 c_rarg6=Oop r19=Oop }
+                                                                           ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                           ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.06%         0x000000010cde2720:   ldr		wzr, [x21]          ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                           ;   {poll}
+                 0x000000010cde2724:   cmp		w12, w17
+                 0x000000010cde2728:   b.lt		#0x10cde2690
+                 0x000000010cde272c:   cmp		w12, w13
+                 0x000000010cde2730:   b.lt		#0x10cde25e8
+#+end_src
+** ge
+*** loop unroll
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2175.597 ± 128.123  ops/ms
+#+end_src
+**** asm
+#+begin_src bash
+Secondary result "org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax:asm":
+PrintAssembly processed: 218848 total address lines.
+Perf output processed (skipped 20.133 seconds):
+ Column 1: sampled_pc (20047 events)
+
+Hottest code regions (>10.00% "sampled_pc" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 820
+
+                 0x000000010e96b290:   cmp		w17, w12
+                 0x000000010e96b294:   sub		w11, w17, w12
+                 0x000000010e96b298:   csel		w10, wzr, w11, lt
+                 0x000000010e96b29c:   cmp		w10, #0xfa0
+                 0x000000010e96b2a0:   csel		w11, w14, w10, hi
+                 0x000000010e96b2a4:   add		w10, w11, w12
+                 0x000000010e96b2a8:   nop
+                 0x000000010e96b2ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.00%      ↗  0x000000010e96b2b0:   add		x11, x6, w12, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.00%      │  0x000000010e96b2b4:   ldp		x21, x22, [x11, #0x10]
+              │  0x000000010e96b2b8:   ldr		x23, [x11, #0x20]
+              │  0x000000010e96b2bc:   mul		x21, x21, x16
+  35.87%      │  0x000000010e96b2c0:   ldr		x11, [x11, #0x28]
+              │  0x000000010e96b2c4:   mul		x22, x22, x16
+              │  0x000000010e96b2c8:   mul		x23, x23, x16
+              │  0x000000010e96b2cc:   mov		x24, x21
+   1.32%      │  0x000000010e96b2d0:   cmp		x21, x7
+          ╭   │  0x000000010e96b2d4:   b.ge		#0x10e96b2dc
+          │   │  0x000000010e96b2d8:   mov		x24, x7
+   7.22%  ↘   │  0x000000010e96b2dc:   mul		x11, x11, x16
+              │  0x000000010e96b2e0:   mov		x7, x22
+              │  0x000000010e96b2e4:   cmp		x22, x24
+           ╭  │  0x000000010e96b2e8:   b.ge		#0x10e96b2f0
+           │  │  0x000000010e96b2ec:   mov		x7, x24
+  19.64%   ↘  │  0x000000010e96b2f0:   mov		x21, x23
+   2.35%      │  0x000000010e96b2f4:   cmp		x23, x7
+   1.13%    ╭ │  0x000000010e96b2f8:   b.ge		#0x10e96b300
+            │ │  0x000000010e96b2fc:   mov		x21, x7
+   6.24%    ↘ │  0x000000010e96b300:   add		w12, w12, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              │  0x000000010e96b304:   mov		x7, x11
+              │  0x000000010e96b308:   cmp		x11, x21
+             ╭│  0x000000010e96b30c:   b.ge		#0x10e96b314
+             ││  0x000000010e96b310:   mov		x7, x21             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  24.82%     ↘│  0x000000010e96b314:   cmp		w12, w10
+              ╰  0x000000010e96b318:   b.lt		#0x10e96b2b0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.74%         0x000000010e96b31c:   ldr		x21, [x28, #0x30]   ; ImmutableOopMap {c_rarg0=Oop c_rarg2=Oop c_rarg3=Oop c_rarg5=Oop c_rarg4=Derived_oop_c_rarg5 c_rarg6=Oop r19=Oop }
+                                                                           ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                           ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.09%         0x000000010e96b320:   ldr		wzr, [x21]          ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                           ;   {poll}
+                 0x000000010e96b324:   cmp		w12, w17
+                 0x000000010e96b328:   b.lt		#0x10e96b290
+                 0x000000010e96b32c:   cmp		w12, w13
+                 0x000000010e96b330:   b.lt		#0x10e96b1e8
+....................................................................................................
+  99.42%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  99.42%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 820
+   0.35%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 820
+   0.04%    libsystem_kernel.dylib  write
+   0.04%    libsystem_kernel.dylib  __write_nocancel
+   0.03%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.03%    libsystem_kernel.dylib  thread_self_trap
+   0.02%    libsystem_kernel.dylib  __psynch_cvwait
+   0.01%                      dyld  dyld3::MachOLoaded::findClosestSymbol(unsigned long long, char const**, unsigned long long*) const
+   0.00%              libjvm.dylib  IntervalWalker::allocator() const
+   0.00%              libjvm.dylib  CompileQueue::get(CompilerThread*)
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%              libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%               interpreter  invokevirtual  182 invokevirtual
+   0.00%         libsystem_c.dylib  __sflush
+   0.00%    libsystem_kernel.dylib  __psynch_mutexdrop
+   0.00%  libsystem_platform.dylib  _platform_strcmp$VARIANT$Base
+   0.00%                            <unknown>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  99.77%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 820
+   0.04%    libsystem_kernel.dylib  write
+   0.04%    libsystem_kernel.dylib  __write_nocancel
+   0.03%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.03%    libsystem_kernel.dylib  thread_self_trap
+   0.02%    libsystem_kernel.dylib  __psynch_cvwait
+   0.01%                      dyld  dyld3::MachOLoaded::findClosestSymbol(unsigned long long, char const**, unsigned long long*) const
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%               interpreter  invokevirtual  182 invokevirtual
+   0.00%              libjvm.dylib  IntervalWalker::allocator() const
+   0.00%    libsystem_kernel.dylib  __psynch_mutexdrop
+   0.00%         libsystem_c.dylib  __sflush
+   0.00%                            <unknown>
+   0.00%              libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%              libjvm.dylib  CompileQueue::get(CompilerThread*)
+   0.00%  libsystem_platform.dylib  _platform_strcmp$VARIANT$Base
+....................................................................................................
+ 100.00%  <totals>
+
+....[Distribution by Source]........................................................................
+  99.77%               C2, level 4
+   0.17%    libsystem_kernel.dylib
+   0.02%              libjvm.dylib
+   0.01%                      dyld
+   0.00%
+   0.00%         libsystem_c.dylib
+   0.00%               interpreter
+   0.00%  libsystem_platform.dylib
+....................................................................................................
+ 100.00%  <totals>
+
+
+
+# Run complete. Total time: 00:00:53
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                  (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.longReductionMultiplyMax                100    2048  thrpt    4  2042.190 ± 840.609  ops/ms
+MinMaxVector.longReductionMultiplyMax:asm            100    2048  thrpt            NaN               ---
+#+end_src
+*** no loop unroll
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  1397.960 ± 19.726  ops/ms
+#+end_src
+**** asm
+#+begin_src bash
+Secondary result "org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax:asm":
+PrintAssembly processed: 209288 total address lines.
+Perf output processed (skipped 18.708 seconds):
+ Column 1: sampled_pc (20052 events)
+
+Hottest code regions (>10.00% "sampled_pc" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 810
+
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@48 (line 109)
+              0x000000010e8d8560:   str		x0, [x19, #0x30]    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@42 (line 108)
+              0x000000010e8d8564:   ldp		x29, x30, [sp, #0x50]
+              0x000000010e8d8568:   add		sp, sp, #0x60
+              0x000000010e8d856c:   ldr		x8, [x28, #0x28]    ;   {poll_return}
+              0x000000010e8d8570:   cmp		sp, x8
+              0x000000010e8d8574:   b.hi		#0x10e8d86ec
+              0x000000010e8d8578:   ret
+              0x000000010e8d857c:   nop
+   0.18%   ↗  0x000000010e8d8580:   mov		x13, x6             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+           │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+           │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.04%   │  0x000000010e8d8584:   add		x4, x5, w11, sxtw #3
+  57.74%   │  0x000000010e8d8588:   ldr		x4, [x4, #0x10]
+           │  0x000000010e8d858c:   mul		x4, x4, x17
+   0.01%   │  0x000000010e8d8590:   add		w11, w11, #1        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+           │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+           │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+           │  0x000000010e8d8594:   mov		x6, x13
+           │  0x000000010e8d8598:   cmp		x13, x4
+          ╭│  0x000000010e8d859c:   b.ge		#0x10e8d85a4
+  16.34%  ││  0x000000010e8d85a0:   mov		x6, x4              ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  25.00%  ↘│  0x000000010e8d85a4:   cmp		w11, w1
+           ╰  0x000000010e8d85a8:   b.lt		#0x10e8d8580        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.07%      0x000000010e8d85ac:   ldr		x1, [x28, #0x30]    ; ImmutableOopMap {r14=Oop r15=Oop r16=Oop c_rarg3=Oop c_rarg2=Derived_oop_c_rarg3 c_rarg5=Oop r19=Oop }
+                                                                        ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                        ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.16%      0x000000010e8d85b0:   ldr		wzr, [x1]           ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                        ;   {poll}
+              0x000000010e8d85b4:   cmp		w11, w10
+              0x000000010e8d85b8:   b.ge		#0x10e8d85e0
+              0x000000010e8d85bc:   mov		x13, x6             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+....................................................................................................
+  99.55%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  99.55%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 810
+   0.20%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 810
+   0.06%    libsystem_kernel.dylib  write
+   0.04%    libsystem_kernel.dylib  __write_nocancel
+   0.03%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%    libsystem_kernel.dylib  thread_self_trap
+   0.01%         libsystem_c.dylib  __sfvwrite
+   0.00%   libcapstone.5.0.5.dylib  DYLD-STUB$$strcmp
+   0.00%              libjvm.dylib  NullCheck::visit(InstructionVisitor*)
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%                            <unknown>
+   0.00%              libjvm.dylib  BacktraceBuilder::push(Method*, int, JavaThread*)
+   0.00%              libjvm.dylib  DYLD-STUB$$write
+   0.00%               interpreter  method entry point (kind = zerolocals)
+   0.00%                            <unknown>
+   0.00%               interpreter  fast_aputfield  211 fast_aputfield
+   0.00%         libsystem_c.dylib  fwrite
+   0.00%    libsystem_kernel.dylib  __gettimeofday
+   0.00%   libsystem_pthread.dylib  pthread_mutex_unlock
+   0.00%   libsystem_pthread.dylib  _pthread_mutex_firstfit_unlock_slow
+   0.01%  <...other 2 warm regions...>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  99.75%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 810
+   0.06%    libsystem_kernel.dylib  write
+   0.04%    libsystem_kernel.dylib  __write_nocancel
+   0.03%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%    libsystem_kernel.dylib  thread_self_trap
+   0.01%                            <unknown>
+   0.01%         libsystem_c.dylib  __sfvwrite
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%   libsystem_pthread.dylib  pthread_mutex_unlock
+   0.00%              libjvm.dylib  NullCheck::visit(InstructionVisitor*)
+   0.00%              libjvm.dylib  DYLD-STUB$$write
+   0.00%               interpreter  fast_aputfield  211 fast_aputfield
+   0.00%         libsystem_c.dylib  fwrite
+   0.00%              libjvm.dylib  BacktraceBuilder::push(Method*, int, JavaThread*)
+   0.00%  libsystem_platform.dylib  _platform_memmove
+   0.00%  libsystem_platform.dylib  _platform_strcmp$VARIANT$Base
+   0.00%               interpreter  method entry point (kind = zerolocals)
+   0.00%   libcapstone.5.0.5.dylib  DYLD-STUB$$strcmp
+   0.00%    libsystem_kernel.dylib  __gettimeofday
+   0.00%   libsystem_pthread.dylib  _pthread_mutex_firstfit_unlock_slow
+....................................................................................................
+ 100.00%  <totals>
+
+....[Distribution by Source]........................................................................
+  99.75%               C2, level 4
+   0.16%    libsystem_kernel.dylib
+   0.02%              libjvm.dylib
+   0.01%         libsystem_c.dylib
+   0.01%
+   0.01%               interpreter
+   0.01%  libsystem_platform.dylib
+   0.01%   libsystem_pthread.dylib
+   0.00%   libcapstone.5.0.5.dylib
+....................................................................................................
+ 100.00%  <totals>
+
+
+
+# Run complete. Total time: 00:00:47
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                  (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax                100    2048  thrpt    4  1393.026 ± 21.161  ops/ms
+MinMaxVector.longReductionMultiplyMax:asm            100    2048  thrpt            NaN              ---
+#+end_src
+** lt
+*** loop unroll
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  1281.837 ± 82.221  ops/ms
+#+end_src
+**** asm
+#+begin_src bash
+Secondary result "org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax:asm":
+PrintAssembly processed: 225882 total address lines.
+Perf output processed (skipped 20.030 seconds):
+ Column 1: sampled_pc (20053 events)
+
+Hottest code regions (>10.00% "sampled_pc" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 842
+
+                 0x000000010cde2690:   cmp		w17, w12
+                 0x000000010cde2694:   sub		w11, w17, w12
+                 0x000000010cde2698:   csel		w10, wzr, w11, lt
+                 0x000000010cde269c:   cmp		w10, #0xfa0
+                 0x000000010cde26a0:   csel		w11, w14, w10, hi
+                 0x000000010cde26a4:   add		w10, w11, w12
+                 0x000000010cde26a8:   nop
+                 0x000000010cde26ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   2.90%      ↗  0x000000010cde26b0:   add		x11, x6, w12, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+              │  0x000000010cde26b4:   ldp		x21, x22, [x11, #0x10]
+              │  0x000000010cde26b8:   ldr		x23, [x11, #0x20]
+              │  0x000000010cde26bc:   mul		x21, x21, x16
+  20.85%      │  0x000000010cde26c0:   ldr		x11, [x11, #0x28]
+              │  0x000000010cde26c4:   mul		x22, x22, x16
+              │  0x000000010cde26c8:   mul		x23, x23, x16
+              │  0x000000010cde26cc:   mov		x24, x21
+   0.01%      │  0x000000010cde26d0:   cmp		x7, x21
+   0.00%  ╭   │  0x000000010cde26d4:   b.lt		#0x10cde26dc
+   0.88%  │   │  0x000000010cde26d8:   mov		x24, x7
+  15.39%  ↘   │  0x000000010cde26dc:   mul		x11, x11, x16
+              │  0x000000010cde26e0:   mov		x7, x22
+              │  0x000000010cde26e4:   cmp		x24, x22
+           ╭  │  0x000000010cde26e8:   b.lt		#0x10cde26f0
+   1.63%   │  │  0x000000010cde26ec:   mov		x7, x24
+  18.11%   ↘  │  0x000000010cde26f0:   mov		x21, x23
+              │  0x000000010cde26f4:   cmp		x7, x23
+            ╭ │  0x000000010cde26f8:   b.lt		#0x10cde2700
+   2.03%    │ │  0x000000010cde26fc:   mov		x21, x7
+  17.38%    ↘ │  0x000000010cde2700:   add		w12, w12, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.02%      │  0x000000010cde2704:   mov		x7, x11
+              │  0x000000010cde2708:   cmp		x21, x11
+             ╭│  0x000000010cde270c:   b.lt		#0x10cde2714
+   0.97%     ││  0x000000010cde2710:   mov		x7, x21             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+  19.15%     ↘│  0x000000010cde2714:   cmp		w12, w10
+   0.07%      ╰  0x000000010cde2718:   b.lt		#0x10cde26b0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.03%         0x000000010cde271c:   ldr		x21, [x28, #0x30]   ; ImmutableOopMap {c_rarg0=Oop c_rarg2=Oop c_rarg3=Oop c_rarg5=Oop c_rarg4=Derived_oop_c_rarg5 c_rarg6=Oop r19=Oop }
+                                                                           ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                           ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.06%         0x000000010cde2720:   ldr		wzr, [x21]          ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                           ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                           ;   {poll}
+                 0x000000010cde2724:   cmp		w12, w17
+                 0x000000010cde2728:   b.lt		#0x10cde2690
+                 0x000000010cde272c:   cmp		w12, w13
+                 0x000000010cde2730:   b.lt		#0x10cde25e8
+....................................................................................................
+  99.51%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  99.51%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 842
+   0.27%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 842
+   0.05%    libsystem_kernel.dylib  __write_nocancel
+   0.02%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%    libsystem_kernel.dylib  write
+   0.01%    libsystem_kernel.dylib  thread_self_trap
+   0.01%    libsystem_kernel.dylib  __gettimeofday
+   0.00%   libcapstone.5.0.5.dylib  decodeInstruction_4
+   0.00%   libcapstone.5.0.5.dylib  printInstruction
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::next()
+   0.00%              libjvm.dylib  Klass::is_subtype_of(Klass*) const
+   0.00%              libjvm.dylib  WatcherThread::sleep() const
+   0.00%              libjvm.dylib  PlatformMonitor::wait(unsigned long long)
+   0.00%              libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%              libjvm.dylib  StubCodeDesc::contains(unsigned char*) const
+   0.00%              libjvm.dylib  xmlStream::write_text(char const*, unsigned long)
+   0.00%               C1, level 3  java.net.URL::&lt;init&gt;, version 1, compile id 820
+   0.00%                            <unknown>
+   0.00%                      dyld  dyld3::MachOLoaded::findClosestSymbol(unsigned long long, char const**, unsigned long long*) const
+   0.03%  <...other 7 warm regions...>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  99.78%               C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 842
+   0.05%    libsystem_kernel.dylib  __write_nocancel
+   0.02%    libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%    libsystem_kernel.dylib  write
+   0.01%    libsystem_kernel.dylib  thread_self_trap
+   0.01%    libsystem_kernel.dylib  __gettimeofday
+   0.00%   libsystem_pthread.dylib  _pthread_mutex_lock_init_slow
+   0.00%    libsystem_kernel.dylib  mach_absolute_time
+   0.00%    libsystem_kernel.dylib  madvise
+   0.00%   libcapstone.5.0.5.dylib  printInstruction
+   0.00%                            <unknown>
+   0.00%  libsystem_platform.dylib  _platform_strcmp$VARIANT$Base
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%   libcapstone.5.0.5.dylib  decodeInstruction_4
+   0.00%              libjvm.dylib  WatcherThread::sleep() const
+   0.00%              libjvm.dylib  StubCodeDesc::contains(unsigned char*) const
+   0.00%              libjvm.dylib  Klass::is_subtype_of(Klass*) const
+   0.00%              libjvm.dylib  TypedMethodOptionMatcher::next()
+   0.00%              libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%    libsystem_kernel.dylib  __psynch_cvwait
+   0.03%  <...other 6 warm methods...>
+....................................................................................................
+ 100.00%  <totals>
+
+....[Distribution by Source]........................................................................
+  99.78%               C2, level 4
+   0.13%    libsystem_kernel.dylib
+   0.04%              libjvm.dylib
+   0.01%   libcapstone.5.0.5.dylib
+   0.01%   libsystem_pthread.dylib
+   0.00%
+   0.00%                      dyld
+   0.00%         libsystem_c.dylib
+   0.00%  libsystem_platform.dylib
+   0.00%               C1, level 3
+....................................................................................................
+ 100.00%  <totals>
+
+
+
+# Run complete. Total time: 00:00:50
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                  (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax                100    2048  thrpt    4  1337.965 ± 35.920  ops/ms
+MinMaxVector.longReductionMultiplyMax:asm            100    2048  thrpt            NaN              ---
+#+end_src
+*** no loop unroll
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  1457.104 ± 17.062  ops/ms
+#+end_src
+**** asm
+#+begin_src bash
+Secondary result "org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax:asm":
+PrintAssembly processed: 220234 total address lines.
+Perf output processed (skipped 19.166 seconds):
+ Column 1: sampled_pc (20048 events)
+
+Hottest code regions (>10.00% "sampled_pc" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 825
+
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@48 (line 109)
+              0x000000010a929f60:   str		x0, [x19, #0x30]    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@42 (line 108)
+              0x000000010a929f64:   ldp		x29, x30, [sp, #0x50]
+              0x000000010a929f68:   add		sp, sp, #0x60
+              0x000000010a929f6c:   ldr		x8, [x28, #0x28]    ;   {poll_return}
+              0x000000010a929f70:   cmp		sp, x8
+              0x000000010a929f74:   b.hi		#0x10a92a0ec
+              0x000000010a929f78:   ret
+              0x000000010a929f7c:   nop
+   1.08%   ↗  0x000000010a929f80:   mov		x13, x6             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+           │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+           │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.06%   │  0x000000010a929f84:   add		x4, x5, w11, sxtw #3
+  70.47%   │  0x000000010a929f88:   ldr		x4, [x4, #0x10]
+   0.01%   │  0x000000010a929f8c:   mul		x4, x4, x17
+           │  0x000000010a929f90:   add		w11, w11, #1        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+           │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+           │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+           │  0x000000010a929f94:   mov		x6, x13
+           │  0x000000010a929f98:   cmp		x4, x13
+          ╭│  0x000000010a929f9c:   b.lt		#0x10a929fa4
+  23.43%  ││  0x000000010a929fa0:   mov		x6, x4              ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+          ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.09%  ↘│  0x000000010a929fa4:   cmp		w11, w1
+           ╰  0x000000010a929fa8:   b.lt		#0x10a929f80        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   4.17%      0x000000010a929fac:   ldr		x1, [x28, #0x30]    ; ImmutableOopMap {r14=Oop r15=Oop r16=Oop c_rarg3=Oop c_rarg2=Derived_oop_c_rarg3 c_rarg5=Oop r19=Oop }
+                                                                        ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                        ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+   0.25%      0x000000010a929fb0:   ldr		wzr, [x1]           ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
+                                                                        ;   {poll}
+              0x000000010a929fb4:   cmp		w11, w10
+              0x000000010a929fb8:   b.ge		#0x10a929fe0
+              0x000000010a929fbc:   mov		x13, x6             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+....................................................................................................
+  99.57%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  99.57%              C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 825
+   0.23%              C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 825
+   0.05%   libsystem_kernel.dylib  write
+   0.02%   libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%   libsystem_kernel.dylib  thread_self_trap
+   0.00%  libcapstone.5.0.5.dylib  AArch64_printInst
+   0.00%             libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%                           <unknown>
+   0.00%             libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%             libjvm.dylib  PeriodicTask::execute_if_pending(int)
+   0.00%             libjvm.dylib  xmlStream::write_text(char const*, unsigned long)
+   0.00%              interpreter  fast_aload_0  220 fast_aload_0
+   0.00%                     dyld  dyld3::MachOLoaded::findClosestSymbol(unsigned long long, char const**, unsigned long long*) const
+   0.00%        libsystem_c.dylib  __vfprintf
+   0.00%        libsystem_c.dylib  DYLD-STUB$$__error
+....................................................................................................
+  99.96%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  99.81%              C2, level 4  org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 825
+   0.05%   libsystem_kernel.dylib  write
+   0.02%   libsystem_kernel.dylib  _kernelrpc_mach_port_deallocate_trap
+   0.02%   libsystem_kernel.dylib  thread_self_trap
+   0.00%             libjvm.dylib  TypedMethodOptionMatcher::match(methodHandle const&, CompileCommandEnum)
+   0.00%        libsystem_c.dylib  DYLD-STUB$$__error
+   0.00%             libjvm.dylib  PeriodicTask::execute_if_pending(int)
+   0.00%              interpreter  fast_aload_0  220 fast_aload_0
+   0.00%  libcapstone.5.0.5.dylib  AArch64_printInst
+   0.00%                           <unknown>
+   0.00%             libjvm.dylib  outputStream::update_position(char const*, unsigned long)
+   0.00%        libsystem_c.dylib  __vfprintf
+   0.00%                     dyld  dyld3::MachOLoaded::findClosestSymbol(unsigned long long, char const**, unsigned long long*) const
+   0.00%             libjvm.dylib  xmlStream::write_text(char const*, unsigned long)
+....................................................................................................
+  99.96%  <totals>
+
+....[Distribution by Source]........................................................................
+  99.81%              C2, level 4
+   0.10%   libsystem_kernel.dylib
+   0.02%             libjvm.dylib
+   0.01%        libsystem_c.dylib
+   0.00%
+   0.00%                     dyld
+   0.00%  libcapstone.5.0.5.dylib
+   0.00%              interpreter
+....................................................................................................
+  99.96%  <totals>
+
+
+
+# Run complete. Total time: 00:00:52
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                  (probability)  (size)   Mode  Cnt     Score    Error   Units
+MinMaxVector.longReductionMultiplyMax                100    2048  thrpt    4  1530.472 ± 94.707  ops/ms
+MinMaxVector.longReductionMultiplyMax:asm            100    2048  thrpt            NaN              ---
+#+end_src
 * 10.4.25
 ** xtracenorm
 BRANCH_MISPRED_NONSPEC (203, 0xcb): Retired branch instructions including calls and returns that mispredicted
@@ -60,12 +864,12 @@ lt assembly:
 *** xtraceperfasm ge
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 794 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 794
 
                  0x000000010c3c5b1c:   cmp		w10, #0xfa0
                  0x000000010c3c5b20:   csel		w11, w14, w10, hi
                  0x000000010c3c5b24:   add		w10, w11, w12
-                 0x000000010c3c5b28:   nop		
+                 0x000000010c3c5b28:   nop
                  0x000000010c3c5b2c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -126,7 +930,7 @@ MinMaxVector.longReductionMultiplyMax:asm            100    2048  thrpt         
 *** xtraceperfasm lt
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 811 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 811
 
                  0x000000010e938590:   cmp		w17, w12
                  0x000000010e938594:   sub		w11, w17, w12
@@ -134,7 +938,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                  0x000000010e93859c:   cmp		w10, #0xfa0
                  0x000000010e9385a0:   csel		w11, w14, w10, hi
                  0x000000010e9385a4:   add		w10, w11, w12
-                 0x000000010e9385a8:   nop		
+                 0x000000010e9385a8:   nop
                  0x000000010e9385ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -212,12 +1016,12 @@ MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2265.2
 **** 1.4 profile longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 561 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 561
 
                  0x0000000117b6fddc:   cmp		w10, #0xfa0
                  0x0000000117b6fde0:   csel		w11, w14, w10, hi
                  0x0000000117b6fde4:   add		w10, w11, w12
-                 0x0000000117b6fde8:   nop		
+                 0x0000000117b6fde8:   nop
                  0x0000000117b6fdec:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -274,7 +1078,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 **** 9.4 profile longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806
 
                  0x000000010a849a50:   cmp		w17, w12
                  0x000000010a849a54:   sub		w11, w17, w12
@@ -282,7 +1086,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                  0x000000010a849a5c:   cmp		w10, #0xfa0
                  0x000000010a849a60:   csel		w11, w14, w10, hi
                  0x000000010a849a64:   add		w10, w11, w12
-                 0x000000010a849a68:   nop		
+                 0x000000010a849a68:   nop
                  0x000000010a849a6c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -354,12 +1158,12 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 561 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 561
 
                  0x0000000117b6fddc:   cmp		w10, #0xfa0
                  0x0000000117b6fde0:   csel		w11, w14, w10, hi
                  0x0000000117b6fde4:   add		w10, w11, w12
-                 0x0000000117b6fde8:   nop		
+                 0x0000000117b6fde8:   nop
                  0x0000000117b6fdec:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -416,12 +1220,12 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 542 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 542
 
                                  0x0000000113951b4c:   stp		x17, x15, [sp, #0x10]
                                  0x0000000113951b50:   str		x20, [sp, #0x60]
-                                 0x0000000113951b54:   nop		
-                                 0x0000000113951b58:   nop		
+                                 0x0000000113951b54:   nop
+                                 0x0000000113951b58:   nop
                                  0x0000000113951b5c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -610,7 +1414,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806
 
                  0x000000010a849a50:   cmp		w17, w12
                  0x000000010a849a54:   sub		w11, w17, w12
@@ -618,7 +1422,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                  0x000000010a849a5c:   cmp		w10, #0xfa0
                  0x000000010a849a60:   csel		w11, w14, w10, hi
                  0x000000010a849a64:   add		w10, w11, w12
-                 0x000000010a849a68:   nop		
+                 0x000000010a849a68:   nop
                  0x000000010a849a6c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -675,15 +1479,15 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 810 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 810
 
                              0x000000010e5e90c0:   csel		w1, w13, w1, hi
                              0x000000010e5e90c4:   add		w11, w1, w12
                              0x000000010e5e90c8:   stp		x16, x0, [sp]
                              0x000000010e5e90cc:   stp		x17, x15, [sp, #0x10]
                              0x000000010e5e90d0:   str		x20, [sp, #0x60]
-                             0x000000010e5e90d4:   nop		
-                             0x000000010e5e90d8:   nop		
+                             0x000000010e5e90d4:   nop
+                             0x000000010e5e90d8:   nop
                              0x000000010e5e90dc:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -814,10 +1618,10 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 811 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 811
 
              0x000000010e631784:   add		w11, w12, w13
-             0x000000010e631788:   nop		
+             0x000000010e631788:   nop
              0x000000010e63178c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -866,10 +1670,10 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 819 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 819
 
-             0x000000010ae411c4:   nop		
-             0x000000010ae411c8:   nop		
+             0x000000010ae411c4:   nop
+             0x000000010ae411c8:   nop
              0x000000010ae411cc:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -966,12 +1770,12 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806
 
                  0x000000010cf19cdc:   cmp		w10, #0xfa0
                  0x000000010cf19ce0:   csel		w11, w14, w10, hi
                  0x000000010cf19ce4:   add		w10, w11, w12
-                 0x000000010cf19ce8:   nop		
+                 0x000000010cf19ce8:   nop
                  0x000000010cf19cec:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -1028,15 +1832,15 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 807 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 807
 
                               0x0000000128af4680:   csel		w1, w13, w1, hi
                               0x0000000128af4684:   add		w11, w1, w12
                               0x0000000128af4688:   stp		x16, x0, [sp]
                               0x0000000128af468c:   stp		x17, x15, [sp, #0x10]
                               0x0000000128af4690:   str		x20, [sp, #0x60]
-                              0x0000000128af4694:   nop		
-                              0x0000000128af4698:   nop		
+                              0x0000000128af4694:   nop
+                              0x0000000128af4698:   nop
                               0x0000000128af469c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                         ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                                         ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -1213,7 +2017,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 806
 
                  0x000000010a849a50:   cmp		w17, w12
                  0x000000010a849a54:   sub		w11, w17, w12
@@ -1221,7 +2025,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                  0x000000010a849a5c:   cmp		w10, #0xfa0
                  0x000000010a849a60:   csel		w11, w14, w10, hi
                  0x000000010a849a64:   add		w10, w11, w12
-                 0x000000010a849a68:   nop		
+                 0x000000010a849a68:   nop
                  0x000000010a849a6c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -1278,15 +2082,15 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 810 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 810
 
                              0x000000010e5e90c0:   csel		w1, w13, w1, hi
                              0x000000010e5e90c4:   add		w11, w1, w12
                              0x000000010e5e90c8:   stp		x16, x0, [sp]
                              0x000000010e5e90cc:   stp		x17, x15, [sp, #0x10]
                              0x000000010e5e90d0:   str		x20, [sp, #0x60]
-                             0x000000010e5e90d4:   nop		
-                             0x000000010e5e90d8:   nop		
+                             0x000000010e5e90d4:   nop
+                             0x000000010e5e90d8:   nop
                              0x000000010e5e90dc:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -1415,7 +2219,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 823 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 823
 
                      0x000000010ccaa344:   str		xzr, [x19, #0x20]   ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0}
                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@48 (line 109)
@@ -1426,10 +2230,10 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                      0x000000010ccaa354:   ldr		x8, [x28, #0x28]    ;   {poll_return}
                      0x000000010ccaa358:   cmp		sp, x8
                      0x000000010ccaa35c:   b.hi		#0x10ccaa5ac
-                     0x000000010ccaa360:   ret		
+                     0x000000010ccaa360:   ret
    2.77%       ↗     0x000000010ccaa364:   mov		x12, x7
-   0.00%       │     0x000000010ccaa368:   nop		
-   0.01%       │     0x000000010ccaa36c:   nop		
+   0.00%       │     0x000000010ccaa368:   nop
+   0.01%       │     0x000000010ccaa36c:   nop
   18.34%      ↗│     0x000000010ccaa370:   cmp		x12, x21
    0.00%  ╭   ││     0x000000010ccaa374:   b.ge		#0x10ccaa3d4
   16.43%  │   ││  ↗  0x000000010ccaa378:   cmp		x21, x6
@@ -1494,7 +2298,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 820 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 820
 
                    0x000000010a89bbbc:   str		xzr, [x19, #0x20]   ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0}
                                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@48 (line 109)
@@ -1505,7 +2309,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                    0x000000010a89bbcc:   ldr		x8, [x28, #0x28]    ;   {poll_return}
                    0x000000010a89bbd0:   cmp		sp, x8
                    0x000000010a89bbd4:   b.hi		#0x10a89be50
-                   0x000000010a89bbd8:   ret		
+                   0x000000010a89bbd8:   ret
    1.04%      ↗    0x000000010a89bbdc:   mov		x7, x13
    9.48%     ↗│    0x000000010a89bbe0:   cmp		x7, x23
    0.35%  ╭  ││    0x000000010a89bbe4:   b.ge		#0x10a89bc4c        ;*lreturn {reexecute=0 rethrow=0 return_oop=0}
@@ -1579,7 +2383,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1244 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1244
 
               0x00007f329cc3728f:   cmpq		%r8, %r14
               0x00007f329cc37292:   cmovlq		%r8, %r14
@@ -1638,7 +2442,7 @@ c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1260 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1260
 
               0x00007f3068c397c4:   movl		%ebp, %ebp
    0.02%      0x00007f3068c397c6:   cmpl		$1, %ebp
@@ -1748,7 +2552,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 #+end_src
 ***** longReductionMultiplyMax
 #+begin_src asm
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1258 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1258
 
                   0x00007f6260c39984:   movl		%r10d, %esi
                   0x00007f6260c39987:   cmpl		$1, %esi
@@ -1814,7 +2618,7 @@ c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1253 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1253
 
                                      0x00007fc8c0c37a9b:   movq		%r13, %rax
                                      0x00007fc8c0c37a9e:   movzbl		0x94(%rax), %r10d   ; implicit exception: dispatches to 0x00007fc8c0c37dac
@@ -2009,7 +2813,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1256 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1256
 
    0.02%           0x00007f8870c38828:   leaq		(%r12, %rsi, 8), %r14
                    0x00007f8870c3882c:   addq		$-3, %r11
@@ -2081,7 +2885,7 @@ c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1249 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1249
 
                               0x00007fcc14c37ed2:   movl		%ebp, %ebp
    0.07%                      0x00007fcc14c37ed4:   cmpl		$1, %ebp
@@ -2210,7 +3014,7 @@ MinMaxVector.longReductionSimpleMax:asm              100    2048  thrpt         
 ***** longReductionMultiplyMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1255 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1255
 
                          0x00007fa2b4c37d8a:   movl		$1, %ebp
                          0x00007fa2b4c37d8f:   jmp		0x7fa2b4c37e72
@@ -2324,7 +3128,7 @@ c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 ***** longReductionSimpleMax
 #+begin_src asm
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1252 
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 1252
 
                 0x00007f52ccc38ec9:   jmp		0x7f52ccc38fec
             ↗   0x00007f52ccc38ece:   movq		%rdi, %rbp
@@ -2664,15 +3468,15 @@ Disable intrinsic:
 Unroll 8         Loop: N1177/N246  limit_check counted [int,int),+4 (3475 iters)  main rc  has_sfpt strip_mined
 Unroll 8           Loop: N1232/N538  limit_check counted [int,int),+4 (3475 iters)  main rc  has_sfpt strip_mined
 Loop: N0/N0  has_sfpt
-  Loop: N818/N827  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc 
+  Loop: N818/N827  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc
   Loop: N624/N623  limit_check sfpts={ 626 }
     Loop: N1349/N246  limit_check counted [int,int),+8 (3475 iters)  main rc  has_sfpt strip_mined
-  Loop: N766/N775  limit_check counted [int,int),+1 (4 iters)  post rc 
+  Loop: N766/N775  limit_check counted [int,int),+1 (4 iters)  post rc
   Loop: N615/N589  limit_check profile_predicated predicated sfpts={ 580 }
-    Loop: N996/N1005  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc 
+    Loop: N996/N1005  limit_check profile_predicated predicated counted [0,int),+1 (4 iters)  pre rc
     Loop: N635/N634  limit_check sfpts={ 637 }
       Loop: N1428/N538  limit_check counted [int,int),+8 (3475 iters)  main rc  has_sfpt strip_mined
-    Loop: N944/N953  limit_check counted [int,int),+1 (4 iters)  post rc 
+    Loop: N944/N953  limit_check counted [int,int),+1 (4 iters)  post rc
 #+end_src
 Chat with Roland.
   He suggested limiting unrolling to 8 to make the comparison fair.
@@ -2931,12 +3735,12 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 **** longReductionSimpleMax
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 542 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 542
 
                                  0x0000000113951b4c:   stp		x17, x15, [sp, #0x10]
                                  0x0000000113951b50:   str		x20, [sp, #0x60]
-                                 0x0000000113951b54:   nop		
-                                 0x0000000113951b58:   nop		
+                                 0x0000000113951b54:   nop
+                                 0x0000000113951b58:   nop
                                  0x0000000113951b5c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -3117,7 +3921,7 @@ MinMaxVector.longReductionSimpleMax              100    2048  thrpt    8  928.00
 **** longReductionMultiplyMax
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 560 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 560
 
                 0x0000000116f545b0:   str		xzr, [x19, #0x20]   ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0}
                                                                           ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@48 (line 109)
@@ -3128,7 +3932,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
                 0x0000000116f545c0:   ldr		x8, [x28, #0x28]    ;   {poll_return}
                 0x0000000116f545c4:   cmp		sp, x8
                 0x0000000116f545c8:   b.hi		#0x116f547e8
-                0x0000000116f545cc:   ret		
+                0x0000000116f545cc:   ret
    9.68%   ?    0x0000000116f545d0:   mov		x7, x17             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
            ?                                                              ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
            ?                                                              ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -3213,7 +4017,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 **** longReductionSimpleMax
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 537 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 537
 
               0x0000000115b4df04:   str		xzr, [x20, #0x20]   ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0}
                                                                         ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@48 (line 109)
@@ -3224,7 +4028,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
               0x0000000115b4df14:   ldr		x8, [x28, #0x28]    ;   {poll_return}
               0x0000000115b4df18:   cmp		sp, x8
               0x0000000115b4df1c:   b.hi		#0x115b4e214
-              0x0000000115b4df20:   ret		
+              0x0000000115b4df20:   ret
    8.63%   ?  0x0000000115b4df24:   mov		x25, x11            ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
            ?                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
            ?                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -3264,10 +4068,10 @@ MinMaxVector.longReductionSimpleMax              100    2048  thrpt    8  1105.8
 **** longReductionMultiplyMax
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 559 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 559
 
              0x000000012fae6944:   add		w11, w12, w13
-             0x000000012fae6948:   nop		
+             0x000000012fae6948:   nop
              0x000000012fae694c:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 105)
@@ -3314,15 +4118,15 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductio
 #+end_src
 **** longReductionSimpleMax
 #+begin_src bash
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 558 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub, version 5, compile id 558
 
              0x0000000114f3c8f0:   csel		w11, wzr, w12, lt
              0x0000000114f3c8f4:   mov		w8, #0x3e80
              0x0000000114f3c8f8:   cmp		w11, w8
              0x0000000114f3c8fc:   csel		w11, w14, w11, hi
              0x0000000114f3c900:   add		w12, w11, w3
-             0x0000000114f3c904:   nop		
-             0x0000000114f3c908:   nop		
+             0x0000000114f3c904:   nop
+             0x0000000114f3c908:   nop
              0x0000000114f3c90c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                        ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@14 (line 295)
                                                                        ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 105)
@@ -3435,7 +4239,7 @@ Test report is stored in build/release-darwin-arm64/test-results/micro_org_openj
 ==============================
 Test summary
 ==============================
-   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP   
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
    micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax
 >>                                                       1     0     0     1     0 <<
 ==============================
@@ -3481,7 +4285,7 @@ Test report is stored in build/release-darwin-arm64/test-results/micro_org_openj
 ==============================
 Test summary
 ==============================
-   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP   
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
    micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax
 >>                                                       1     0     0     1     0 <<
 ==============================
@@ -3537,7 +4341,7 @@ MinMaxVector.longReductionSimpleMax            100    2048  thrpt    8  1095.610
 Attempt to run benchmark but had issues building test:
 
 #+begin_src bash
-/nix/store/5y040sypyg0amh0igxs9rnx5fmj0d88i-temurin-bin-23.0.2/bin/jar --create --date 1980-01-01T00:00:00Z --file /Users/galder/1/jdk-avoid-cmov-long-min-max/build/release-darwin-arm64/support/modules_libs/java.base/jrt-fs.jar --manifest /Users/galder/1/jdk-avoid-cmov-long-min-max/build/release-darwin-arm64/support/modules_libs/java.base/_the.jrt-fs.jar_manifest 
+/nix/store/5y040sypyg0amh0igxs9rnx5fmj0d88i-temurin-bin-23.0.2/bin/jar --create --date 1980-01-01T00:00:00Z --file /Users/galder/1/jdk-avoid-cmov-long-min-max/build/release-darwin-arm64/support/modules_libs/java.base/jrt-fs.jar --manifest /Users/galder/1/jdk-avoid-cmov-long-min-max/build/release-darwin-arm64/support/modules_libs/java.base/_the.jrt-fs.jar_manifest
 ...
 date 1980-01-01T00:00:00Z is not within the valid range 1980-01-01T00:00:02Z to 2099-12-31T23:59:59Z
 #+end_src
@@ -3722,7 +4526,7 @@ Bytecode:
   0x000000012facfddc:   mov		x8, #-0x8000000000000000
   0x000000012facfde0:   cmp		x11, x8             ; x8 is max
   0x000000012facfde4:   b.le		#0x12facff78        ;*iflt {reexecute=0 rethrow=0 return_oop=0}
-                                                            ; - MyMax::test@26 (line 24) 
+                                                            ; - MyMax::test@26 (line 24)
  ;; B5: #	out( B28 B6 ) <- in( B4 )  Freq: 0.999996
  ;; 0x1
   0x000000012facfde8:   mov		w2, #1
