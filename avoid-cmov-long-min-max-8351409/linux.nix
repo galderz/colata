@@ -23,10 +23,16 @@ pkgs.mkShell {
     export CAPSTONE_HOME="${pkgs.capstone}"
     echo "Setting CAPSTONE_HOME to $CAPSTONE_HOME"
 
-    unset SOURCE_DATE_EPOCH
-    echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
-
     export JMH_SNAPSHOT=false
     echo "Setting JMH_SNAPSHOT to $JMH_SNAPSHOT"
+
+    export FREETYPE_INCLUDE="${pkgs.freetype.dev}/include"
+    echo "Setting FREETYPE_INCLUDE to $FREETYPE_INCLUDE"
+
+    export FREETYPE_LIB="${pkgs.freetype}/lib"
+    echo "Setting FREETYPE_LIB to $FREETYPE_LIB"
+
+    unset SOURCE_DATE_EPOCH
+    echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
   '' ;
 }
