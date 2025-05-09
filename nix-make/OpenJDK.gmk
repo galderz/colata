@@ -1,4 +1,4 @@
-BOOT_JDK_HOME ?= boot-jdk
+BOOT_JDK_HOME ?= boot-java-$(BOOT_JDK_VERSION)
 LOG ?= info
 CAPSTONE_HOME ?= $(usr_home)
 CONF ?= fast
