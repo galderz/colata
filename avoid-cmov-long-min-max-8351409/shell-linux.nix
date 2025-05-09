@@ -22,5 +22,8 @@ pkgs.mkShell {
 
     unset SOURCE_DATE_EPOCH
     echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
+
+    export JMH_SNAPSHOT=false
+    echo "Setting JMH_SNAPSHOT to $JMH_SNAPSHOT"
   '' ;
 }
