@@ -42,7 +42,7 @@ ifdef NO_WARNINGS_ERRORS
   conf_args += --disable-warnings-as-errors
 endif
 
-ifeq ($(UNAME_S),Linux)
+ifeq ($(os),linux)
   conf_args += --with-freetype-include=$(FREETYPE_INCLUDE)
   conf_args += --with-freetype-lib=$(FREETYPE_LIB)
 endif
@@ -63,9 +63,9 @@ $(java): $(shell find $(JDK_HOME)/src -type f -name '*.ad')
 $(java):
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make hotspot
-ifeq ($(UNAME_S),Linux)
+ifeq ($(os),linux)
 >  cp $(modules_libs_dir)/libjvm.so $(java_libs_dir)
-else ifeq ($(UNAME_S),Darwin)
+else ifeq ($(os),darwin)
 >  cp $(modules_libs_dir)/libjvm.dylib $(java_libs_dir)
 >  rm -drf $(java_libs_dir)/libjvm.dylib.dSYM
 >  cp -r $(modules_libs_dir)/libjvm.dylib.dSYM $(java_libs_dir) || true
