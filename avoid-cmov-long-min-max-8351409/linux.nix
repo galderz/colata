@@ -3,9 +3,12 @@
 pkgs.mkShell {
   packages = [
     pkgs.ant
+    pkgs.alsa-lib
     pkgs.autoconf
+    pkgs.cups
     pkgs.capstone
-    pkgs.pigz
+    pkgs.fontconfig
+    pkgs.freetype
     # pkgs.temurin-bin-23
   ];
 
