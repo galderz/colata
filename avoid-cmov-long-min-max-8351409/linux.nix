@@ -1,19 +1,20 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
-  packages = [
-    pkgs.ant
-    pkgs.alsa-lib
-    pkgs.autoconf
-    pkgs.cups
-    pkgs.capstone
-    pkgs.fontconfig
-    pkgs.freetype
-    # pkgs.temurin-bin-23
+  packages = with pkgs; [
+    ant
+    alsa-lib
+    autoconf
+    cups
+    capstone
+    fontconfig
+    freetype
+
+    # temurin-bin-23
   ];
 
   shellHook = ''
-    export ANT_HOME="${pkgs.ant}/share/ant"
+    export ANT_HOME="${ant}/share/ant"
     echo "Setting ANT_HOME to $ANT_HOME"
 
     # export BOOT_JDK_HOME="${pkgs.temurin-bin-23}"
