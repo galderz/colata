@@ -14,7 +14,7 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    export ANT_HOME="${ant}/share/ant"
+    export ANT_HOME="${pkgs.ant}/share/ant"
     echo "Setting ANT_HOME to $ANT_HOME"
 
     # export BOOT_JDK_HOME="${pkgs.temurin-bin-23}"
