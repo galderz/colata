@@ -102,7 +102,7 @@ install-jmh:
 
 # todo depend on individual jars and run when any of those updated
 $(jmh):
-ifdef JMH_SNAPSHOT
+ifeq ($(JMH_SNAPSHOT),true)
 > $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
 else
 > pushd $(JDK_HOME)
