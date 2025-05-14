@@ -54,7 +54,7 @@ benchmark_branch()
       80 \
       100
     do
-      benchmark_all ${branch} "" ${probability
+      benchmark_all ${branch} "" ${probability}
       benchmark_all ${branch} "-prof $ASM_PROFILER;FORK=1" ${probability}
       benchmark_all ${branch} "-prof $NORM_PROFILER:template=PipelineCondBranch;FORK=1" ${probability}
     done
