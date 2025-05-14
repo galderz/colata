@@ -1,6 +1,8 @@
 { pkgs ? import <nixpkgs> {} }:
 
 pkgs.mkShell {
+  hardeningDisable = [ "all" ]; # Disable all hardening
+
   packages = with pkgs; [
     ant
     alsa-lib
