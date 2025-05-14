@@ -1,7 +1,11 @@
 BOOT_JDK_HOME ?= $(opt)/boot-java-$(BOOT_JDK_VERSION)
-LOG ?= info
 CAPSTONE_HOME ?= $(usr_home)
 CONF ?= fast
+
+# info, debug and trace as options
+# can be combined with cmdlines, e.g. LOG=info,cmdlines
+LOG ?= info
+
 ROOT ?= $(HOME)/src
 WORKTREE ?= topic
 
