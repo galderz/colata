@@ -11,7 +11,6 @@ pkgs.mkShell {
     capstone
     fontconfig
     freetype
-    perf
     xorg.libXtst
     xorg.libXt
     xorg.libXrender
