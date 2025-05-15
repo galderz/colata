@@ -14,7 +14,7 @@ NO_WARNINGS_ERRORS := true
 JMH_SNAPSHOT ?= true
 
 # Number of forks to run JMH benchmark manually with
-JMH_FORK ?= 0
+JMH_FORKS ?= 0
 
 default: run
 
@@ -61,9 +61,17 @@ run: clear-logs $(java)
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
 
+jmh_args += -f
+jmh_args += $(JMH_FORKS)
+
+ifdef JMH_PROFILERS
+  jmh_args += -prof
+  jmh_args += $(JMH_PROFILERS)
+endif
+
 benchmarks: $(benchmarks_jar)
 > $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
->   -f $(JMH_FORK) \
+>   $(jmh_args) \
 >   -p size=2048 \
 >   -p probability=100
 .PHONY: benchmarks
