@@ -125,6 +125,11 @@ test: build-jdk
 > CONF=$(conf_name) make exploded-test
 .PHONY: test
 
+$(benchmarks_jar): $(java)
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) make exploded-image test-image
+> popd
+
 debug-jmh: $(java)
 > $< -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 -jar $(benchmarks_jar) $(JMH_ARGS)
 .PHONY: debug-jmh
