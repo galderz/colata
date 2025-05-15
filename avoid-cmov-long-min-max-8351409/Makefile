@@ -69,7 +69,7 @@ ifdef JMH_PROFILERS
   jmh_args += $(JMH_PROFILERS)
 endif
 
-run-benchmarks: $(benchmarks_jar)
+run-benchmarks: $(benchmarks_jar) test
 > $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
 >   $(jmh_args) \
 >   -p size=2048 \
