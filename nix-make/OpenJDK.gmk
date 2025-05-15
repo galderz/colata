@@ -125,9 +125,9 @@ test: build-jdk
 > CONF=$(conf_name) make exploded-test
 .PHONY: test
 
-$(benchmarks_jar): $(java)
+$(benchmarks_jar): build-jdk
 > pushd $(JDK_HOME)
-> CONF=$(conf_name) make exploded-image test-image
+> CONF=$(conf_name) make test-image
 > popd
 
 debug-jmh: $(java)

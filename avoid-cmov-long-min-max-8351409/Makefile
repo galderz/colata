@@ -61,24 +61,45 @@ run: clear-logs $(java)
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
 
-jmh_args += -jar
-jmh_args += $(benchmarks_jar)
-jmh_args += MinMaxVector.longReductionMultiplyMax
-jmh_args += -f
-jmh_args += $(JMH_FORKS)
-jmh_args += -jvmArgs
-jmh_args += -XX:-UseSuperWord
-jmh_args += -p
-jmh_args += size=2048
-jmh_args += -p
-jmh_args += probability=100
+fork_jmh_args += -jar
+fork_jmh_args += $(benchmarks_jar)
+fork_jmh_args += MinMaxVector.longReductionMultiplyMax
+fork_jmh_args += -f
+fork_jmh_args += $(JMH_FORKS)
+fork_jmh_args += -jvmArgs
+fork_jmh_args += -XX:-UseSuperWord
+fork_jmh_args += -p
+fork_jmh_args += size=2048
+fork_jmh_args += -p
+fork_jmh_args += probability=100
 
 ifdef JMH_PROFILERS
   jmh_args += -prof
   jmh_args += $(JMH_PROFILERS)
 endif
 
-run-benchmarks: $(benchmarks_jar)
+fork-benchmarks: $(benchmarks_jar)
 > $(java) \
->   $(jmh_args)
-.PHONY: run-benchmarks
+>   $(forked_jmh_args)
+.PHONY: fork-benchmarks
+
+gdb_jmh_args += -Xbatch
+gdb_jmh_args += -XX:-BackgroundCompilation
+gdb_jmh_args += -XX:CompileCommand=compileonly,org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax
+gdb_jmh_args += -XX:+PrintNMethods
+gdb_jmh_args += -XX:-UseSuperWord
+gdb_jmh_args += -jar
+gdb_jmh_args += $(benchmarks_jar)
+gdb_jmh_args += MinMaxVector.longReductionMultiplyMax
+gdb_jmh_args += -f
+gdb_jmh_args += 0
+gdb_jmh_args += -p
+gdb_jmh_args += -p
+gdb_jmh_args += size=2048
+gdb_jmh_args += probability=100
+
+gdb-benchmarks: $(benchmarks_jar)
+> $(java) \
+>   $(gdb_jmh_args)
+.PHONY: gdb-benchmarks
+
