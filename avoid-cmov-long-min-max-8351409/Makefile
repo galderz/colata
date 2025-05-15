@@ -13,6 +13,9 @@ NO_WARNINGS_ERRORS := true
 # Use JMH snapshot to access xctraceasm profiler
 JMH_SNAPSHOT ?= true
 
+# Number of forks to run JMH benchmark manually with
+JMH_FORK ?= 0
+
 default: run
 
 TOPDIR = ..
@@ -57,3 +60,10 @@ run: clear-logs $(java)
 > $(java) \
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
+
+benchmarks: $(benchmarks_jar)
+> $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
+>   -f $(JMH_FORK) \
+>   -p size=2048 \
+>   -p probability=100
+.PHONY: benchmarks
