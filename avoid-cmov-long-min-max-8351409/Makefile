@@ -61,8 +61,17 @@ run: clear-logs $(java)
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
 
+jmh_args += -jar
+jmh_args += $(benchmarks_jar)
+jmh_args += MinMaxVector.longReductionMultiplyMax
 jmh_args += -f
 jmh_args += $(JMH_FORKS)
+jmh_args += -jvmArgs
+jmh_args += -XX:-UseSuperWord
+jmh_args += -p
+jmh_args += size=2048
+jmh_args += -p
+jmh_args += probability=100
 
 ifdef JMH_PROFILERS
   jmh_args += -prof
@@ -73,9 +82,5 @@ run-benchmarks: $(benchmarks_jar)
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make exploded-image test-image
 > popd
-> $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
->   $(jmh_args) \
->   -jvmArgs -XX:-UseSuperWord \
->   -p size=2048 \
->   -p probability=100
+> $(java) $(jmh_args)
 .PHONY: run-benchmarks
