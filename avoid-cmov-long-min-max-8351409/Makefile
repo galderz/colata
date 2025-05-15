@@ -94,8 +94,8 @@ gdb_jmh_args += MinMaxVector.longReductionMultiplyMax
 gdb_jmh_args += -f
 gdb_jmh_args += 0
 gdb_jmh_args += -p
-gdb_jmh_args += -p
 gdb_jmh_args += size=2048
+gdb_jmh_args += -p
 gdb_jmh_args += probability=100
 
 gdb-benchmarks: $(benchmarks_jar)
