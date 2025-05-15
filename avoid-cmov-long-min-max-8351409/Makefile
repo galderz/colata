@@ -55,6 +55,5 @@ jvm_args += $(base_jvm_args)
 
 run: clear-logs $(java)
 > $(java) \
->   $(jvm_args) \
->   $(shell pwd)/$(CLASS).java
+>   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
