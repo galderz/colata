@@ -69,9 +69,9 @@ ifdef JMH_PROFILERS
   jmh_args += $(JMH_PROFILERS)
 endif
 
-benchmarks: $(benchmarks_jar)
+run-benchmarks: $(benchmarks_jar)
 > $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
 >   $(jmh_args) \
 >   -p size=2048 \
 >   -p probability=100
-.PHONY: benchmarks
+.PHONY: run-benchmarks
