@@ -72,6 +72,7 @@ endif
 run-benchmarks: $(benchmarks_jar) test
 > $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
 >   $(jmh_args) \
+>   -jvmArgs -XX:-UseSuperWord \
 >   -p size=2048 \
 >   -p probability=100
 .PHONY: run-benchmarks
