@@ -69,7 +69,10 @@ ifdef JMH_PROFILERS
   jmh_args += $(JMH_PROFILERS)
 endif
 
-run-benchmarks: $(benchmarks_jar) test
+run-benchmarks: $(benchmarks_jar)
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) make exploded-image test-image
+> popd
 > $(java) -jar $< MinMaxVector.longReductionMultiplyMax \
 >   $(jmh_args) \
 >   -jvmArgs -XX:-UseSuperWord \
