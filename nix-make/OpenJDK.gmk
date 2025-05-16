@@ -13,6 +13,7 @@ benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 java = $(java_home)/bin/java
 java_build_dir = $(JDK_HOME)/build/$(conf_name)
+java_libs_dir = $(java_home)/lib/server
 java_home = $(java_build_dir)/jdk
 jmh = $(JDK_HOME)/build/jmh/jars/.jmh
 lldbinit = $(TOPDIR)/make/.lldbinit
