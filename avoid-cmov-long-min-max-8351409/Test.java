@@ -1,4 +1,7 @@
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.NoSuchElementException;
+import java.util.stream.LongStream;
 
 public class Test
 {
@@ -30,14 +33,14 @@ public class Test
 
     static long maxOf(long[] data)
     {
-        long max = Long.MIN_VALUE;
-        for (int i = 0; i < RANGE; i++)
-        {
-            final long value = 11 * data[i];
-            final long tmp = (max >= value) ? max : value;
-            max = tmp;
-        }
-        return max;
+        return 11L * LongStream.of(data)
+            .reduce(Test::maxGE)
+            .orElseThrow();
+    }
+
+    static long maxGE(long a, long b)
+    {
+        return (a >= b) ? a : b;
     }
 
     static void validate(long expected, long actual)
