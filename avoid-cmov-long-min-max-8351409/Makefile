@@ -80,7 +80,7 @@ endif
 
 fork-benchmarks: $(benchmarks_jar)
 > $(java) \
->   $(forked_jmh_args)
+>   $(fork_jmh_args)
 .PHONY: fork-benchmarks
 
 debug_jmh_args += -Xbatch
