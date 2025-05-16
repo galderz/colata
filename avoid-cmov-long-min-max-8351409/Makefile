@@ -14,7 +14,7 @@ NO_WARNINGS_ERRORS := true
 JMH_SNAPSHOT ?= true
 
 # Number of forks to run JMH benchmark manually with
-JMH_FORKS ?= 0
+JMH_FORKS ?= 1
 
 default: run
 
