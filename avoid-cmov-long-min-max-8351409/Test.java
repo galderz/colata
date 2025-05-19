@@ -43,6 +43,11 @@ public class Test
         return (a >= b) ? a : b;
     }
 
+    // static long maxLT(long a, long b)
+    // {
+    //     return (b < a) ? a : b;
+    // }
+
     static void validate(long expected, long actual)
     {
         if (expected == actual)
