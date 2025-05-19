@@ -1,6 +1,750 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 19.5.25
+** lt CondBranch
+#+begin_src bash
+Benchmark                                                             (probability)  (size)   Mode  Cnt      Score    Error     Units
+MinMaxVector.longReductionMultiplyMax                                           100    2048  thrpt    4   1446.449 ± 47.243    ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC               100    2048  thrpt           0.033               #/op
+MinMaxVector.longReductionMultiplyMax:BRANCH_MISPRED_NONSPEC                    100    2048  thrpt           0.034               #/op
+MinMaxVector.longReductionMultiplyMax:Branch miss ratio                         100    2048  thrpt          ≈ 10⁻⁵           miss/brs
+MinMaxVector.longReductionMultiplyMax:INST_ALL                                  100    2048  thrpt       11983.805               #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH                               100    2048  thrpt        2560.708               #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH density (of insns)            100    2048  thrpt           0.214             #/insn
+#+end_src
+** ge CondBranch
+#+begin_src bash
+Benchmark                                                             (probability)  (size)   Mode  Cnt      Score    Error     Units
+MinMaxVector.longReductionMultiplyMax                                           100    2048  thrpt    4   2354.700 ± 69.609    ops/ms
+MinMaxVector.longReductionMultiplyMax:BRANCH_COND_MISPRED_NONSPEC               100    2048  thrpt           1.001               #/op
+MinMaxVector.longReductionMultiplyMax:BRANCH_MISPRED_NONSPEC                    100    2048  thrpt           1.002               #/op
+MinMaxVector.longReductionMultiplyMax:Branch miss ratio                         100    2048  thrpt          ≈ 10⁻³           miss/brs
+MinMaxVector.longReductionMultiplyMax:INST_ALL                                  100    2048  thrpt       11822.844               #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH                               100    2048  thrpt        2568.671               #/op
+MinMaxVector.longReductionMultiplyMax:INST_BRANCH density (of insns)            100    2048  thrpt           0.217             #/insn
+#+end_src
+* 14.5.25
+** linux/aarch64
+*** ge perfnorm branch-misses/br_mis_pred,inst_retired
+#+begin_src bash
+Benchmark                                            (probability)  (size)   Mode  Cnt      Score    Error      Units
+MinMaxVector.longReductionMultiplyMax                          100    2048  thrpt    4    268.964 ± 44.313     ops/ms
+MinMaxVector.longReductionMultiplyMax:CPI                      100    2048  thrpt           0.533           clks/insn
+MinMaxVector.longReductionMultiplyMax:IPC                      100    2048  thrpt           1.875           insns/clk
+MinMaxVector.longReductionMultiplyMax:br_mis_pred              100    2048  thrpt           1.182                #/op
+MinMaxVector.longReductionMultiplyMax:branch-misses            100    2048  thrpt           1.182                #/op
+MinMaxVector.longReductionMultiplyMax:cycles                   100    2048  thrpt        6334.979                #/op
+MinMaxVector.longReductionMultiplyMax:inst_retired             100    2048  thrpt       11875.027                #/op
+MinMaxVector.longReductionMultiplyMax:instructions             100    2048  thrpt       11875.025                #/op
+#+end_src
+*** lt perfnorm branch-misses/br_mis_pred,inst_retired
+#+begin_src bash
+Benchmark                                            (probability)  (size)   Mode  Cnt      Score    Error      Units
+MinMaxVector.longReductionMultiplyMax                          100    2048  thrpt    4    141.539 ± 24.556     ops/ms
+MinMaxVector.longReductionMultiplyMax:CPI                      100    2048  thrpt           0.991           clks/insn
+MinMaxVector.longReductionMultiplyMax:IPC                      100    2048  thrpt           1.009           insns/clk
+MinMaxVector.longReductionMultiplyMax:br_mis_pred              100    2048  thrpt         222.361                #/op
+MinMaxVector.longReductionMultiplyMax:branch-misses            100    2048  thrpt         222.361                #/op
+MinMaxVector.longReductionMultiplyMax:cycles                   100    2048  thrpt       12038.018                #/op
+MinMaxVector.longReductionMultiplyMax:inst_retired             100    2048  thrpt       12144.339                #/op
+MinMaxVector.longReductionMultiplyMax:instructions             100    2048  thrpt       12144.342                #/op
+#+end_src
+*** ge llvm-mca bottleneck
+#+begin_src bash
+[nix-shell:~/tmp/avoid-cmov-long-min-max/1405]$ llvm-mca --bottleneck-analysis ge-linux-aarch64.s
+Iterations:        100
+Instructions:      2600
+Total Cycles:      913
+Total uOps:        2700
+
+Dispatch Width:    3
+uOps Per Cycle:    2.96
+IPC:               2.85
+Block RThroughput: 9.0
+
+
+No resource or data dependency bottlenecks discovered.
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      2     1.00                        add	x4, x7, w11, sxtw #3
+ 2      4     1.00    *                   ldp	x6, x21, [x4, #16]
+ 1      4     1.00    *                   ldr	x22, [x4, #32]
+ 1      5     1.00                        mul	x6, x6, x0
+ 1      4     1.00    *                   ldr	x4, [x4, #40]
+ 1      5     1.00                        mul	x21, x21, x0
+ 1      5     1.00                        mul	x22, x22, x0
+ 1      1     0.50                        mov	x23, x6
+ 1      1     0.50                        cmp	x6, x5
+ 1      1     1.00                        b.ge	br1
+ 1      1     0.50                        mov	x23, x5
+ 1      5     1.00                        mul	x4, x4, x0
+ 1      1     0.50                        mov	x5, x21
+ 1      1     0.50                        cmp	x21, x23
+ 1      1     1.00                        b.ge	br2
+ 1      1     0.50                        mov	x5, x23
+ 1      1     0.50                        mov	x6, x22
+ 1      1     0.50                        cmp	x22, x5
+ 1      1     1.00                        b.ge	br3
+ 1      1     0.50                        mov	x6, x5
+ 1      1     0.50                        add	w11, w11, #4
+ 1      1     0.50                        mov	x5, x4
+ 1      1     0.50                        cmp	x4, x6
+ 1      1     1.00                        b.ge	br4
+ 1      1     0.50                        mov	x5, x6
+ 1      1     0.50                        cmp	w11, w13
+
+
+Resources:
+[0]   - A57UnitB
+[1.0] - A57UnitI
+[1.1] - A57UnitI
+[2]   - A57UnitL
+[3]   - A57UnitM
+[4]   - A57UnitS
+[5]   - A57UnitW
+[6]   - A57UnitX
+
+
+Resource pressure per iteration:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]
+4.00   7.00   7.00   3.00   5.00    -      -      -
+
+Resource pressure by instruction:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]    Instructions:
+ -      -      -      -     1.00    -      -      -     add	x4, x7, w11, sxtw #3
+ -      -      -     1.00    -      -      -      -     ldp	x6, x21, [x4, #16]
+ -      -      -     1.00    -      -      -      -     ldr	x22, [x4, #32]
+ -      -      -      -     1.00    -      -      -     mul	x6, x6, x0
+ -      -      -     1.00    -      -      -      -     ldr	x4, [x4, #40]
+ -      -      -      -     1.00    -      -      -     mul	x21, x21, x0
+ -      -      -      -     1.00    -      -      -     mul	x22, x22, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x23, x6
+ -     0.67   0.33    -      -      -      -      -     cmp	x6, x5
+1.00    -      -      -      -      -      -      -     b.ge	br1
+ -      -     1.00    -      -      -      -      -     mov	x23, x5
+ -      -      -      -     1.00    -      -      -     mul	x4, x4, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x21
+ -     0.67   0.33    -      -      -      -      -     cmp	x21, x23
+1.00    -      -      -      -      -      -      -     b.ge	br2
+ -     0.83   0.17    -      -      -      -      -     mov	x5, x23
+ -     0.33   0.67    -      -      -      -      -     mov	x6, x22
+ -     0.67   0.33    -      -      -      -      -     cmp	x22, x5
+1.00    -      -      -      -      -      -      -     b.ge	br3
+ -     0.18   0.82    -      -      -      -      -     mov	x6, x5
+ -     0.82   0.18    -      -      -      -      -     add	w11, w11, #4
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x4
+ -     0.67   0.33    -      -      -      -      -     cmp	x4, x6
+1.00    -      -      -      -      -      -      -     b.ge	br4
+ -     0.35   0.65    -      -      -      -      -     mov	x5, x6
+ -     0.82   0.18    -      -      -      -      -     cmp	w11, w13
+#+end_src
+*** lt llvm-mca bottleneck
+#+begin_src bash
+[nix-shell:~/tmp/avoid-cmov-long-min-max/1405]$ llvm-mca --bottleneck-analysis lt-linux-aarch64.s
+Iterations:        100
+Instructions:      2600
+Total Cycles:      913
+Total uOps:        2700
+
+Dispatch Width:    3
+uOps Per Cycle:    2.96
+IPC:               2.85
+Block RThroughput: 9.0
+
+
+No resource or data dependency bottlenecks discovered.
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      2     1.00                        add	x4, x7, w11, sxtw #3
+ 2      4     1.00    *                   ldp	x6, x21, [x4, #16]
+ 1      4     1.00    *                   ldr	x22, [x4, #32]
+ 1      5     1.00                        mul	x6, x6, x0
+ 1      4     1.00    *                   ldr	x4, [x4, #40]
+ 1      5     1.00                        mul	x21, x21, x0
+ 1      5     1.00                        mul	x22, x22, x0
+ 1      1     0.50                        mov	x23, x6
+ 1      1     0.50                        cmp	x5, x6
+ 1      1     1.00                        b.lt	br1
+ 1      1     0.50                        mov	x23, x5
+ 1      5     1.00                        mul	x4, x4, x0
+ 1      1     0.50                        mov	x5, x21
+ 1      1     0.50                        cmp	x23, x21
+ 1      1     1.00                        b.lt	br2
+ 1      1     0.50                        mov	x5, x23
+ 1      1     0.50                        mov	x6, x22
+ 1      1     0.50                        cmp	x5, x22
+ 1      1     1.00                        b.lt	br3
+ 1      1     0.50                        mov	x6, x5
+ 1      1     0.50                        add	w11, w11, #4
+ 1      1     0.50                        mov	x5, x4
+ 1      1     0.50                        cmp	x6, x4
+ 1      1     1.00                        b.lt	br4
+ 1      1     0.50                        mov	x5, x6
+ 1      1     0.50                        cmp	w11, w13
+
+
+Resources:
+[0]   - A57UnitB
+[1.0] - A57UnitI
+[1.1] - A57UnitI
+[2]   - A57UnitL
+[3]   - A57UnitM
+[4]   - A57UnitS
+[5]   - A57UnitW
+[6]   - A57UnitX
+
+
+Resource pressure per iteration:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]
+4.00   7.00   7.00   3.00   5.00    -      -      -
+
+Resource pressure by instruction:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]    Instructions:
+ -      -      -      -     1.00    -      -      -     add	x4, x7, w11, sxtw #3
+ -      -      -     1.00    -      -      -      -     ldp	x6, x21, [x4, #16]
+ -      -      -     1.00    -      -      -      -     ldr	x22, [x4, #32]
+ -      -      -      -     1.00    -      -      -     mul	x6, x6, x0
+ -      -      -     1.00    -      -      -      -     ldr	x4, [x4, #40]
+ -      -      -      -     1.00    -      -      -     mul	x21, x21, x0
+ -      -      -      -     1.00    -      -      -     mul	x22, x22, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x23, x6
+ -     0.67   0.33    -      -      -      -      -     cmp	x5, x6
+1.00    -      -      -      -      -      -      -     b.lt	br1
+ -      -     1.00    -      -      -      -      -     mov	x23, x5
+ -      -      -      -     1.00    -      -      -     mul	x4, x4, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x21
+ -     0.67   0.33    -      -      -      -      -     cmp	x23, x21
+1.00    -      -      -      -      -      -      -     b.lt	br2
+ -     0.83   0.17    -      -      -      -      -     mov	x5, x23
+ -     0.33   0.67    -      -      -      -      -     mov	x6, x22
+ -     0.67   0.33    -      -      -      -      -     cmp	x5, x22
+1.00    -      -      -      -      -      -      -     b.lt	br3
+ -     0.18   0.82    -      -      -      -      -     mov	x6, x5
+ -     0.82   0.18    -      -      -      -      -     add	w11, w11, #4
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x4
+ -     0.67   0.33    -      -      -      -      -     cmp	x6, x4
+1.00    -      -      -      -      -      -      -     b.lt	br4
+ -     0.35   0.65    -      -      -      -      -     mov	x5, x6
+ -     0.82   0.18    -      -      -      -      -     cmp	w11, w13
+#+end_src
+*** ge llvm-mca
+#+begin_src bash
+[nix-shell:~/tmp/avoid-cmov-long-min-max/1405]$ llvm-mca ge-linux-aarch64.s
+Iterations:        100
+Instructions:      2600
+Total Cycles:      913
+Total uOps:        2700
+
+Dispatch Width:    3
+uOps Per Cycle:    2.96
+IPC:               2.85
+Block RThroughput: 9.0
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      2     1.00                        add	x4, x7, w11, sxtw #3
+ 2      4     1.00    *                   ldp	x6, x21, [x4, #16]
+ 1      4     1.00    *                   ldr	x22, [x4, #32]
+ 1      5     1.00                        mul	x6, x6, x0
+ 1      4     1.00    *                   ldr	x4, [x4, #40]
+ 1      5     1.00                        mul	x21, x21, x0
+ 1      5     1.00                        mul	x22, x22, x0
+ 1      1     0.50                        mov	x23, x6
+ 1      1     0.50                        cmp	x6, x5
+ 1      1     1.00                        b.ge	br1
+ 1      1     0.50                        mov	x23, x5
+ 1      5     1.00                        mul	x4, x4, x0
+ 1      1     0.50                        mov	x5, x21
+ 1      1     0.50                        cmp	x21, x23
+ 1      1     1.00                        b.ge	br2
+ 1      1     0.50                        mov	x5, x23
+ 1      1     0.50                        mov	x6, x22
+ 1      1     0.50                        cmp	x22, x5
+ 1      1     1.00                        b.ge	br3
+ 1      1     0.50                        mov	x6, x5
+ 1      1     0.50                        add	w11, w11, #4
+ 1      1     0.50                        mov	x5, x4
+ 1      1     0.50                        cmp	x4, x6
+ 1      1     1.00                        b.ge	br4
+ 1      1     0.50                        mov	x5, x6
+ 1      1     0.50                        cmp	w11, w13
+
+
+Resources:
+[0]   - A57UnitB
+[1.0] - A57UnitI
+[1.1] - A57UnitI
+[2]   - A57UnitL
+[3]   - A57UnitM
+[4]   - A57UnitS
+[5]   - A57UnitW
+[6]   - A57UnitX
+
+
+Resource pressure per iteration:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]
+4.00   7.00   7.00   3.00   5.00    -      -      -
+
+Resource pressure by instruction:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]    Instructions:
+ -      -      -      -     1.00    -      -      -     add	x4, x7, w11, sxtw #3
+ -      -      -     1.00    -      -      -      -     ldp	x6, x21, [x4, #16]
+ -      -      -     1.00    -      -      -      -     ldr	x22, [x4, #32]
+ -      -      -      -     1.00    -      -      -     mul	x6, x6, x0
+ -      -      -     1.00    -      -      -      -     ldr	x4, [x4, #40]
+ -      -      -      -     1.00    -      -      -     mul	x21, x21, x0
+ -      -      -      -     1.00    -      -      -     mul	x22, x22, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x23, x6
+ -     0.67   0.33    -      -      -      -      -     cmp	x6, x5
+1.00    -      -      -      -      -      -      -     b.ge	br1
+ -      -     1.00    -      -      -      -      -     mov	x23, x5
+ -      -      -      -     1.00    -      -      -     mul	x4, x4, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x21
+ -     0.67   0.33    -      -      -      -      -     cmp	x21, x23
+1.00    -      -      -      -      -      -      -     b.ge	br2
+ -     0.83   0.17    -      -      -      -      -     mov	x5, x23
+ -     0.33   0.67    -      -      -      -      -     mov	x6, x22
+ -     0.67   0.33    -      -      -      -      -     cmp	x22, x5
+1.00    -      -      -      -      -      -      -     b.ge	br3
+ -     0.18   0.82    -      -      -      -      -     mov	x6, x5
+ -     0.82   0.18    -      -      -      -      -     add	w11, w11, #4
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x4
+ -     0.67   0.33    -      -      -      -      -     cmp	x4, x6
+1.00    -      -      -      -      -      -      -     b.ge	br4
+ -     0.35   0.65    -      -      -      -      -     mov	x5, x6
+ -     0.82   0.18    -      -      -      -      -     cmp	w11, w13
+#+end_src
+*** lt llvm-mca
+#+begin_src bash
+[nix-shell:~/tmp/avoid-cmov-long-min-max/1405]$ llvm-mca lt-linux-aarch64.s
+Iterations:        100
+Instructions:      2600
+Total Cycles:      913
+Total uOps:        2700
+
+Dispatch Width:    3
+uOps Per Cycle:    2.96
+IPC:               2.85
+Block RThroughput: 9.0
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      2     1.00                        add	x4, x7, w11, sxtw #3
+ 2      4     1.00    *                   ldp	x6, x21, [x4, #16]
+ 1      4     1.00    *                   ldr	x22, [x4, #32]
+ 1      5     1.00                        mul	x6, x6, x0
+ 1      4     1.00    *                   ldr	x4, [x4, #40]
+ 1      5     1.00                        mul	x21, x21, x0
+ 1      5     1.00                        mul	x22, x22, x0
+ 1      1     0.50                        mov	x23, x6
+ 1      1     0.50                        cmp	x5, x6
+ 1      1     1.00                        b.lt	br1
+ 1      1     0.50                        mov	x23, x5
+ 1      5     1.00                        mul	x4, x4, x0
+ 1      1     0.50                        mov	x5, x21
+ 1      1     0.50                        cmp	x23, x21
+ 1      1     1.00                        b.lt	br2
+ 1      1     0.50                        mov	x5, x23
+ 1      1     0.50                        mov	x6, x22
+ 1      1     0.50                        cmp	x5, x22
+ 1      1     1.00                        b.lt	br3
+ 1      1     0.50                        mov	x6, x5
+ 1      1     0.50                        add	w11, w11, #4
+ 1      1     0.50                        mov	x5, x4
+ 1      1     0.50                        cmp	x6, x4
+ 1      1     1.00                        b.lt	br4
+ 1      1     0.50                        mov	x5, x6
+ 1      1     0.50                        cmp	w11, w13
+
+
+Resources:
+[0]   - A57UnitB
+[1.0] - A57UnitI
+[1.1] - A57UnitI
+[2]   - A57UnitL
+[3]   - A57UnitM
+[4]   - A57UnitS
+[5]   - A57UnitW
+[6]   - A57UnitX
+
+
+Resource pressure per iteration:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]
+4.00   7.00   7.00   3.00   5.00    -      -      -
+
+Resource pressure by instruction:
+[0]    [1.0]  [1.1]  [2]    [3]    [4]    [5]    [6]    Instructions:
+ -      -      -      -     1.00    -      -      -     add	x4, x7, w11, sxtw #3
+ -      -      -     1.00    -      -      -      -     ldp	x6, x21, [x4, #16]
+ -      -      -     1.00    -      -      -      -     ldr	x22, [x4, #32]
+ -      -      -      -     1.00    -      -      -     mul	x6, x6, x0
+ -      -      -     1.00    -      -      -      -     ldr	x4, [x4, #40]
+ -      -      -      -     1.00    -      -      -     mul	x21, x21, x0
+ -      -      -      -     1.00    -      -      -     mul	x22, x22, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x23, x6
+ -     0.67   0.33    -      -      -      -      -     cmp	x5, x6
+1.00    -      -      -      -      -      -      -     b.lt	br1
+ -      -     1.00    -      -      -      -      -     mov	x23, x5
+ -      -      -      -     1.00    -      -      -     mul	x4, x4, x0
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x21
+ -     0.67   0.33    -      -      -      -      -     cmp	x23, x21
+1.00    -      -      -      -      -      -      -     b.lt	br2
+ -     0.83   0.17    -      -      -      -      -     mov	x5, x23
+ -     0.33   0.67    -      -      -      -      -     mov	x6, x22
+ -     0.67   0.33    -      -      -      -      -     cmp	x5, x22
+1.00    -      -      -      -      -      -      -     b.lt	br3
+ -     0.18   0.82    -      -      -      -      -     mov	x6, x5
+ -     0.82   0.18    -      -      -      -      -     add	w11, w11, #4
+ -     0.33   0.67    -      -      -      -      -     mov	x5, x4
+ -     0.67   0.33    -      -      -      -      -     cmp	x6, x4
+1.00    -      -      -      -      -      -      -     b.lt	br4
+ -     0.35   0.65    -      -      -      -      -     mov	x5, x6
+ -     0.82   0.18    -      -      -      -      -     cmp	w11, w13
+#+end_src
+*** ge assembly
+#+begin_src asm
+   add	x4, x7, w11, sxtw #3
+   ldp		x6, x21, [x4, #0x10]
+   ldr		x22, [x4, #0x20]
+   mul		x6, x6, x0
+   ldr		x4, [x4, #0x28]
+   mul		x21, x21, x0
+   mul		x22, x22, x0
+   mov		x23, x6
+   cmp		x6, x5
+   b.ge	b1
+   mov		x23, x5
+b1:
+   mul	x4, x4, x0
+   mov		x5, x21
+   cmp		x21, x23
+   b.ge	b2
+   mov		x5, x23
+b2:
+   mov	x6, x22
+   cmp		x22, x5
+   b.ge	b3
+   mov		x6, x5
+b3:
+   add	w11, w11, #4
+   mov		x5, x4
+   cmp		x4, x6
+   b.ge	b4
+   mov		x5, x6
+b4:
+   cmp	w11, w13
+   b.lt	#0xffff9caf6ab0
+#+end_src
+*** lt assembly
+#+begin_src asm
+   add		x4, x7, w11, sxtw #3
+   ldp		x6, x21, [x4, #0x10]
+   ldr		x22, [x4, #0x20]
+   mul		x6, x6, x0
+   ldr		x4, [x4, #0x28]
+   mul		x21, x21, x0
+   mul		x22, x22, x0
+   mov		x23, x6
+   cmp		x5, x6
+   b.lt		b1
+   mov		x23, x5
+b1:
+   mul		x4, x4, x0
+   mov		x5, x21
+   cmp		x23, x21
+   b.lt		b2
+   mov		x5, x23
+b2:
+   mov		x6, x22
+   cmp		x5, x22
+   b.lt		b3
+   mov		x6, x5
+b3:
+   add		w11, w11, #4
+   mov		x5, x4
+   cmp		x6, x4
+   b.lt		b4
+   mov		x5, x6
+b4:
+   cmp		w11, w13
+   b.lt		#0xffff88af49b0
+#+end_src
+*** ge perfnorm cycles/instructions
+#+begin_src bash
+Benchmark                                             (probability)  (size)   Mode  Cnt      Score   Error      Units
+MinMaxVector.longReductionMultiplyMax                           100    2048  thrpt    4    271.768 ± 0.251     ops/ms
+MinMaxVector.longReductionMultiplyMax:CPI                       100    2048  thrpt           0.527          clks/insn
+MinMaxVector.longReductionMultiplyMax:IPC                       100    2048  thrpt           1.899          insns/clk
+MinMaxVector.longReductionMultiplyMax:cycles:u                  100    2048  thrpt        6232.475               #/op
+MinMaxVector.longReductionMultiplyMax:instructions:u            100    2048  thrpt       11836.351               #/op
+#+end_src
+*** lt perfnorm
+#+begin_src bash
+Benchmark                                             (probability)  (size)   Mode  Cnt      Score   Error      Units
+MinMaxVector.longReductionMultiplyMax                           100    2048  thrpt    4    150.169 ± 4.693     ops/ms
+MinMaxVector.longReductionMultiplyMax:CPI                       100    2048  thrpt           0.935          clks/insn
+MinMaxVector.longReductionMultiplyMax:IPC                       100    2048  thrpt           1.069          insns/clk
+MinMaxVector.longReductionMultiplyMax:cycles:u                  100    2048  thrpt       11254.151               #/op
+MinMaxVector.longReductionMultiplyMax:instructions:u            100    2048  thrpt       12033.363               #/op
+#+end_src
+*** ge
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  272.786 ± 3.109  ops/ms
+#+end_src
+**** asm
+#+begin_src asm
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1058
+
+                      0x0000ffff9caf69c4:   str		xzr, [x19, #0x20]   ;*putfield realTime {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@48 (line 128)
+                      0x0000ffff9caf69c8:   str		x0, [x19, #0x30]    ;*putfield stopTime {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@42 (line 127)
+                      0x0000ffff9caf69cc:   ldp		x29, x30, [sp, #0x40]
+                      0x0000ffff9caf69d0:   add		sp, sp, #0x50
+                      0x0000ffff9caf69d4:   ldr		x8, [x28, #0x28]    ;   {poll_return}
+                      0x0000ffff9caf69d8:   cmp		sp, x8
+                      0x0000ffff9caf69dc:   b.hi		#0xffff9caf6c14
+                      0x0000ffff9caf69e0:   ret
+   0.04%   ↗          0x0000ffff9caf69e4:   mov		x5, x13             ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+           │                                                                    ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+           │                                                                    ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.01%   │          0x0000ffff9caf69e8:   add		x12, x7, w11, sxtw #3
+           │          0x0000ffff9caf69ec:   ldr		x12, [x12, #0x10]
+           │          0x0000ffff9caf69f0:   mul		x12, x12, x0
+           │          0x0000ffff9caf69f4:   add		w11, w11, #1        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+           │                                                                    ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+           │                                                                    ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+           │          0x0000ffff9caf69f8:   mov		x13, x5
+   0.03%   │          0x0000ffff9caf69fc:   cmp		x5, x12
+          ╭│          0x0000ffff9caf6a00:   b.ge		#0xffff9caf6a08
+          ││          0x0000ffff9caf6a04:   mov		x13, x12            ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                                    ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+          ││                                                                    ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+          ↘│          0x0000ffff9caf6a08:   cmp		w11, w14
+           ╰          0x0000ffff9caf6a0c:   b.lt		#0xffff9caf69e4     ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.15%              0x0000ffff9caf6a10:   ldarb		w12, [x2]           ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@32 (line 126)
+   0.09%              0x0000ffff9caf6a14:   ldr		x14, [x28, #0x30]
+                      0x0000ffff9caf6a18:   add		x20, x20, #1        ; ImmutableOopMap {r15=Oop r16=Oop r17=Oop c_rarg3=Oop c_rarg2=Derived_oop_c_rarg3 r19=Oop }
+                                                                                ;*ifeq {reexecute=1 rethrow=0 return_oop=0}
+                                                                                ; - (reexecute) org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@35 (line 126)
+   0.07%              0x0000ffff9caf6a1c:   ldr		wzr, [x14]          ;   {poll}
+                      0x0000ffff9caf6a20:   cbnz		w12, #0xffff9caf6998;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@38 (line 127)
+   0.00%              0x0000ffff9caf6a24:   ldr		w14, [x16, #0xc]    ;*getfield size {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@8 (line 284)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                      0x0000ffff9caf6a28:   cmp		w14, #0
+                      0x0000ffff9caf6a2c:   b.le		#0xffff9caf6b3c     ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.01%              0x0000ffff9caf6a30:   ldr		w13, [x16, #0x2c]   ;*getfield maxLongA {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@18 (line 285)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                      0x0000ffff9caf6a34:   ldr		w5, [x13, #0xc]     ; implicit exception: dispatches to 0x0000ffff9caf6b44
+                                                                                ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                      0x0000ffff9caf6a38:   sxtw		x11, w14
+                      0x0000ffff9caf6a3c:   sub		x12, x11, #3
+                      0x0000ffff9caf6a40:   mov		x6, x12
+   0.02%              0x0000ffff9caf6a44:   cmp		x12, x1
+            ╭         0x0000ffff9caf6a48:   b.ge		#0xffff9caf6a50
+            │         0x0000ffff9caf6a4c:   mov		x6, x1
+            ↘         0x0000ffff9caf6a50:   mov		x7, x13             ;*getfield maxLongA {reexecute=0 rethrow=0 return_oop=0}
+                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@18 (line 285)
+                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                      0x0000ffff9caf6a54:   sxtw		x4, w5
+                      0x0000ffff9caf6a58:   sub		x11, x11, #1
+                      0x0000ffff9caf6a5c:   mov		w12, w6
+   0.01%              0x0000ffff9caf6a60:   cbz		w5, #0xffff9caf6b44
+   0.01%              0x0000ffff9caf6a64:   cmp		x11, x4
+                      0x0000ffff9caf6a68:   b.hs	#0xffff9caf6b44
+   0.03%              0x0000ffff9caf6a6c:   ldr		x11, [x13, #0x10]
+                      0x0000ffff9caf6a70:   mul		x11, x11, x0
+                      0x0000ffff9caf6a74:   mov		x5, x11
+                      0x0000ffff9caf6a78:   cmp		x11, x18
+             ╭        0x0000ffff9caf6a7c:   b.ge	#0xffff9caf6a84
+             │        0x0000ffff9caf6a80:   mov		x5, x18             ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             │                                                                  ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             │                                                                  ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.05%     ↘        0x0000ffff9caf6a84:   cmp	w12, #1
+                      0x0000ffff9caf6a88:   b.le	#0xffff9caf6b6c
+                      0x0000ffff9caf6a8c:   mov		w11, #1
+                   ↗  0x0000ffff9caf6a90:   cmp	w12, w11
+                   │  0x0000ffff9caf6a94:   sub		w4, w12, w11
+                   │  0x0000ffff9caf6a98:   csel	w13, wzr, w4, lt
+   0.01%           │  0x0000ffff9caf6a9c:   cmp		w13, #0xfa0
+                   │  0x0000ffff9caf6aa0:   csel	w4, w10, w13, hi
+                   │  0x0000ffff9caf6aa4:   add		w13, w4, w11
+                   │  0x0000ffff9caf6aa8:   nop
+   0.04%           │  0x0000ffff9caf6aac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                   │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+                   │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                  ↗│  0x0000ffff9caf6ab0:   add	x4, x7, w11, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+                  ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+                  ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   8.46%          ││  0x0000ffff9caf6ab4:   ldp		x6, x21, [x4, #0x10]
+   0.18%          ││  0x0000ffff9caf6ab8:   ldr		x22, [x4, #0x20]
+                  ││  0x0000ffff9caf6abc:   mul		x6, x6, x0
+   7.66%          ││  0x0000ffff9caf6ac0:   ldr		x4, [x4, #0x28]
+                  ││  0x0000ffff9caf6ac4:   mul		x21, x21, x0
+                  ││  0x0000ffff9caf6ac8:   mul		x22, x22, x0
+                  ││  0x0000ffff9caf6acc:   mov		x23, x6
+                  ││  0x0000ffff9caf6ad0:   cmp		x6, x5
+              ╭   ││  0x0000ffff9caf6ad4:   b.ge	#0xffff9caf6adc
+              │   ││  0x0000ffff9caf6ad8:   mov		x23, x5
+   7.94%      ↘   ││  0x0000ffff9caf6adc:   mul	x4, x4, x0
+                  ││  0x0000ffff9caf6ae0:   mov		x5, x21
+                  ││  0x0000ffff9caf6ae4:   cmp		x21, x23
+               ╭  ││  0x0000ffff9caf6ae8:   b.ge	#0xffff9caf6af0
+               │  ││  0x0000ffff9caf6aec:   mov		x5, x23
+  22.19%       ↘  ││  0x0000ffff9caf6af0:   mov	x6, x22
+                  ││  0x0000ffff9caf6af4:   cmp		x22, x5
+                ╭ ││  0x0000ffff9caf6af8:   b.ge	#0xffff9caf6b00
+                │ ││  0x0000ffff9caf6afc:   mov		x6, x5
+  24.20%        ↘ ││  0x0000ffff9caf6b00:   add	w11, w11, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                  ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+                  ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                  ││  0x0000ffff9caf6b04:   mov		x5, x4
+                  ││  0x0000ffff9caf6b08:   cmp		x4, x6
+                 ╭││  0x0000ffff9caf6b0c:   b.ge	#0xffff9caf6b14
+                 │││  0x0000ffff9caf6b10:   mov		x5, x6              ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                 │││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+                 │││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+  26.47%         ↘││  0x0000ffff9caf6b14:   cmp	w11, w13
+                  ╰│  0x0000ffff9caf6b18:   b.lt	#0xffff9caf6ab0     ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                   │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+                   │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.25%           │  0x0000ffff9caf6b1c:   ldr		x4, [x28, #0x30]    ; ImmutableOopMap {r15=Oop r16=Oop r17=Oop c_rarg3=Oop c_rarg2=Derived_oop_c_rarg3 c_rarg7=Oop r19=Oop }
+                   │                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                   │                                                            ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                   │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.27%           │  0x0000ffff9caf6b20:   ldr		wzr, [x4]           ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                   │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+                   │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+                   │                                                            ;   {poll}
+                   │  0x0000ffff9caf6b24:   cmp		w11, w12
+                   ╰  0x0000ffff9caf6b28:   b.lt	#0xffff9caf6a90
+                      0x0000ffff9caf6b2c:   cmp		w11, w14
+                      0x0000ffff9caf6b30:   b.lt	#0xffff9caf69e8
+....................................................................................................
+  98.20%  <total for region 1>
+#+end_src
+*** lt
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  150.761 ± 6.003  ops/ms
+#+end_src
+**** asm
+#+begin_src asm
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub, version 5, compile id 1053
+
+   0.06%          0x0000ffff88af4984:   cmp		w12, #1
+                  0x0000ffff88af4988:   b.le		#0xffff88af4a6c
+                  0x0000ffff88af498c:   mov		w11, #1
+               ↗  0x0000ffff88af4990:   cmp		w12, w11
+               │  0x0000ffff88af4994:   sub		w4, w12, w11
+               │  0x0000ffff88af4998:   csel		w13, wzr, w4, lt
+               │  0x0000ffff88af499c:   cmp		w13, #0xfa0
+               │  0x0000ffff88af49a0:   csel		w4, w10, w13, hi
+               │  0x0000ffff88af49a4:   add		w13, w4, w11
+               │  0x0000ffff88af49a8:   nop
+   0.01%       │  0x0000ffff88af49ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+               │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@14 (line 285)
+               │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   3.22%      ↗│  0x0000ffff88af49b0:   add		x4, x7, w11, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+              ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@23 (line 285)
+              ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+  12.69%      ││  0x0000ffff88af49b4:   ldp		x6, x21, [x4, #0x10]
+   1.66%      ││  0x0000ffff88af49b8:   ldr		x22, [x4, #0x20]
+              ││  0x0000ffff88af49bc:   mul		x6, x6, x0
+   4.46%      ││  0x0000ffff88af49c0:   ldr		x4, [x4, #0x28]
+              ││  0x0000ffff88af49c4:   mul		x21, x21, x0
+              ││  0x0000ffff88af49c8:   mul		x22, x22, x0
+              ││  0x0000ffff88af49cc:   mov		x23, x6
+   0.01%      ││  0x0000ffff88af49d0:   cmp		x5, x6
+          ╭   ││  0x0000ffff88af49d4:   b.lt		#0xffff88af49dc
+   5.11%  │   ││  0x0000ffff88af49d8:   mov		x23, x5
+  10.12%  ↘   ││  0x0000ffff88af49dc:   mul		x4, x4, x0
+              ││  0x0000ffff88af49e0:   mov		x5, x21
+              ││  0x0000ffff88af49e4:   cmp		x23, x21
+           ╭  ││  0x0000ffff88af49e8:   b.lt		#0xffff88af49f0
+   5.70%   │  ││  0x0000ffff88af49ec:   mov		x5, x23
+  13.10%   ↘  ││  0x0000ffff88af49f0:   mov		x6, x22
+              ││  0x0000ffff88af49f4:   cmp		x5, x22
+            ╭ ││  0x0000ffff88af49f8:   b.lt		#0xffff88af4a00
+   9.09%    │ ││  0x0000ffff88af49fc:   mov		x6, x5
+  12.90%    ↘ ││  0x0000ffff88af4a00:   add		w11, w11, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+              ││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@34 (line 284)
+              ││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+              ││  0x0000ffff88af4a04:   mov		x5, x4
+              ││  0x0000ffff88af4a08:   cmp		x6, x4
+             ╭││  0x0000ffff88af4a0c:   b.lt		#0xffff88af4a14
+   5.00%     │││  0x0000ffff88af4a10:   mov		x5, x6              ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             │││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@30 (line 286)
+             │││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+  13.41%     ↘││  0x0000ffff88af4a14:   cmp		w11, w13
+              ╰│  0x0000ffff88af4a18:   b.lt		#0xffff88af49b0     ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+               │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@11 (line 284)
+               │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.05%       │  0x0000ffff88af4a1c:   ldr		x4, [x28, #0x30]    ; ImmutableOopMap {r15=Oop r16=Oop r17=Oop c_rarg3=Oop c_rarg2=Derived_oop_c_rarg3 c_rarg7=Oop r19=Oop }
+               │                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+               │                                                            ; - (reexecute) org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+               │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+   0.03%       │  0x0000ffff88af4a20:   ldr		wzr, [x4]           ;*goto {reexecute=0 rethrow=0 return_oop=0}
+               │                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax@37 (line 284)
+               │                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionMultiplyMax_jmhTest::longReductionMultiplyMax_thrpt_jmhStub@19 (line 124)
+               │                                                            ;   {poll}
+               │  0x0000ffff88af4a24:   cmp		w11, w12
+               ╰  0x0000ffff88af4a28:   b.lt		#0xffff88af4990
+                  0x0000ffff88af4a2c:   cmp		w11, w14
+                  0x0000ffff88af4a30:   b.lt		#0xffff88af48e8
+....................................................................................................
+  96.58%  <total for region 1>
+#+end_src
 * 7.5.25
 ** pipeline stalls
 *** ge
