@@ -6,6 +6,9 @@ CLEAN="true"
 
 ASM_PROFILER="xctraceasm"
 NORM_PROFILER="xctracenorm"
+TEMPLATE="CondBranch"
+# Important to override developer dir when using xctracenorm,
+# because the dev kit is missing Instruments support files.
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 
 # Check for clean parameter
@@ -43,8 +46,8 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    benchmark_all ${branch} "-prof $NORM_PROFILER:template=PipelineCondBranch;FORK=1"
-    benchmark_all ${branch} "-prof $ASM_PROFILER;FORK=1"
+    benchmark_all ${branch} "-prof $NORM_PROFILER:template=$TEMPLATE;FORK=1"
+    # benchmark_all ${branch} "-prof $ASM_PROFILER;FORK=1"
 }
 
 log()
