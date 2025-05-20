@@ -26,6 +26,15 @@ MinMaxVector.longReductionMultiplyMax:INST_BRANCH density (of insns)            
 #+end_src
 * 14.5.25
 ** linux/aarch64
+*** ge probabilities
+**** release
+#+begin_src bash
+Benchmark                              (probability)  (size)   Mode  Cnt     Score     Error   Units
+MinMaxVector.longReductionMultiplyMax             50    2048  thrpt    8  1147.000 ±  98.397  ops/ms
+MinMaxVector.longReductionMultiplyMax             80    2048  thrpt    8  1267.215 ±  74.334  ops/ms
+MinMaxVector.longReductionMultiplyMax            100    2048  thrpt    8  2327.224 ± 191.344  ops/ms
+#+end_src
+**** asm
 *** ge perfnorm branch-misses/br_mis_pred,inst_retired
 #+begin_src bash
 Benchmark                                            (probability)  (size)   Mode  Cnt      Score    Error      Units
