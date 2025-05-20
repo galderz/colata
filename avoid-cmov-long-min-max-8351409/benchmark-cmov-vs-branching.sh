@@ -47,13 +47,7 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-#    for probability in \
-#      50 \
-#      80 \
-#      100
-#    do
     benchmark_all ${branch} "${extra_args} -prof $ASM_PROFILER;FORK=1"
-#    done
 }
 
 log()
