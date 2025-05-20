@@ -21,6 +21,7 @@ pkgs.mkShell {
     xorg.libXrender
     xorg.libXi
     xorg.libXrandr
+    unzip
   ];
 
   shellHook = ''
