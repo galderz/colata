@@ -3,6 +3,21 @@
   {}
 }:
 
+let
+  gdbInit = pkgs.writeText ".gdbinit" ''
+    set auto-load safe-path /local
+    add-auto-load-safe-path /
+
+    handle 11 nostop
+    handle 4 noprint nostop
+    set print thread-events off
+    set step-mode on
+
+    set height 0
+
+    set debuginfod enabled on
+  '';
+in
 pkgs.mkShell {
   hardeningDisable = [ "all" ]; # Disable all hardening
 
@@ -25,6 +40,9 @@ pkgs.mkShell {
     zip
   ];
 
+  # Link to store-path GDB init file
+  GDBINIT = gdbInit;
+
   shellHook = ''
     export ANT_HOME="${pkgs.ant}/share/ant"
     echo "Setting ANT_HOME to $ANT_HOME"
@@ -44,6 +62,8 @@ pkgs.mkShell {
 
     export FREETYPE_LIB="${pkgs.freetype}/lib"
     echo "Setting FREETYPE_LIB to $FREETYPE_LIB"
+
+    echo "Setting GDBINIT to $GDBINIT"
 
     unset SOURCE_DATE_EPOCH
     echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
