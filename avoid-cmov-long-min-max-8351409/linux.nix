@@ -60,7 +60,7 @@ pkgs.mkShell {
     export FREETYPE_LIB="${pkgs.freetype}/lib"
     echo "Setting FREETYPE_LIB to $FREETYPE_LIB"
 
-    ln -sf ${gdbInit} .gdbinit
+    ln -sf ${gdbInit} $HOME/.gdbinit
 
     unset SOURCE_DATE_EPOCH
     echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
