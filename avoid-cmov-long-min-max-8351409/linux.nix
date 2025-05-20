@@ -10,18 +10,18 @@ pkgs.mkShell {
     ant
     alsa-lib
     autoconf
-    cups
     capstone
+    cups
     fontconfig
     freetype
     gdb
     temurin-bin-24
+    unzip
     xorg.libXtst
     xorg.libXt
     xorg.libXrender
     xorg.libXi
     xorg.libXrandr
-    unzip
   ];
 
   shellHook = ''
