@@ -31,7 +31,7 @@ benchmark_all()
     local probability=$3
 
     local test="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax"
-    local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord"
+    local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord -p probability=${probability}"
 
     log TEST=\"${test}\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
 }
