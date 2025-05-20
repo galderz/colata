@@ -54,6 +54,10 @@ ifdef ASM_ARGS
   jvm_args += $(asm_jvm_args)
 endif
 
+ifdef NO_SUPERWORD
+  jvm_args += -XX:-UseSuperWord
+endif
+
 jvm_args += $(base_jvm_args)
 
 run: clear-logs $(java)
