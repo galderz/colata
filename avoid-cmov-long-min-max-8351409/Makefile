@@ -58,6 +58,10 @@ ifdef NO_SUPERWORD
   jvm_args += -XX:-UseSuperWord
 endif
 
+ifdef BRANCH_NEVER
+  jvm_args += -XX:+UseNewCode
+endif
+
 jvm_args += $(base_jvm_args)
 
 run: clear-logs $(java)
