@@ -189,7 +189,7 @@ boot-jdk:
 
 lldb: $(java)
 > cd $(JDK_HOME)
-> $DEVKIT_ROOT/Xcode/Contents/Developer/usr/bin/lldb build/$(conf_name)/jdk/bin/java
+> $(DEVKIT_ROOT)/Xcode/Contents/Developer/usr/bin/lldb $<
 .PHONY: lldb
 
 clear-logs:
