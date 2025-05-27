@@ -30,7 +30,7 @@ benchmark_all()
     local prefix="micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.longReduction"
     local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord"
 
-    log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args} ${extra_args}\" CONF=release BUILD_LOG=warn make test
+    log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args} ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
@@ -47,7 +47,14 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    benchmark_all ${branch} "${extra_args} -prof $ASM_PROFILER;FORK=1"
+    if [[ $branch != *base ]]; then
+        # Branch always: -XX:-UseNewCode
+        # Branch never:  -XX:+UseNewCode
+        benchmark_all ${branch} "${extra_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -prof $ASM_PROFILER;FORK=1"
+        benchmark_all ${branch} "${extra_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -prof $ASM_PROFILER;FORK=1"
+    else
+        benchmark_all ${branch} "${extra_args} -prof $ASM_PROFILER;FORK=1"
+    fi
 }
 
 log()
@@ -61,7 +68,7 @@ if [[ $CLEAN == "true" ]]; then
 fi
 
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
+# UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.avoid-cmov-long-min-max.0408.base" ""
-# benchmark_branch "topic.avoid-cmov-long-min-max.0408.base" "-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:DisableIntrinsic=_maxL"
-benchmark_branch "topic.avoid-cmov-long-min-max.0408.branch-never-ge" ""
+benchmark_branch "topic.avoid-cmov.0521.max-aarch64-x64" ""
+benchmark_branch "topic.avoid-cmov.0521.base" ""
