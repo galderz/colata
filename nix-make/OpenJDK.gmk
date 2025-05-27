@@ -192,6 +192,10 @@ lldb: $(java)
 > $(DEVKIT_ROOT)/Xcode/Contents/Developer/usr/bin/lldb $<
 .PHONY: lldb
 
+run-use: configure clean-jdk
+> $(TOPDIR)/nix-make/run-use.sh $(CURDIR)
+.PHONY: run-use
+
 clear-logs:
 > rm -f *.log
 .PHONY: clear-logs
