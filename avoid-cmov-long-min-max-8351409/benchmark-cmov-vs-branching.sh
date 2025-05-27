@@ -50,8 +50,8 @@ benchmark_branch()
     if [[ $branch != *base ]]; then
         # Branch always: -XX:-UseNewCode
         # Branch never:  -XX:+UseNewCode
-        benchmark_all ${branch} "${extra_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -prof $ASM_PROFILER;FORK=1"
-        benchmark_all ${branch} "${extra_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -prof $ASM_PROFILER;FORK=1"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -prof $ASM_PROFILER;FORK=1"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -prof $ASM_PROFILER;FORK=1"
     else
         benchmark_all ${branch} "${extra_args} -prof $ASM_PROFILER;FORK=1"
     fi
