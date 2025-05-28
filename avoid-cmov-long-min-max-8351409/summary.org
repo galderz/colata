@@ -2,8 +2,42 @@
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
 * 27.5.25
-** aarch64
-
+** max x64
+Virtually all long reduction benchmarks in MinMaxVector improve performance with any % branch data distribution compared to conditional moves.
+At 80% and 100% not jumping in the branch has a positive effect performance wise.
+*** branch always
+#+begin_src bash
+Benchmark                                  (includeEquals)  (probability)  (size)   Mode  Cnt    Score    Error   Units
+MinMaxVector.longReductionMultiplyMax                 true             50    2048  thrpt    4  544.485 ±  3.167  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true             80    2048  thrpt    4  453.718 ±  8.108  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true            100    2048  thrpt    4  455.514 ±  0.568  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             50    2048  thrpt    4  674.529 ± 10.887  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             80    2048  thrpt    4  524.918 ±  3.587  ops/ms
+MinMaxVector.longReductionSimpleMax                   true            100    2048  thrpt    4  443.354 ±  0.682  ops/ms
+#+end_src
+*** branch never
+#+begin_src bash
+Benchmark                                  (includeEquals)  (probability)  (size)   Mode  Cnt    Score    Error   Units
+MinMaxVector.longReductionMultiplyMax                 true             50    2048  thrpt    4  550.314 ±  7.797  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true             80    2048  thrpt    4  798.261 ± 21.014  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true            100    2048  thrpt    4  806.434 ±  0.369  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             50    2048  thrpt    4  664.959 ±  0.414  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             80    2048  thrpt    4  856.510 ±  1.719  ops/ms
+MinMaxVector.longReductionSimpleMax                   true            100    2048  thrpt    4  803.530 ±  0.669  ops/ms
+#+end_src
+*** base cmov
+#+begin_src bash
+Benchmark                                  (includeEquals)  (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.longReductionMultiplyMax                 true             50    2048  thrpt    4  406.990 ± 0.041  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true             80    2048  thrpt    4  407.015 ± 0.517  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true            100    2048  thrpt    4  406.988 ± 0.159  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             50    2048  thrpt    4  459.669 ± 0.229  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             80    2048  thrpt    4  461.972 ± 1.972  ops/ms
+MinMaxVector.longReductionSimpleMax                   true            100    2048  thrpt    4  462.036 ± 0.307  ops/ms
+#+end_src
+** max aarch64
+All long reduction benchmarks in MinMaxVector improve performance with any % branch data distribution compared to conditional moves.
+At 80% and 100% not jumping in the branch has a positive effect performance wise.
 *** branch always
 #+begin_src bash
 Benchmark                                  (includeEquals)  (probability)  (size)   Mode  Cnt     Score     Error   Units
