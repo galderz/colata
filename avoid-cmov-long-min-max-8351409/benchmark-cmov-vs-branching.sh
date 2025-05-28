@@ -53,7 +53,7 @@ benchmark_branch()
         benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -prof $ASM_PROFILER;FORK=1"
         benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -prof $ASM_PROFILER;FORK=1"
     else
-        benchmark_all ${branch} "${extra_args} -prof $ASM_PROFILER;FORK=1"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -prof $ASM_PROFILER;FORK=1"
     fi
 }
 
