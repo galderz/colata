@@ -58,8 +58,12 @@ ifdef NO_SUPERWORD
   jvm_args += -XX:-UseSuperWord
 endif
 
-ifdef BRANCH_NEVER
+ifdef BRANCH_NEVER_MAX
   jvm_args += -XX:+UseNewCode
+endif
+
+ifdef BRANCH_NEVER_MIN
+  jvm_args += -XX:+UseNewCode2
 endif
 
 jvm_args += $(base_jvm_args)
