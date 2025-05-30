@@ -26,9 +26,10 @@ benchmark_all()
 {
     local branch=$1
     local extra_args=$2
+    local rffPrefix=$3
 
-    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=${extra_args}\" CONF=release LOG=warn make test
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgs -XX:-UseSuperWord ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rffPrefix}-vr2.csv -${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgs -XX:-UseSuperWord -rff ${rffPrefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
@@ -50,10 +51,10 @@ benchmark_branch()
         # Branch always min: -XX:-UseNewCode2
         # Branch never max:  -XX:+UseNewCode
         # Branch never min:  -XX:+UseNewCode2
-        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -jvmArgs -XX:-UseNewCode2 -prof $ASM_PROFILER -rff branch-never;FORK=1"
-        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2 -prof $ASM_PROFILER -rff branch-always;FORK=1"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -jvmArgs -XX:-UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-always"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-never"
     else
-        benchmark_all ${branch} "${extra_args} -p includeEquals=true -prof $ASM_PROFILER -rff base;FORK=1"
+        benchmark_all ${branch} "${extra_args} -p includeEquals=true -prof $ASM_PROFILER;FORK=1" "base"
     fi
 }
 
