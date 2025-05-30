@@ -1,6 +1,66 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 28.5.25
+** x64
+*** Branch Always
+#+begin_src bash
+Benchmark                                  (includeEquals)  (probability)  (range)  (seed)  (size)   Mode  Cnt    Score    Error   Units
+MinMaxVector.longClippingRange                         N/A            N/A       90       0    1000  thrpt    4  810.317 ± 19.651  ops/ms
+MinMaxVector.longClippingRange                         N/A            N/A      100       0    1000  thrpt    4  812.737 ± 10.827  ops/ms
+
+MinMaxVector.longLoopMax                              true             50      N/A     N/A    2048  thrpt    4  478.382 ±  1.741  ops/ms
+MinMaxVector.longLoopMax                              true             80      N/A     N/A    2048  thrpt    4  478.321 ±  3.565  ops/ms
+MinMaxVector.longLoopMax                              true            100      N/A     N/A    2048  thrpt    4  479.080 ±  0.669  ops/ms
+MinMaxVector.longLoopMin                              true             50      N/A     N/A    2048  thrpt    4  489.841 ±  8.777  ops/ms
+MinMaxVector.longLoopMin                              true             80      N/A     N/A    2048  thrpt    4  489.451 ±  0.250  ops/ms
+MinMaxVector.longLoopMin                              true            100      N/A     N/A    2048  thrpt    4  497.766 ±  1.781  ops/ms
+
+MinMaxVector.longReductionMultiplyMax                 true             50      N/A     N/A    2048  thrpt    4  547.915 ± 10.069  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true             80      N/A     N/A    2048  thrpt    4  465.298 ±  7.290  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true            100      N/A     N/A    2048  thrpt    4  454.280 ±  1.682  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true             50      N/A     N/A    2048  thrpt    4  545.224 ±  2.922  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true             80      N/A     N/A    2048  thrpt    4  469.390 ±  8.481  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true            100      N/A     N/A    2048  thrpt    4  454.493 ±  2.126  ops/ms
+
+MinMaxVector.longReductionSimpleMax                   true             50      N/A     N/A    2048  thrpt    4  672.689 ±  4.652  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             80      N/A     N/A    2048  thrpt    4  526.829 ±  0.175  ops/ms
+MinMaxVector.longReductionSimpleMax                   true            100      N/A     N/A    2048  thrpt    4  440.721 ±  4.548  ops/ms
+MinMaxVector.longReductionSimpleMin                   true             50      N/A     N/A    2048  thrpt    4  670.943 ±  5.984  ops/ms
+MinMaxVector.longReductionSimpleMin                   true             80      N/A     N/A    2048  thrpt    4  531.528 ±  7.258  ops/ms
+MinMaxVector.longReductionSimpleMin                   true            100      N/A     N/A    2048  thrpt    4  444.621 ±  9.428  ops/ms
+#+end_src
+*** Branch Never
+#+begin_src bash
+Benchmark                                  (includeEquals)  (probability)  (range)  (seed)  (size)   Mode  Cnt    Score    Error   Units
+MinMaxVector.longClippingRange                         N/A            N/A       90       0    1000  thrpt    4  611.909 ±  4.630  ops/ms
+MinMaxVector.longClippingRange                         N/A            N/A      100       0    1000  thrpt    4  606.295 ±  5.306  ops/ms
+
+MinMaxVector.longLoopMax                              true             50      N/A     N/A    2048  thrpt    4  477.903 ±  6.093  ops/ms
+MinMaxVector.longLoopMax                              true             80      N/A     N/A    2048  thrpt    4  470.040 ±  0.250  ops/ms
+MinMaxVector.longLoopMax                              true            100      N/A     N/A    2048  thrpt    4  452.954 ±  0.647  ops/ms
+MinMaxVector.longLoopMin                              true             50      N/A     N/A    2048  thrpt    4  491.931 ±  1.390  ops/ms
+MinMaxVector.longLoopMin                              true             80      N/A     N/A    2048  thrpt    4  468.428 ± 10.378  ops/ms
+MinMaxVector.longLoopMin                              true            100      N/A     N/A    2048  thrpt    4  452.678 ±  0.682  ops/ms
+
+MinMaxVector.longReductionMultiplyMax                 true             50      N/A     N/A    2048  thrpt    4  547.431 ±  7.687  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true             80      N/A     N/A    2048  thrpt    4  815.973 ±  1.070  ops/ms
+MinMaxVector.longReductionMultiplyMax                 true            100      N/A     N/A    2048  thrpt    4  806.168 ±  1.344  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true             50      N/A     N/A    2048  thrpt    4  545.896 ± 12.850  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true             80      N/A     N/A    2048  thrpt    4  806.190 ±  2.317  ops/ms
+MinMaxVector.longReductionMultiplyMin                 true            100      N/A     N/A    2048  thrpt    4  806.394 ±  0.793  ops/ms
+
+MinMaxVector.longReductionSimpleMax                   true             50      N/A     N/A    2048  thrpt    4  657.436 ± 11.986  ops/ms
+MinMaxVector.longReductionSimpleMax                   true             80      N/A     N/A    2048  thrpt    4  851.211 ±  3.109  ops/ms
+MinMaxVector.longReductionSimpleMax                   true            100      N/A     N/A    2048  thrpt    4  804.118 ±  0.368  ops/ms
+MinMaxVector.longReductionSimpleMin                   true             50      N/A     N/A    2048  thrpt    4  663.646 ±  9.127  ops/ms
+MinMaxVector.longReductionSimpleMin                   true             80      N/A     N/A    2048  thrpt    4  856.981 ± 28.753  ops/ms
+MinMaxVector.longReductionSimpleMin                   true            100      N/A     N/A    2048  thrpt    4  803.959 ±  0.313  ops/ms
+#+end_src
+*** Base
+...
+** CANCELLED aarch64
+Not recorded due to WIP.
 * 27.5.25
 ** max x64
 Virtually all long reduction benchmarks in MinMaxVector improve performance with any % branch data distribution compared to conditional moves.
