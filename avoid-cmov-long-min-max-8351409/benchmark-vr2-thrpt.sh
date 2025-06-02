@@ -36,7 +36,7 @@ benchmark_branch()
 {
     local branch=$1
     local extra_args=$2
-    local common_args="-p includeEquals=true -bm thrpt"
+    local common_args="-p includeEquals=true -bm thrpt -tu ms"
 
     pushd $HOME/src/jdk-avoid-cmov-long-min-max
     git checkout ${branch}
