@@ -50,6 +50,12 @@ TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax" M
 TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longReductionMultiplyMax" MICRO="OPTIONS=-p probability=100 -p includeEquals=true -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+UseNewCode -prof xctraceasm;FORK=1" DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer make test
 ```
 
+# Run a JMH benchmark with PrintMethodData
+
+```shell
+TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longClipping" MICRO="OPTIONS=-jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+PrintMethodData -jvmArgs -XX:-UseSuperWord -p includeEquals=true -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -jvmArgs -XX:-UseNewCode2;FORK=1" CONF=release LOG=warn make test
+```
+
 # Debugging with lldb a normal run
 
 ```bash
