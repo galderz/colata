@@ -37,25 +37,20 @@ pkgs.mkShell {
     zip
   ];
 
+  ANT_HOME="${pkgs.ant}/share/ant";
+  BOOT_JDK_HOME="${pkgs.temurin-bin-24}";
+  CAPSTONE_HOME="${pkgs.capstone}";
+  FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
+  FREETYPE_LIB="${pkgs.freetype}/lib";
+  JMH_SNAPSHOT=false;
+
   shellHook = ''
-    export ANT_HOME="${pkgs.ant}/share/ant"
-    echo "Setting ANT_HOME to $ANT_HOME"
-
-    export BOOT_JDK_HOME="${pkgs.temurin-bin-24}"
-    # export BOOT_JDK_HOME="$HOME/opt/boot-java-24"
-    echo "Setting BOOT_JDK_HOME to $BOOT_JDK_HOME"
-
-    export CAPSTONE_HOME="${pkgs.capstone}"
-    echo "Setting CAPSTONE_HOME to $CAPSTONE_HOME"
-
-    export JMH_SNAPSHOT=false
-    echo "Setting JMH_SNAPSHOT to $JMH_SNAPSHOT"
-
-    export FREETYPE_INCLUDE="${pkgs.freetype.dev}/include"
-    echo "Setting FREETYPE_INCLUDE to $FREETYPE_INCLUDE"
-
-    export FREETYPE_LIB="${pkgs.freetype}/lib"
-    echo "Setting FREETYPE_LIB to $FREETYPE_LIB"
+    echo "ANT_HOME set to $ANT_HOME"
+    echo "BOOT_JDK_set HOME to $BOOT_JDK_HOME"
+    echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
+    echo "FREETYPE_INCLUDE set to $FREETYPE_INCLUDE"
+    echo "JMH_SNAPSHOT set to $JMH_SNAPSHOT"
+    echo "FREETYPE_LIB set to $FREETYPE_LIB"
 
     ln -sf ${gdbInit} $HOME/.gdbinit
 
