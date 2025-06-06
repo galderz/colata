@@ -40,16 +40,7 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    if [[ $branch != *base ]]; then
-        # Branch always max: -XX:-UseNewCode
-        # Branch always min: -XX:-UseNewCode2
-        # Branch never max:  -XX:+UseNewCode
-        # Branch never min:  -XX:+UseNewCode2
-        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgs -XX:-UseNewCode -jvmArgs -XX:-UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-always"
-        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-never"
-    else
-        benchmark_all ${branch} "${extra_args} ${common_args} -prof $ASM_PROFILER;FORK=1" "base"
-    fi
+    benchmark_all ${branch} "${extra_args} ${common_args} -prof $ASM_PROFILER;FORK=1" "base"
 }
 
 log()
@@ -65,5 +56,4 @@ fi
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" ""
 benchmark_branch "topic.avoid-cmov.0521.base" ""
