@@ -42,7 +42,7 @@ pkgs.mkShell {
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
-  JMH_SNAPSHOT=false;
+  JMH_SNAPSHOT="false";
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
