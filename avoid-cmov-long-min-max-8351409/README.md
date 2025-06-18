@@ -83,6 +83,23 @@ $ CONF=slow make lldb
 (lldb) settings set target.run-args \-Xbatch \-XX:-BackgroundCompilation \-XX:CompileCommand=compileonly,org.openjdk.bench.java.lang.MinMaxVector::longReductionMultiplyMax \-XX:+PrintNMethods \-XX:-UseSuperWord \-XX:+UseNewCode \-jar /Users/galder/src/jdk-avoid-cmov-long-min-max/build/slow-darwin-arm64/images/test/micro/benchmarks.jar MinMaxVector.longReductionMultiplyMax \-f 0 \-p size=2048 \-p probability=100 \-p includeEquals=true
 ```
 
+# Debugging with gdb a JMH benchmark
+
+First run the JMH benchmark with `slow` configuration so that the `benchmarks.jar` file is built:
+
+```bash
+TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longClipping" MICRO="OPTIONS=-p range=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2;FORK=1" CONF=slow LOG=warn make test
+```
+
+```bash
+cd jdk
+emacs
+gud-gdb /home/g/src/jdk-avoid-cmov-long-min-max/build/slow-linux-x86_64/jdk/bin/java
+
+(gdb) b nmethod.cpp:1729
+(gdb) set args -Xbatch -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,org.openjdk.bench.java.lang.MinMaxVector::longClippingRange -XX:+PrintNMethods -XX:-UseSuperWord -XX:+UseNewCode -XX:+UseNewCode2 -jar /home/g/src/jdk-avoid-cmov-long-min-max/build/slow-linux-x86_64/images/test/micro/benchmarks.jar MinMaxVector.longClippingRange -f 0 -p range=100
+```
+
 # Linux
 
 Make sure you enter on the linux Nix shell:
