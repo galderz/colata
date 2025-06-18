@@ -1,6 +1,213 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 18.6.25
+** clipping range oddities
+Actually things look fine with clipping range and branch-never.
+The oddities from the previous day might be due using the wrong UseNewCode flag settings.
+
+Initial command:
+#+begin_src bash
+TEST="micro:org.openjdk.bench.java.lang.MinMaxVector.longClipping" MICRO="OPTIONS=-p range=100 -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseSuperWord -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2;FORK=1" CONF=slow LOG=warn make test
+#+end_src
+
+#+begin_src asm
+// Branch never with GT
+instruct maxL_reg_reg_gt(iRegLNoSp dst, iRegL src1, iRegL src2)
+%{
+  predicate(UseNewCode);
+  match(Set dst (MaxL src1 src2));
+  effect(TEMP_DEF dst);
+  ins_cost(INSN_COST * 3);
+
+  ins_encode %{
+    Label done;
+    __ mov(as_Register($dst$$reg), as_Register($src2$$reg)); // dst = src2 (b)
+    __ cmp(as_Register($src2$$reg), as_Register($src1$$reg)); // src1 (b) > src2 (a) ?
+    __ br(Assembler::GT, done);
+    __ mov(as_Register($dst$$reg), as_Register($src1$$reg)); // dst = src1 (a)
+    __ bind(done);
+  %}
+  ins_pipe(pipe_cmp_branch);
+%}
+
+// Branch never with LT
+instruct minL_reg_reg_lt(iRegLNoSp dst, iRegL src1, iRegL src2)
+%{
+  predicate(UseNewCode2);
+  match(Set dst (MinL src1 src2));
+  effect(TEMP_DEF dst);
+  ins_cost(INSN_COST * 3);
+
+  ins_encode %{
+    Label done;
+    __ mov(as_Register($dst$$reg), as_Register($src2$$reg)); // dst = src2 (b)
+    __ cmp(as_Register($src2$$reg), as_Register($src1$$reg)); // src2 (b) < src1 (a) ?
+    __ br(Assembler::LT, done);
+    __ mov(as_Register($dst$$reg), as_Register($src1$$reg)); // dst = src1 (a)
+    __ bind(done);
+  %}
+  ins_pipe(pipe_cmp_branch);
+%}
+#+end_src
+
+#+begin_src asm
+highestLong: 9209124015426240512
+lowestLong: -9215797459577170060
+longs: [-3109364765729502342, -6688467811848818630, 2158390814503909950, ...
+
+  0x00007fffe8ad3589:   movq            0x10(%r12, %r9, 8), %rdi
+  0x00007fffe8ad358e:   movq            0x10(%rdx), %r11    ;*getfield highestLong {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@29 (line 260)
+  0x00007fffe8ad3592:   movq            0x18(%rdx), %r8     ;*getfield lowestLong {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@22 (line 260)
+
+r8             0x801ae909b3f49774  -9215797459577170060
+r11            0x7fcd618000000000  9209124015426240512
+
+  0x00007fffe8ad3596:   movq            %r8, %rax
+
+rax            0x801ae909b3f49774  -9215797459577170060
+Vrdi            0x0                 0
+
+  0x00007fffe8ad3599:   cmpq            %rdi, %rax          ; Math.max(longs[i], lowestLong)
+  0x00007fffe8ad359c:   jg              0x7fffe8ad35a1      ; lowestLong > longs[i] ? false
+  0x00007fffe8ad359e:   movq            %rdi, %rax
+  0x00007fffe8ad35a1:   movq            %r11, %rdi
+
+rax            0x0                 0
+rdi            0x7fcd618000000000  9209124015426240512
+
+  0x00007fffe8ad35a4:   cmpq            %rax, %rdi          ; Math.min(longs[i], highestLong)
+  0x00007fffe8ad35a7:   jl              0x7fffe8ad35ac      ; highestLong < longs[i] ? false
+  0x00007fffe8ad35a9:   movq            %rax, %rdi
+  0x00007fffe8ad35ac:   movq            %rdi, 0x10(%r12, %rsi, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 260)
+#+end_src
+
+#+begin_src asm
+highestLong: 9209124015426240512
+lowestLong: -9215797459577170060
+longs: [-3109364765729502342, -6688467811848818630, 2158390814503909950, ...
+
+rdx            0xa32dc9f64f1df03a  -6688467811848818630
+rsi            0x801ae909b3f49774  -9215797459577170060
+
+  0x00007fffe8ad3648:   cmpq            %rdx, %rsi          ; Math.max(longs[i], lowestLong)
+  0x00007fffe8ad364b:   jg              0x7fffe8ad3650      ; lowestLong > longs[i] ? false
+  0x00007fffe8ad364d:   movq            %rdx, %rsi
+  0x00007fffe8ad3650:   movq            %r11, %rdx
+
+rdx            0x7fcd618000000000  9209124015426240512
+rsi            0xa32dc9f64f1df03a  -6688467811848818630
+
+  0x00007fffe8ad3653:   cmpq            %rsi, %rdx          ; Math.min(longs[i], highestLong)
+  0x00007fffe8ad3656:   jl              0x7fffe8ad365b      ; highestLong < longs[i] ? false
+  0x00007fffe8ad3658:   movq            %rsi, %rdx
+  0x00007fffe8ad365b:   movq            %rdx, 0x10(%r13, %rdi, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 260)
+#+end_src
+* 12.6.25
+** clipping range (range=100) with branch never
+The assembly looks slightly ood.
+lowestLong seems very high?
+The banch jumps to ~0x7fffe8ad2fd0~ when the branch never is designed not to jump
+Next: print lowest/highest and array contents and then use that as guidance
+#+begin_src java
+@Benchmark
+public long[] longClippingRange(RangeState state) {
+    for (int i = 0; i < state.size; i++) {
+        state.resultLongs[i] = Math.min(Math.max(state.longs[i], state.lowestLong), state.highestLong);
+    }
+    return state.resultLongs;
+}
+#+end_src
+#+begin_src asm
+  0x00007fffe8ad2fc0:   movq            0x10(%rbp, %rdi, 8), %rdx;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@20 (line 256)
+  0x00007fffe8ad2fc5:   movq            %r8, %rsi
+
+rdx            0xa32dc9f64f1df03a  -6688467811848818630     ; (a) state.longs[i]
+rsi            0x7fe84a89b3f49775  9216698592703846261      ; (b) state.lowestLong
+
+  0x00007fffe8ad2fc8:   cmpq            %rdx, %rsi          ; %rsi (b) > rdx (a) ? true
+  0x00007fffe8ad2fcb:   jg              0x7fffe8ad2fd0      ; maxL_reg_reg_gt
+  0x00007fffe8ad2fcd:   movq            %rdx, %rsi
+  0x00007fffe8ad2fd0:   movq            %r11, %rdx          ; ...
+  0x00007fffe8ad2fd3:   cmpq            %rsi, %rdx
+  0x00007fffe8ad2fd6:   jl              0x7fffe8ad2fdb
+  0x00007fffe8ad2fd8:   movq            %rsi, %rdx
+  0x00007fffe8ad2fdb:   movq            %rdx, 0x10(%r13, %rdi, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 256)
+  0x00007fffe8ad2fe0:   movq            0x18(%rbp, %rdi, 8), %rdx;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@20 (line 256)
+#+end_src
+** clipping range (range=100)
+Both "not taken" ~100% when branch always (-XX:-UseNewCode -XX:-UseNewCode2).
+How does it compare with long reduction min/max with branch always?
+Hard to say because the bytecode is opposite to the comparisons in the source:
+ifgt for min, iflt for max
+>= for max in source code
+<= for min in source code
+
+So instead run with branch never on gdb,
+and see if branch never does actually happen for both max and min.
+#+begin_src bash
+------------------------------------------------------------------------
+static java.lang.Math::min(JJ)J
+  interpreter_invocation_count:     1552301
+  invocation_counter:               1552301
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 416 bytes
+
+   0 lload_0
+   1 lload_2
+   2 lcmp
+   3 ifgt 10
+  0    bci: 3    BranchData         taken(1690) displacement(56)
+                                    not taken(1550158)
+   6 lload_0
+   7 goto 11
+  32   bci: 7    JumpData           taken(1550158) displacement(24)
+  10 lload_2
+  11 lreturn
+------------------------------------------------------------------------
+static java.lang.Math::max(JJ)J
+  interpreter_invocation_count:     1552136
+  invocation_counter:               1552136
+  backedge_counter:                       0
+  decompile_count:                        0
+  mdo size: 416 bytes
+
+   0 lload_0
+   1 lload_2
+   2 lcmp
+   3 iflt 10
+  0    bci: 3    BranchData         taken(1540) displacement(56)
+                                    not taken(1550214)
+   6 lload_0
+   7 goto 11
+  32   bci: 7    JumpData           taken(1550214) displacement(24)
+  10 lload_2
+  11 lreturn
+#+end_src
+* 5.6.25
+** clipping range aarch64 analysis
+Branch always shows a decrease in performance.
+*Branch never show an increase in performance of ~10%.*
+** disable intrinsic aarch64 analysis
+Clipping range branch never substantially better than disable intrinsic, 25-30%.
+Branch always/never ~45% worse with loop at 50% probability.
+Branch never 10% worse with loop at 80% probability.
+Branch never equals with loop at 100% probability.
+In reduction cases, branch never always wins no matter probability.
+In reduction cases, branch always wins except in 100% probability.
+** clipping range x64 analysis
+Branch always shows a decrease in performance.
+*Branch never show an decrease in performance of ~10%.*
+** disable intrinsic x64 analysis
+Branch always/never better performance all accross the board.
 * 2.6.25
 ** aarch64 MMV longLoopMax
 *** print method data, branch always, 50
@@ -120,7 +327,7 @@ static java.lang.Math::max(JJ)J
 
 # Run progress: 20.00% complete, ETA 00:12:33
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 2136.389 ops/ms
 # Warmup Iteration   2: 2138.615 ops/ms
@@ -129,7 +336,7 @@ Iteration   1: 2169.961 ops/ms
 Iteration   2: 2165.302 ops/ms
 Iteration   3: 2050.118 ops/ms
 Iteration   4: 2004.827 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longLoopMax":
@@ -146,7 +353,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1028 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1028
 
                      0x000000010cf46d70:   sub		w11, w17, w1
                      0x000000010cf46d74:   csel		w12, wzr, w11, lt
@@ -154,7 +361,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_
                      0x000000010cf46d7c:   cmp		w12, w8
                      0x000000010cf46d80:   csel		w11, w14, w12, hi
                      0x000000010cf46d84:   add		w12, w11, w1
-                     0x000000010cf46d88:   nop		
+                     0x000000010cf46d88:   nop
                      0x000000010cf46d8c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@10 (line 272)
                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 105)
@@ -267,7 +474,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_
 
 # Run progress: 20.00% complete, ETA 00:12:36
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 2477.184 ops/ms
 # Warmup Iteration   2: 2489.760 ops/ms
@@ -276,7 +483,7 @@ Iteration   1: 2492.004 ops/ms
 Iteration   2: 2489.828 ops/ms
 Iteration   3: 2489.923 ops/ms
 Iteration   4: 2488.875 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longLoopMax":
@@ -293,7 +500,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1028 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1028
 
                      0x000000010ca0b170:   sub		w11, w17, w1
                      0x000000010ca0b174:   csel		w12, wzr, w11, lt
@@ -301,7 +508,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_
                      0x000000010ca0b17c:   cmp		w12, w8
                      0x000000010ca0b180:   csel		w11, w14, w12, hi
                      0x000000010ca0b184:   add		w12, w11, w1
-                     0x000000010ca0b188:   nop		
+                     0x000000010ca0b188:   nop
                      0x000000010ca0b18c:   nop		                    ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
                                                                                ; - org.openjdk.bench.java.lang.MinMaxVector::longLoopMax@10 (line 272)
                                                                                ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 105)
@@ -414,7 +621,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_
 
 # Run progress: 20.00% complete, ETA 00:12:35
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 2551.565 ops/ms
 # Warmup Iteration   2: 2564.687 ops/ms
@@ -423,7 +630,7 @@ Iteration   1: 2565.658 ops/ms
 Iteration   2: 2565.508 ops/ms
 Iteration   3: 2566.056 ops/ms
 Iteration   4: 2567.298 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longLoopMax":
@@ -440,7 +647,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1033 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub, version 5, compile id 1033
 
                                                                       ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longLoopMax_jmhTest::longLoopMax_thrpt_jmhStub@19 (line 105)
             0x000000010ee365b0:   ldr		x7, [x22, #0x10]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
@@ -773,7 +980,7 @@ static java.lang.Math::min(JJ)J
 
 # Run progress: 5.00% complete, ETA 00:14:59
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 2712.330 ops/ms
 # Warmup Iteration   2: 2758.255 ops/ms
@@ -782,7 +989,7 @@ Iteration   1: 2767.759 ops/ms
 Iteration   2: 2767.288 ops/ms
 Iteration   3: 2462.637 ops/ms
 Iteration   4: 2772.031 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longClippingRange":
@@ -799,7 +1006,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1023 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1023
 
                              0x000000010b3e4600:   cmp		w16, w0
                              0x000000010b3e4604:   sub		w12, w16, w0
@@ -976,7 +1183,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClipping
 
 # Run progress: 5.00% complete, ETA 00:15:01
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 1853.599 ops/ms
 # Warmup Iteration   2: 2117.903 ops/ms
@@ -985,7 +1192,7 @@ Iteration   1: 1984.366 ops/ms
 Iteration   2: 1751.037 ops/ms
 Iteration   3: 2021.892 ops/ms
 Iteration   4: 2011.108 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longClippingRange":
@@ -1002,7 +1209,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1009 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1009
 
                              0x000000012fafc340:   cmp		w16, w0
                              0x000000012fafc344:   sub		w12, w16, w0
@@ -1179,7 +1386,7 @@ C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClipping
 
 # Run progress: 5.00% complete, ETA 00:14:56
 # Fork: 1 of 1
-# Preparing profilers: XCTraceAsmProfiler 
+# Preparing profilers: XCTraceAsmProfiler
 # Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
 # Warmup Iteration   1: 3396.942 ops/ms
 # Warmup Iteration   2: 3398.561 ops/ms
@@ -1188,7 +1395,7 @@ Iteration   1: 3406.769 ops/ms
 Iteration   2: 3404.903 ops/ms
 Iteration   3: 3403.476 ops/ms
 Iteration   4: 3407.549 ops/ms
-# Processing profiler results: XCTraceAsmProfiler 
+# Processing profiler results: XCTraceAsmProfiler
 
 
 Result "org.openjdk.bench.java.lang.MinMaxVector.longClippingRange":
@@ -1205,7 +1412,7 @@ Hottest code regions (>10.00% "sampled_pc" events):
  Event counts are percents of total event count.
 
 ....[Hottest Region 1]..............................................................................
-C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1015 
+C2, level 4, org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub, version 5, compile id 1015
 
             0x000000010eed62ac:   cmp		x4, x21
             0x000000010eed62b0:   csel		x21, x21, x4, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
