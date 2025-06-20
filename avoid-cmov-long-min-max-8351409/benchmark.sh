@@ -29,7 +29,7 @@ benchmark_all()
     local rffPrefix=$3
 
     log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rffPrefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgs -XX:-UseSuperWord -rff ${rffPrefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rffPrefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
@@ -48,14 +48,11 @@ benchmark_branch()
     fi
 
     if [[ $branch != *base ]]; then
-        # Branch always max: -XX:-UseNewCode
-        # Branch always min: -XX:-UseNewCode2
         # Branch never max:  -XX:+UseNewCode
         # Branch never min:  -XX:+UseNewCode2
-        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:-UseNewCode -jvmArgs -XX:-UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-always"
-        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-never"
+        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -jvmArgsAppend -XX:+UseNewCode2;FORK=1" "branch-never"
     else
-        benchmark_all ${branch} "${extra_args} ${common_args} -prof $ASM_PROFILER;FORK=1" "base"
+        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "base"
     fi
 }
 
@@ -72,5 +69,9 @@ fi
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof $ASM_PROFILER"
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof perfnorm"
 benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" ""
+benchmark_branch "topic.avoid-cmov.0521.base" "-prof $ASM_PROFILER"
+benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm"
 benchmark_branch "topic.avoid-cmov.0521.base" ""
