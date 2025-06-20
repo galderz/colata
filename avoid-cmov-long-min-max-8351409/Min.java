@@ -26,7 +26,7 @@ public class Min
         for (int i = 0; i < RANGE; i++)
         {
             final long value = 11 * data[i];
-            final long tmp = Math.min(min, value);
+            final long tmp = Math.min(value, min);
             min = tmp;
         }
         return min;

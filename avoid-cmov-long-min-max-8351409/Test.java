@@ -25,7 +25,7 @@ public class Test
         for (int i = 0; i < RANGE; i++)
         {
             final long value = 11 * data[i];
-            final long tmp = Math.max(max, value);
+            final long tmp = Math.max(value, max);
             max = tmp;
         }
         return max;
