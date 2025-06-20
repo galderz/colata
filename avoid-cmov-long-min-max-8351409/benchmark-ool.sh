@@ -22,15 +22,14 @@ benchmark_all()
     local extra_args=$2
     local rffPrefix=$3
 
-    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rffPrefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgs -XX:-UseSuperWord -rff ${rffPrefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rffPrefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
 {
     local branch=$1
     local extra_args=$2
-    local common_args="-p includeEquals=true -bm thrpt -tu ms"
+    local common_args="-p includeEquals=true -bm thrpt -tu ms -jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -jvmArgsAppend -XX:+UseNewCode2;FORK=1"
 
     pushd $HOME/src/jdk-avoid-cmov-long-min-max
     git checkout ${branch}
@@ -41,7 +40,8 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgs -XX:+UseNewCode -jvmArgs -XX:+UseNewCode2 -prof $ASM_PROFILER;FORK=1" "branch-never"
+    benchmark_all ${branch} "${extra_args} -p probability=80 ${common_args}" "branch-never-probability80"
+    benchmark_all ${branch} "${extra_args} -p probability=100 ${common_args}" "branch-never-probability100"
 }
 
 log()
@@ -57,4 +57,6 @@ fi
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64.out-of-line-x64" "-prof $ASM_PROFILER"
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64.out-of-line-x64" "-prof perfnorm"
 benchmark_branch "topic.avoid-cmov.0521.aarch64-x64.out-of-line-x64" ""
