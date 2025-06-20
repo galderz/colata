@@ -2,15 +2,7 @@
 
 set -e
 
-source .env
-
 DRY_RUN=true
-
-if [[ -z "${NETWORK_INTERFACE}" ]]; then
-  NETWORK_IF="eth0"
-else
-  NETWORK_IF="${NETWORK_INTERFACE}"
-fi
 
 # Check for dry-run parameter
 if [[ "$1" == "--dry-run=false" ]]; then
