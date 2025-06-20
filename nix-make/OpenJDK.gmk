@@ -13,6 +13,7 @@ benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 java = $(java_home)/bin/java
 java_build_dir = $(JDK_HOME)/build/$(conf_name)
+java_images_test_dir = $(java_build_dir)/images/test
 java_libs_dir = $(java_home)/lib/server
 java_home = $(java_build_dir)/jdk
 jmh = $(JDK_HOME)/build/jmh/jars/.jmh
@@ -204,3 +205,7 @@ clean-jdk:
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make clean
 .PHONY: clean-jdk
+
+clean-csv:
+> rm -f $(java_images_test_dir)/*.csv
+.PHONY: clean-csv
