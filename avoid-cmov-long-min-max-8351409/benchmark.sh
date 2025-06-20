@@ -3,6 +3,7 @@
 set -ex
 
 CLEAN="true"
+EVENTS="cycles,instructions,branch-misses,br_mis_pred,inst_retired"
 
 if [ "$(uname)" = "Darwin" ]; then
   ASM_PROFILER="xctraceasm"
@@ -69,9 +70,9 @@ fi
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof $ASM_PROFILER"
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof perfnorm"
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof ${ASM_PROFILER}"
+benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof perfnorm:events=${EVENTS}"
 benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" ""
-benchmark_branch "topic.avoid-cmov.0521.base" "-prof $ASM_PROFILER"
-benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm"
+benchmark_branch "topic.avoid-cmov.0521.base" "-prof ${ASM_PROFILER}"
+benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm:events=${EVENTS}"
 benchmark_branch "topic.avoid-cmov.0521.base" ""
