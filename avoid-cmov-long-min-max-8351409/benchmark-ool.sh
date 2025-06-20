@@ -42,8 +42,7 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    benchmark_all ${branch} "${extra_args} -p probability=80 ${common_args}" "branch-never-probability80-${rff_suffix}"
-    benchmark_all ${branch} "${extra_args} -p probability=100 ${common_args}" "branch-never-probability100-${rff_suffix}"
+    benchmark_all ${branch} "${extra_args} -p probability=80,100 ${common_args}" "branch-never-${rff_suffix}"
 }
 
 log()
