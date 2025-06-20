@@ -2,7 +2,7 @@
 
 set -ex
 
-CLEAN="true"
+CLEAN="false"
 EVENTS="cycles,instructions,branch-misses,br_mis_pred,inst_retired"
 
 if [ "$(uname)" = "Darwin" ]; then
@@ -13,10 +13,10 @@ else
 fi
 
 # Check for clean parameter
-if [[ "$1" == "--clean=false" ]]; then
-    read -p "Are you sure you want to run without cleaning first? (yes/no): " RESPONSE
+if [[ "$1" == "--clean=true" ]]; then
+    read -p "Are you sure you want to clean first? (yes/no): " RESPONSE
     if [[ "$RESPONSE" == "yes" ]]; then
-        CLEAN="false"
+        CLEAN="true"
     else
         echo "Exiting because you don't want to apply the changes."
         exit 1
