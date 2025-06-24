@@ -33,9 +33,7 @@ benchmark_branch()
     local rff_suffix=$3
     local common_args="-p includeEquals=true -bm thrpt -tu ms -jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -jvmArgsAppend -XX:+UseNewCode2;FORK=1"
 
-    pushd $HOME/src/jdk-avoid-cmov-long-min-max
-    git checkout ${branch}
-    popd
+    BRANCH=${branch} make checkout
 
     # Tracking regression needs to
     if [[ $CLEAN == "true" ]]; then
