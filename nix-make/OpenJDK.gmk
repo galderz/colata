@@ -1,12 +1,12 @@
 BOOT_JDK_HOME ?= $(opt)/boot-java-$(BOOT_JDK_VERSION)
-CAPSTONE_HOME ?= $(usr_home)
+CAPSTONE_HOME ?= /usr
 CONF ?= fast
 
 # info, debug and trace as options
 # can be combined with cmdlines, e.g. LOG=info,cmdlines
 LOG ?= info
 
-ROOT ?= $(HOME)/src
+SRC ?= $(ROOT)/src
 WORKTREE ?= topic
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
@@ -34,7 +34,7 @@ else
   worktree_id = $(WORKTREE).$(ID)
 endif
 
-JDK_HOME ?= $(ROOT)/$(jdk_tree_name)
+JDK_HOME ?= $(SRC)/$(jdk_tree_name)
 
 ifeq ($(CONF),slow)
   conf_args += --with-debug-level=slowdebug
@@ -142,7 +142,7 @@ compile-commands:
 .PHONY: compile-commands
 
 new-worktree:
-> pushd $(ROOT)/jdk
+> pushd $(SRC)/jdk
 > git fetch $(base_remote)
 > git pull $(base_remote)
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
@@ -150,14 +150,14 @@ new-worktree:
 .PHONY: new-worktree
 
 checkout-worktree:
-> cd $(ROOT)/jdk
+> cd $(SRC)/jdk
 > git fetch origin
 > git pull
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
 .PHONY: checkout-worktree
 
 remove-worktree:
-> cd $(ROOT)/jdk
+> cd $(SRC)/jdk
 > git worktree remove ../$(jdk_tree_name)
 .PHONY: remove-worktree
 
