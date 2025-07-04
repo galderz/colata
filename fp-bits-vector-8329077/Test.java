@@ -5,7 +5,7 @@ import java.util.HexFormat;
 
 public class Test
 {
-    static final int RANGE = 1_000;
+    static final int RANGE = 1_024;
     static final int ITER = 10_000;
 
     static int[] test(int[] ints, float[] floats)
