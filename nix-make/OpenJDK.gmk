@@ -199,6 +199,10 @@ lldb: $(java)
 > $(DEVKIT_ROOT)/Xcode/Contents/Developer/usr/bin/lldb $<
 .PHONY: lldb
 
+print-flags: $(java)
+> $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
+.PHONY: print-flags
+
 run-use: configure clean-jdk
 > $(TOPDIR)/nix-make/run-use.sh $(CURDIR)
 .PHONY: run-use
