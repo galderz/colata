@@ -1,4 +1,45 @@
-* 17.02.2025
+* 4.7.25
+Run a benchmark but no observable differences with base.
+Performance is the same and the assembly looks about right.
+The issue was with the use of ~Float~ instead of ~float~.
+After fixing it:
+
+#+begin_src bash
+Benchmark                              (seed)  (size)   Mode  Cnt      Score    Error   Units
+VectorBitConversion.floatToRawIntBits       0    2048  thrpt    8  14894.760 ± 57.778  ops/ms (patch)
+VectorBitConversion.floatToRawIntBits       0    2048  thrpt    8   3978.344 ± 21.353  ops/ms (base)
+#+end_src
+* 1.7.25
+Stacktrace to vector transform float to integer (F2I)
+#+begin_src bash
+VectorCastNode::opcode(int, BasicType, bool) vectornode.cpp:1567
+VectorCastNode::implemented(int, unsigned int, BasicType, BasicType) vectornode.cpp:1577
+SuperWord::implemented(const Node_List *, unsigned int) const superword.cpp:1634
+SuperWord::max_implemented_size(const Node_List *) superword.cpp:1661
+$_0::operator()(const Node_List *) const superword.cpp:1392
+PackSet::split_packs<…>(const char *, $_0) superword.cpp:1346
+SuperWord::split_packs_only_implemented_with_smaller_size() superword.cpp:1402
+SuperWord::SLP_extract() superword.cpp:485
+SuperWord::transform_loop() superword.cpp:413
+PhaseIdealLoop::auto_vectorize(IdealLoopTree *, VSharedData &) loopopts.cpp:4457
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4934
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1169
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1167
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1263
+Compile::optimize_loops(PhaseIterGVN &, LoopOptsMode) compile.cpp:2262
+Compile::Optimize() compile.cpp:2511
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:868
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:702
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2323
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1967
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:772
+JavaThread::run() javaThread.cpp:757
+Thread::call_run() thread.cpp:243
+thread_native_entry(Thread *) os_bsd.cpp:598
+#+end_src
+* 17.2.25
 ** floatToRawIntBits macos
 Continue exploration in macos to understand assembly.
 #+begin_src asm
@@ -116,7 +157,7 @@ Continue exploration in macos to understand assembly.
     33	    }
     34	}
 #+end_src
-* 13.02.2025
+* 13.2.25
 ** floatToRawIntBits macos
 Fails with
 #+begin_src bash
@@ -216,7 +257,7 @@ You can see the unrolling and the assembly here:
                                                             ; - Test::test@5 (line 7)
  ;; B15: #	out( B13 B16 ) <- in( B14 )  Freq: 10241.4
 #+end_src
-* 29.01.2025
+* 29.1.25
 ** floatToIntBits
 floatToIntBits not vectorizing because of flow control:
 #+begin_src java
@@ -278,7 +319,7 @@ JavaThread::run() javaThread.cpp:762
 Thread::call_run() thread.cpp:232
 thread_native_entry(Thread *) os_bsd.cpp:612
 #+end_src
-* 28.01.2025
+* 28.1.25
 #+begin_src bash
    7  Parm  === 3  [[ 171 149 318 25 29 32 33 37 262 106 413 95 16 208 268 176 444 350 619 732 744 ]] Memory  Memory: @BotPTR *+bot, idx=Bot; !orig=[89],[234],[128] !jvms: Test::test @ bci:2 (line 7)
  199  ConI  === 0  [[ 299 373 436 642 ]]  #int:2143289344

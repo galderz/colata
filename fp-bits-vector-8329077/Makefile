@@ -1,13 +1,14 @@
-TOPDIR = ..
-include $(TOPDIR)/make/MakeBase.gmk
+ID ?= fp-bits-vector
+CLASS ?= Test
+
+# Use JMH snapshot to access xctraceasm profiler
+JMH_SNAPSHOT ?= true
 
 default: run
 
-BOOT_JDK_VERSION ?= 23
-CLASS ?= Test
-ID ?= fp-bits-vector
-JDK_HOME ?= $(HOME)/1/jdk-$(ID)
-include $(TOPDIR)/make/OpenJDK.gmk
+TOPDIR = ..
+include $(TOPDIR)/nix-make/MakeBase.gmk
+include $(TOPDIR)/nix-make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
@@ -51,7 +52,6 @@ endif
 jvm_args += $(base_jvm_args)
 
 run: clear-logs $(java)
-> $(call_java) \
->   $(jvm_args) \
->   $(shell pwd)/$(CLASS).java
+> $(java) \
+>   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
