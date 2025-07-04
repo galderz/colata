@@ -8,7 +8,7 @@ LOG ?= info
 
 SRC ?= $(ROOT)/src
 WORKTREE ?= topic
-BRANCH ?=
+BRANCH ?= topic.${ID}
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
