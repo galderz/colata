@@ -1,6 +1,161 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 20-24.6.25
+** simple 100
+*** branch never
+#+begin_src asm
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longReductionSimpleMax
+# Parameters: (includeEquals = true, probability = 100, size = 2048)
+
+   2.68%  │                ││       │   0x00007eff34b15e68:   movq		0x68(%rbp, %r10, 8), %r11
+   1.13%  │                ││       │   0x00007eff34b15e6d:   movq		0x60(%rbp, %r10, 8), %r8
+   0.18%  │                ││       │   0x00007eff34b15e72:   movq		0x58(%rbp, %r10, 8), %r9
+   1.33%  │                ││       │   0x00007eff34b15e77:   movq		0x50(%rbp, %r10, 8), %rbx
+   2.75%  │                ││       │   0x00007eff34b15e7c:   movq		0x48(%rbp, %r10, 8), %rdi
+   1.27%  │                ││       │   0x00007eff34b15e81:   movq		0x40(%rbp, %r10, 8), %rdx
+   0.17%  │                ││       │   0x00007eff34b15e86:   movq		0x38(%rbp, %r10, 8), %rsi
+   1.25%  │                ││       │   0x00007eff34b15e8b:   movq		0x30(%rbp, %r10, 8), %rax
+   2.62%  │                ││       │   0x00007eff34b15e90:   movq		0x28(%rbp, %r10, 8), %r13
+   1.26%  │                ││       │   0x00007eff34b15e95:   movq		0x20(%rbp, %r10, 8), %r14
+   0.17%  │                ││       │   0x00007eff34b15e9a:   cmpq		%r14, %rcx
+          │  ╭             ││       │   0x00007eff34b15e9d:   jg		0x7eff34b15ea2
+   1.31%  │  │             ││       │   0x00007eff34b15e9f:   movq		%r14, %rcx
+   2.71%  │  ↘             ││       │   0x00007eff34b15ea2:   cmpq		%r13, %rcx
+          │   ╭            ││       │   0x00007eff34b15ea5:   jg		0x7eff34b15eaa
+   1.12%  │   │            ││       │   0x00007eff34b15ea7:   movq		%r13, %rcx
+   0.16%  │   ↘            ││       │   0x00007eff34b15eaa:   cmpq		%rax, %rcx
+          │    ╭           ││       │   0x00007eff34b15ead:   jg		0x7eff34b15eb2
+   3.94%  │    │           ││       │   0x00007eff34b15eaf:   movq		%rax, %rcx
+   0.08%  │    ↘           ││       │   0x00007eff34b15eb2:   cmpq		%rsi, %rcx
+          │     ╭          ││       │   0x00007eff34b15eb5:   jg		0x7eff34b15eba
+   1.16%  │     │          ││       │   0x00007eff34b15eb7:   movq		%rsi, %rcx
+   0.10%  │     ↘          ││       │   0x00007eff34b15eba:   cmpq		%rdx, %rcx
+          │      ╭         ││       │   0x00007eff34b15ebd:   jg		0x7eff34b15ec2
+   4.05%  │      │         ││       │   0x00007eff34b15ebf:   movq		%rdx, %rcx
+   0.08%  │      ↘         ││       │   0x00007eff34b15ec2:   cmpq		%rdi, %rcx
+          │       ╭        ││       │   0x00007eff34b15ec5:   jg		0x7eff34b15eca
+   1.20%  │       │        ││       │   0x00007eff34b15ec7:   movq		%rdi, %rcx
+   0.16%  │       ↘        ││       │   0x00007eff34b15eca:   cmpq		%rbx, %rcx
+          │        ╭       ││       │   0x00007eff34b15ecd:   jg		0x7eff34b15ed2
+   3.89%  │        │       ││       │   0x00007eff34b15ecf:   movq		%rbx, %rcx
+   0.12%  │        ↘       ││       │   0x00007eff34b15ed2:   cmpq		%r9, %rcx
+          │         ╭      ││       │   0x00007eff34b15ed5:   jg		0x7eff34b15eda
+   1.31%  │         │      ││       │   0x00007eff34b15ed7:   movq		%r9, %rcx
+   0.21%  │         ↘      ││       │   0x00007eff34b15eda:   cmpq		%r8, %rcx
+          │          ╭     ││       │   0x00007eff34b15edd:   jg		0x7eff34b15ee2
+   3.73%  │          │     ││       │   0x00007eff34b15edf:   movq		%r8, %rcx
+   0.13%  │          ↘     ││       │   0x00007eff34b15ee2:   cmpq		%r11, %rcx
+          │           ╭    ││       │   0x00007eff34b15ee5:   jg		0x7eff34b15eea
+   5.06%  │           │    ││       │   0x00007eff34b15ee7:   movq		%r11, %rcx
+   0.13%  │           ↘    ││       │   0x00007eff34b15eea:   vmovq		%xmm8, %r11
+   6.43%  │                ││       │   0x00007eff34b15eef:   cmpq		%r11, %rcx
+          │            ╭   ││       │   0x00007eff34b15ef2:   jg		0x7eff34b15ef7
+   0.31%  │            │   ││       │   0x00007eff34b15ef4:   movq		%r11, %rcx
+   1.38%  │            ↘   ││       │   0x00007eff34b15ef7:   vmovq		%xmm7, %r11
+   0.14%  │                ││       │   0x00007eff34b15efc:   cmpq		%r11, %rcx
+          │             ╭  ││       │   0x00007eff34b15eff:   jg		0x7eff34b15f04
+   7.54%  │             │  ││       │   0x00007eff34b15f01:   movq		%r11, %rcx
+   0.11%  │             ↘  ││       │   0x00007eff34b15f04:   vmovq		%xmm6, %r11
+   1.37%  │                ││       │   0x00007eff34b15f09:   cmpq		%r11, %rcx
+          │              ╭ ││       │   0x00007eff34b15f0c:   jg		0x7eff34b15f11
+   0.14%  │              │ ││       │   0x00007eff34b15f0e:   movq		%r11, %rcx
+   3.82%  │              ↘ ││       │   0x00007eff34b15f11:   vmovq		%xmm5, %r11
+   0.15%  │                ││       │   0x00007eff34b15f16:   cmpq		%r11, %rcx
+          │               ╭││       │   0x00007eff34b15f19:   jg		0x7eff34b15f1e
+   2.63%  │               │││       │   0x00007eff34b15f1b:   movq		%r11, %rcx          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │               │││       │                                                             ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 313)
+          │               │││       │                                                             ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+*** ool
+#+begin_src asm
+# OOL
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longReductionSimpleMax
+# Parameters: (includeEquals = true, probability = 100, size = 2048)
+
+   3.60%     ││││││  0x00007fb52cb17baa:   movq		0x68(%rsi, %r8, 8), %r11
+             ││││││  0x00007fb52cb17baf:   movq		0x60(%rsi, %r8, 8), %r9
+   1.15%     ││││││  0x00007fb52cb17bb4:   movq		0x58(%rsi, %r8, 8), %rcx
+   0.01%     ││││││  0x00007fb52cb17bb9:   movq		0x50(%rsi, %r8, 8), %rbx
+   3.36%     ││││││  0x00007fb52cb17bbe:   movq		0x48(%rsi, %r8, 8), %rdi
+             ││││││  0x00007fb52cb17bc3:   movq		0x40(%rsi, %r8, 8), %rdx
+   1.19%     ││││││  0x00007fb52cb17bc8:   movq		0x38(%rsi, %r8, 8), %rax
+   0.01%     ││││││  0x00007fb52cb17bcd:   movq		0x30(%rsi, %r8, 8), %rbp
+   3.46%     ││││││  0x00007fb52cb17bd2:   movq		0x28(%rsi, %r8, 8), %r13
+             ││││││  0x00007fb52cb17bd7:   movq		0x20(%rsi, %r8, 8), %r14
+   1.19%     ││││││  0x00007fb52cb17bdc:   cmpq		%r14, %r10
+             ││││││  0x00007fb52cb17bdf:   jg		0x7fb52cb17e76
+   0.16%     ││││││  0x00007fb52cb17be5:   cmpq		%r13, %r14
+             ││││││  0x00007fb52cb17be8:   jg		0x7fb52cb17e6e
+   3.46%     ││││││  0x00007fb52cb17bee:   cmpq		%rbp, %r13
+             ││││││  0x00007fb52cb17bf1:   jg		0x7fb52cb17e66
+             ││││││  0x00007fb52cb17bf7:   cmpq		%rax, %rbp
+             ││││││  0x00007fb52cb17bfa:   jg		0x7fb52cb17e5e
+   1.19%     ││││││  0x00007fb52cb17c00:   cmpq		%rdx, %rax
+             ││││││  0x00007fb52cb17c03:   jg		0x7fb52cb17e56
+   0.05%     ││││││  0x00007fb52cb17c09:   cmpq		%rdi, %rdx
+             ││││││  0x00007fb52cb17c0c:   jg		0x7fb52cb17e4e
+  13.21%     ││││││  0x00007fb52cb17c12:   cmpq		%rbx, %rdi
+             ││││││  0x00007fb52cb17c15:   jg		0x7fb52cb17e46
+   4.64%     ││││││  0x00007fb52cb17c1b:   cmpq		%rcx, %rbx
+             ││││││  0x00007fb52cb17c1e:   jg		0x7fb52cb17e3e
+   0.08%     ││││││  0x00007fb52cb17c24:   cmpq		%r9, %rcx
+             ││││││  0x00007fb52cb17c27:   jg		0x7fb52cb17e36
+   0.03%     ││││││  0x00007fb52cb17c2d:   cmpq		%r11, %r9
+             ││││││  0x00007fb52cb17c30:   jg		0x7fb52cb17e2e
+   6.88%     ││││││  0x00007fb52cb17c36:   vmovq		%xmm9, %r10
+   2.28%     ││││││  0x00007fb52cb17c3b:   cmpq		%r10, %r11
+             ││││││  0x00007fb52cb17c3e:   jg		0x7fb52cb17e26
+   0.31%     ││││││  0x00007fb52cb17c44:   vmovq		%xmm8, %r11
+   0.00%     ││││││  0x00007fb52cb17c49:   cmpq		%r11, %r10
+             ││││││  0x00007fb52cb17c4c:   jg		0x7fb52cb17e1e
+   6.94%     ││││││  0x00007fb52cb17c52:   vmovq		%xmm7, %r10
+   2.21%     ││││││  0x00007fb52cb17c57:   cmpq		%r10, %r11
+             ││││││  0x00007fb52cb17c5a:   jg		0x7fb52cb17e16
+   0.21%     ││││││  0x00007fb52cb17c60:   vmovq		%xmm6, %r11
+   0.01%     ││││││  0x00007fb52cb17c65:   cmpq		%r11, %r10
+             ││││││  0x00007fb52cb17c68:   jg		0x7fb52cb17e0e      ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+             ││││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longReductionSimpleMax@26 (line 313)
+             ││││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longReductionSimpleMax_jmhTest::longReductionSimpleMax_thrpt_jmhStub@19 (line 124)
+#+end_src
+** clip range 90
+*** branch never
+#+begin_src asm
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longClippingRange
+# Parameters: (range = 90, seed = 0, size = 1000)
+
+   1.52%  │                        ││││  0x00007f81b0b17bf0:   movq		0x20(%rax, %r9, 8), %r10;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                        ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@20 (line 256)
+          │                        ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   1.54%  │                        ││││  0x00007f81b0b17bf5:   movq		%rbp, %rdx
+   1.56%  │                        ││││  0x00007f81b0b17bf8:   cmpq		%r10, %rdx
+          │            ╭           ││││  0x00007f81b0b17bfb:   jg		0x7f81b0b17c00
+   1.31%  │            │           ││││  0x00007f81b0b17bfd:   movq		%r10, %rdx
+   1.65%  │            ↘           ││││  0x00007f81b0b17c00:   movq		%r8, %r10
+   1.36%  │                        ││││  0x00007f81b0b17c03:   cmpq		%rdx, %r10
+          │             ╭          ││││  0x00007f81b0b17c06:   jl		0x7f81b0b17c0b
+   1.18%  │             │          ││││  0x00007f81b0b17c08:   movq		%rdx, %r10
+   1.61%  │             ↘          ││││  0x00007f81b0b17c0b:   movq		%r10, 0x20(%r11, %r9, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │                        ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 256)
+          │                        ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
+
+*** ool
+#+begin_src asm
+# Benchmark: org.openjdk.bench.java.lang.MinMaxVector.longClippingRange
+# Parameters: (range = 90, seed = 0, size = 1000)
+
+   0.40%  │   ↗│││  0x00007fd238b181d2:   movq		0x10(%rax, %r11, 8), %r9;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │   ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@20 (line 256)
+          │   ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+   5.07%  │   ││││  0x00007fd238b181d7:   cmpq		%r9, %rdx
+          │   ││││  0x00007fd238b181da:   jg		0x7fd238b18496
+   5.06%  │   ││││  0x00007fd238b181e0:   cmpq		%r9, %rbp
+          │   ││││  0x00007fd238b181e3:   jl		0x7fd238b1848e
+   1.20%  │   ││││  0x00007fd238b181e9:   movq		%r9, 0x10(%r14, %r11, 8);*lastore {reexecute=0 rethrow=0 return_oop=0}
+          │   ││││                                                            ; - org.openjdk.bench.java.lang.MinMaxVector::longClippingRange@35 (line 256)
+          │   ││││                                                            ; - org.openjdk.bench.java.lang.jmh_generated.MinMaxVector_longClippingRange_jmhTest::longClippingRange_thrpt_jmhStub@19 (line 124)
+#+end_src
 * 18.6.25
 ** clipping range oddities
 Actually things look fine with clipping range and branch-never.
