@@ -9,6 +9,8 @@ LOG ?= info
 SRC ?= $(ROOT)/src
 WORKTREE ?= topic
 BRANCH ?= topic.${ID}
+REMOTE_NAME ?= upstream
+REMOTE_BRANCH ?= master
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
@@ -29,8 +31,8 @@ ifeq ($(BASE),21)
   jdk_tree_name = jdk-$(BASE).$(ID)
   worktree_id = backport.$(BASE).$(ID)
 else
-  base_branch = master
-  base_remote = upstream
+  base_branch = $(REMOTE_BRANCH)
+  base_remote = $(REMOTE_NAME)
   jdk_tree_name = jdk-$(ID)
   worktree_id = $(WORKTREE).$(ID)
 endif
@@ -145,8 +147,8 @@ compile-commands:
 new-worktree:
 > pushd $(SRC)/jdk
 > git fetch $(base_remote)
-> git pull $(base_remote)
-> git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_branch)
+> git checkout $(base_remote)/$(base_branch)
+> git worktree add ../$(jdk_tree_name) $(worktree_id)
 > popd
 .PHONY: new-worktree
 

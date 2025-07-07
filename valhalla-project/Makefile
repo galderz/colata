@@ -1,12 +1,18 @@
-TOPDIR = ..
-include $(TOPDIR)/make/MakeBase.gmk
+REMOTE_NAME ?= valhalla
+REMOTE_BRANCH ?= lworld
+
+ID ?= $(REMOTE_NAME)-$(REMOTE_BRANCH)
+CLASS ?= Test
+WORKTREE ?= project
+
+# Workaround temporary errors
+NO_WARNINGS_ERRORS := true
 
 default: run
 
-BOOT_JDK_VERSION ?= 23
-CLASS ?= Scalarization
-JDK_HOME ?= $(HOME)/1/jdk-valhalla-lworld
-include $(TOPDIR)/make/OpenJDK.gmk
+TOPDIR = ..
+include $(TOPDIR)/nix-make/MakeBase.gmk
+include $(TOPDIR)/nix-make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
@@ -26,7 +32,6 @@ jvm_args += --enable-preview
 #jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS).test,"OPTIMIZE_FINISHED"
 
 run: clear-logs $(java)
-> $(call_java) \
->   $(jvm_args) \
->   $(shell pwd)/$(CLASS).java
+> $(java) \
+>   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
