@@ -21,6 +21,8 @@ ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS"
 #ideal_jvm_args += -XX:+PrintIdeal
 
+output_jvm_args += -XX:+TraceOptoPipelining
+
 vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::test,ALL
 vector_jvm_args += -XX:+TraceNewVectors
 #vector_jvm_args += -XX:+TraceLoopOpts
@@ -33,6 +35,10 @@ endif
 
 ifdef IDEAL_ARGS
   jvm_args += $(ideal_jvm_args)
+endif
+
+ifdef OUTPUT_ARGS
+  jvm_args += $(output_jvm_args)
 endif
 
 ifdef VECTOR_ARGS
