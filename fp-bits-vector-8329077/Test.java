@@ -1,5 +1,5 @@
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.Arrays;
 import java.util.HexFormat;
 
@@ -8,44 +8,44 @@ public class Test
     static final int RANGE = 1_024;
     static final int ITER = 10_000;
 
-    static int[] test(int[] ints, float[] floats)
+    static long[] test(long[] longs, double[] doubles)
     {
-        for (int i = 0; i < ints.length; i++)
+        for (int i = 0; i < longs.length; i++)
         {
-            final float aFloat = floats[i];
-            final int bits = Float.floatToRawIntBits(aFloat);
-            ints[i] = bits;
+            final double aDouble = doubles[i];
+            final long bits = Double.doubleToRawLongBits(aDouble);
+            longs[i] = bits;
         }
-        return ints;
+        return longs;
     }
 
     public static void main(String[] args)
     {
-        final float[] floats = init();
-        final int[] ints = new int[RANGE];
-        final int[] expected = test(ints, floats);
+        final double[] doubles = init();
+        final long[] longs = new long[RANGE];
+        final long[] expected = test(longs, doubles);
         final HexFormat hex = HexFormat.of();
-        System.out.println("Expected: " + IntStream.of(expected).mapToObj(hex::toHexDigits).toList());
+        System.out.println("Expected: " + LongStream.of(expected).mapToObj(hex::toHexDigits).toList());
 
-        int[] result = null;
+        long[] result = null;
         for (int i = 0; i < ITER; i++)
         {
-            result = test(ints, floats);
+            result = test(longs, doubles);
             validate(expected, result, hex);
         }
     }
 
-    static float[] init()
+    static double[] init()
     {
-        final float[] floats = new float[RANGE];
+        final double[] doubles = new double[RANGE];
         for (int i = 0; i < RANGE; i++)
         {
-            floats[i] = i;
+            doubles[i] = i;
         }
-        return floats;
+        return doubles;
     }
 
-    static void validate(int[] expected, int[] actual, HexFormat hex)
+    static void validate(long[] expected, long[] actual, HexFormat hex)
     {
         if (Arrays.equals(expected, actual))
         {
@@ -55,8 +55,8 @@ public class Test
         {
             throw new AssertionError(String.format(
                 "Failed, expected: %s, actual: %s"
-                , IntStream.of(expected).mapToObj(hex::toHexDigits).toList()
-                , IntStream.of(actual).mapToObj(hex::toHexDigits).toList()
+                , LongStream.of(expected).mapToObj(hex::toHexDigits).toList()
+                , LongStream.of(actual).mapToObj(hex::toHexDigits).toList()
             ));
         }
     }
