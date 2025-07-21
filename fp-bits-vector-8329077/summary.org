@@ -1,3 +1,110 @@
+* 9.7.25
+Run compiler tests
+#+begin_src bash
+>> jtreg:test/hotspot/jtreg:hotspot_compiler          1989  1888     1     0   100 <<
+#+end_src
+
+The failure above is:
+compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java: Test some cases that vectorize after the removal of the alignment boundaries code.
+
+However, I would expect ~TestFPConversion~ to fail.
+Why doesn't it fail?
+Because that test focuses on single invocation,
+  we need to invoke it in a loop.
+
+I've created an IR test but for ~doubleToRawLongBits~ MoveD2L is not appearing.
+Instead you're getting LoadL, why the difference?
+
+In Test:
+#+begin_src bash
+MoveD2LNode::MoveD2LNode(Node *) movenode.hpp:146
+LibraryCallKit::inline_fp_conversions(vmIntrinsicID) library_call.cpp:4924
+LibraryCallKit::try_to_inline(int) library_call.cpp:531
+LibraryIntrinsic::generate(JVMState *) library_call.cpp:119
+Parse::do_call() doCall.cpp:677
+Parse::do_one_bytecode() parse2.cpp:2723
+Parse::do_one_block() parse1.cpp:1586
+Parse::do_all_blocks() parse1.cpp:724
+Parse::Parse(JVMState *, ciMethod *, float) parse1.cpp:628
+Parse::Parse(JVMState *, ciMethod *, float) parse1.cpp:404
+ParseGenerator::generate(JVMState *) callGenerator.cpp:97
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:813
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:702
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2323
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1967
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:772
+JavaThread::run() javaThread.cpp:757
+Thread::call_run() thread.cpp:243
+thread_native_entry(Thread *) os_bsd.cpp:598
+#+end_src
+
+LoadL also used in Test, but that only appears in PrintIdeal.
+With BEFORE_LOOP_UNROLLING print ideal phase we see MoveD2L
+
+Stacktrace for BEFORE_LOOP_UNROLLING:
+#+begin_src bash
+PhaseIdealLoop::do_unroll(IdealLoopTree *, Node_List &, bool) loopTransform.cpp:1846
+IdealLoopTree::iteration_split_impl(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3504
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3540
+IdealLoopTree::iteration_split(PhaseIdealLoop *, Node_List &) loopTransform.cpp:3524
+PhaseIdealLoop::build_and_optimize() loopnode.cpp:4893
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1169
+PhaseIdealLoop::PhaseIdealLoop(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1167
+PhaseIdealLoop::optimize(PhaseIterGVN &, LoopOptsMode) loopnode.hpp:1263
+Compile::Optimize() compile.cpp:2476
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:868
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:702
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:141
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2323
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1967
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:67
+JavaThread::thread_main_inner() javaThread.cpp:772
+JavaThread::run() javaThread.cpp:757
+Thread::call_run() thread.cpp:243
+thread_native_entry(Thread *) os_bsd.cpp:598
+#+end_src
+* 8.7.25
+Run tier1 tests. Some failures observed.
+~test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java~ failure could be related.
+
+Benchmark results:
+Base:
+#+begin_src bash
+Benchmark                                (seed)  (size)   Mode  Cnt     Score    Error   Units
+VectorBitConversion.doubleToLongBits          0    2048  thrpt    8  1163.571 ± 15.828  ops/ms
+VectorBitConversion.doubleToRawLongBits       0    2048  thrpt    8  3997.135 ± 10.972  ops/ms
+VectorBitConversion.floatToIntBits            0    2048  thrpt    8  1182.669 ± 12.905  ops/ms
+VectorBitConversion.floatToRawIntBits         0    2048  thrpt    8  4030.967 ± 11.085  ops/ms
+#+end_src
+Patch:
+#+begin_src bash
+Benchmark                                (seed)  (size)   Mode  Cnt      Score    Error   Units
+VectorBitConversion.doubleToLongBits          0    2048  thrpt    8   1147.745 ± 10.558  ops/ms
+VectorBitConversion.doubleToRawLongBits       0    2048  thrpt    8   7330.845 ± 74.741  ops/ms
+VectorBitConversion.floatToIntBits            0    2048  thrpt    8   1132.290 ± 23.240  ops/ms
+VectorBitConversion.floatToRawIntBits         0    2048  thrpt    8  14865.457 ± 75.184  ops/ms
+#+end_src
+
+After changes, output:
+#+begin_src bash
+ 155  loadV16  === 210 13 150  [[ 128 ]] #80/0x0000000000000050vectorx<D,2> !jvms: Test::test @ bci:10 (line 15)
+ 130  reinterpret_same_size  === _ 154  [[ 129 ]] vectorx<D,2>
+ 129  storeV16  === 103 131 147 130  [[ 127 ]] #96/0x0000000000000060memory  Memory: @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !jvms: Test::test @ bci:22 (line 17)
+#+end_src
+
+After changes, ideal:
+#+begin_src bash
+ 895  LoadVector  === 519 7 775  [[ 896 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=5; mismatched #vectorx<D,2> (does not depend only on test, unknown control) !orig=[774],[565],[249],[146] !jvms: Test::test @ bci:10 (line 15)
+ 896  VectorReinterpret  === _ 895  [[ 897 ]]  #vectorx<D,2> !orig=[773],[564],[147] !jvms: Test::test @ bci:13 (line 16)
+ 897  StoreVector  === 794 797 771 896  [[ 900 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=[761],[562],[168],581 !jvms: Test::test @ bci:22 (line 17)
+#+end_src
+
+Without changes:
+#+begin_src bash
+ 661  MoveD2L  === _ 662  [[ 655 ]]  !orig=147 !jvms: Test::test @ bci:13 (line 16)
+#+end_src
 * 4.7.25
 Run a benchmark but no observable differences with base.
 Performance is the same and the assembly looks about right.
