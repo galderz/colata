@@ -1,0 +1,21 @@
+* 22.7.25
+#+begin_src bash
+Test Failures (1)
+-----------------
+Custom Run Test: @Run: runMaxTest - @Test: maxReductionImplement:
+compiler.lib.ir_framework.shared.TestRunException: There was an error while invoking @Run method public void compiler.loopopts.superword.MinMaxRed_Long.runMaxTest()
+	at compiler.lib.ir_framework.test.CustomRunTest.invokeTest(CustomRunTest.java:162)
+	at compiler.lib.ir_framework.test.CustomRunTest.run(CustomRunTest.java:87)
+	at compiler.lib.ir_framework.test.TestVM.runTests(TestVM.java:865)
+	at compiler.lib.ir_framework.test.TestVM.start(TestVM.java:255)
+	at compiler.lib.ir_framework.test.TestVM.main(TestVM.java:168)
+Caused by: java.lang.reflect.InvocationTargetException
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:119)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at compiler.lib.ir_framework.test.CustomRunTest.invokeTest(CustomRunTest.java:159)
+	... 4 more
+Caused by: java.lang.AssertionError: Failed
+	at compiler.loopopts.superword.MinMaxRed_Long.runMaxTest(MinMaxRed_Long.java:71)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	... 6 more
+#+end_src
