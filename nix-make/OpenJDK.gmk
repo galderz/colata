@@ -6,7 +6,7 @@ CONF ?= fast
 # can be combined with cmdlines, e.g. LOG=info,cmdlines
 LOG ?= info
 
-SRC ?= $(ROOT)/src
+SRC ?= $(COLATA_ROOT)/src
 WORKTREE ?= topic
 BRANCH ?= topic.${ID}
 REMOTE_NAME ?= upstream

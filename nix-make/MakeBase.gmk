@@ -9,6 +9,6 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
-ROOT ?= $(HOME)
+COLATA_ROOT ?= $(HOME)
 
-opt = $(ROOT)/opt
+opt = $(COLATA_ROOT)/opt
