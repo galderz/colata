@@ -65,9 +65,9 @@ CONF=release make clean-csv
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.fp-bits-vector" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
+#benchmark_branch "topic.fp-bits-vector" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
 #benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 benchmark_branch "topic.fp-bits-vector" "" "noprof"
-benchmark_branch "topic.fp-bits-vector.base" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
+#benchmark_branch "topic.fp-bits-vector.base" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
 #benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 benchmark_branch "topic.fp-bits-vector.base" "" "noprof"
