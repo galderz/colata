@@ -1,3 +1,39 @@
+* 22.7.25
+completed all fp to bits vector and opposite conversions.
+
+hotspot compiler results:
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+>> jtreg:test/hotspot/jtreg:hotspot_compiler          2015  1905     1     0   109 <<
+==============================
+#+end_src
+
+Failure:
+#+begin_src bash
+compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java: Test some cases that vectorize after the removal of the alignment boundaries code.
+#+end_src
+
+E.g.
+#+begin_src bash
+1) Method "static java.lang.Object[] compiler.loopopts.superword.TestCompatibleUseDefTypeSize.test10(long[],double[])" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={"sse4.1", "true", "asimd", "true", "rvv", "true"}, counts={"_#STORE_VECTOR#_", "= 0"}, failOn={}, applyIfPlatform={"64-bit", "true"}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\\d+(\\s){2}(StoreVector.*)+(\\s){2}===.*)"
+           - Failed comparison: [found] 8 = 0 [given]
+             - Matched nodes (8):
+               * 968  StoreVector  === 1020 987 846 967  |320  [[ 971 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=[832],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 971  StoreVector  === 1020 968 838 970  |320  [[ 974 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=[834],[727],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 974  StoreVector  === 1020 971 639 973  |320  [[ 977 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 977  StoreVector  === 1020 974 728 976  |320  [[ 1021 171 529 1117 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=[727],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 987  StoreVector  === 1020 988 1016 1012  |320  [[ 968 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=977,[727],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 988  StoreVector  === 1020 989 997 999  |320  [[ 987 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=974,[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 989  StoreVector  === 1020 1004 993 990  |320  [[ 988 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=971,[834],[727],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+               * 1004  StoreVector  === 1020 1021 1009 1005  |320  [[ 989 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; !orig=968,[832],[635],[168],654 !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:16 (line 461)
+#+end_src
 * 9.7.25
 Run compiler tests
 #+begin_src bash
