@@ -10,3 +10,5 @@ target/
 *~
 # Symlinks
 jdk
+# Environment info
+.env
