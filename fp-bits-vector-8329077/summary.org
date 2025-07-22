@@ -1,6 +1,28 @@
 * 22.7.25
 completed all fp to bits vector and opposite conversions.
 
+** benchmark
+*** base
+#+begin_src bash
+Benchmark                                (seed)  (size)   Mode  Cnt     Score    Error   Units
+VectorBitConversion.doubleToLongBits          0    2048  thrpt    8  1168.782 ± 22.712  ops/ms
+VectorBitConversion.doubleToRawLongBits       0    2048  thrpt    8  3999.387 ± 36.566  ops/ms
+VectorBitConversion.floatToIntBits            0    2048  thrpt    8  1200.338 ±  6.618  ops/ms
+VectorBitConversion.floatToRawIntBits         0    2048  thrpt    8  4058.248 ±  8.954  ops/ms
+VectorBitConversion.intBitsToFloat            0    2048  thrpt    8  3050.313 ±  7.365  ops/ms
+VectorBitConversion.longBitsToDouble          0    2048  thrpt    8  3022.691 ± 14.033  ops/ms
+#+end_src
+*** patch
+#+begin_src bash
+Benchmark                                (seed)  (size)   Mode  Cnt      Score     Error   Units
+VectorBitConversion.doubleToLongBits          0    2048  thrpt    8   1157.717 ±  31.740  ops/ms
+VectorBitConversion.doubleToRawLongBits       0    2048  thrpt    8   7353.936 ±  23.644  ops/ms
+VectorBitConversion.floatToIntBits            0    2048  thrpt    8   1188.206 ±   9.352  ops/ms
+VectorBitConversion.floatToRawIntBits         0    2048  thrpt    8  14792.474 ± 163.612  ops/ms
+VectorBitConversion.intBitsToFloat            0    2048  thrpt    8  14984.246 ± 115.817  ops/ms
+VectorBitConversion.longBitsToDouble          0    2048  thrpt    8   7379.360 ±  18.623  ops/ms
+#+end_src
+** hotspot compiler tests
 hotspot compiler results:
 #+begin_src bash
 ==============================
