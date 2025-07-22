@@ -1,8 +1,5 @@
 ID ?= use-random-data
 
-# Temporary workaround lack of JDK 24 Nix packages
-BOOT_JDK_VERSION ?= 24
-
 ifeq ($(os),darwin)
   # Use JMH snapshot to access xctraceasm profiler
   JMH_SNAPSHOT := true
