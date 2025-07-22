@@ -217,8 +217,13 @@ run-use: configure clean-jdk
 
 test-tier1: build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) TEST="tier1" make exploded-test
+> CONF=$(conf_name) TEST="tier1" make test
 .PHONY: test-tier1
+
+test-all: build-jdk
+> cd $(JDK_HOME)
+> CONF=$(conf_name) TEST="tier1 tier2 tier3" make test
+.PHONY: test-all
 
 test-compiler: build-jdk
 > cd $(JDK_HOME)
