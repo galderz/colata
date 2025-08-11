@@ -1,6 +1,81 @@
+* 5.8.25
+tier1-3 testing:
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+>> jtreg:test/hotspot/jtreg:tier1                     3032  2874     1     0   157 <<
+   jtreg:test/jdk:tier1                               2507  2469     0     0    38
+   jtreg:test/langtools:tier1                         4664  4655     0     0     9
+   jtreg:test/jaxp:tier1                                 0     0     0     0     0
+   jtreg:test/lib-test:tier1                            38    38     0     0     0
+   jtreg:test/hotspot/jtreg:tier2                      948   926     0     0    22
+>> jtreg:test/jdk:tier2                               4321  4079     8     4   230 <<
+   jtreg:test/langtools:tier2                           14    12     0     0     2
+   jtreg:test/jaxp:tier2                               517   516     0     0     1
+   jtreg:test/docs:tier2                                 4     0     0     0     4
+   jtreg:test/hotspot/jtreg:tier3                      296   270     0     0    26
+>> jtreg:test/jdk:tier3                               1573  1463     3     0   107 <<
+   jtreg:test/langtools:tier3                            0     0     0     0     0
+   jtreg:test/jaxp:tier3                                 0     0     0     0     0
+============
+#+end_src
+
+#+begin_src bash
+ 895  LoadVector  === 519 7 775  [[ 896 ]]  @double[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=5; mismatched #vectorx<D,2> (does not depend only on test, unknown control) !orig=[774],[565],[249],[146] !jvms: DoubleToRawLongBits::test @ bci:10 (line 15)
+ 896  VectorCastD2X  === _ 895  [[ 897 ]]  #vectorx<J,2> !orig=[773],[564],[147] !jvms: DoubleToRawLongBits::test @ bci:13 (line 16)
+ 897  StoreVector  === 794 797 771 896  [[ 900 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched  Memory: @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; !orig=[761],[562],[168],581 !jvms: DoubleToRawLongBits::test @ bci:22 (line 17)
+#+end_src
+* 24.7.25
+** PR Draft
+I'm adding support to vectorize `MoveD2L`, `MoveL2D`, `MoveF2I` and `MoveI2F` nodes.
+The implementation follows a similar pattern to what is done with conversion (`Conv*`) nodes.
+The tests in `TestCompatibleUseDefTypeSize` have been updated with the new expectations.
+
+I've added a JMH benchmark which measures throughput (the higher the number the better) for methods that exercise these nodes.
+On darwin/aarch64 it shows:
+
+```bash
+Benchmark                                (seed)  (size)   Mode  Cnt      Base      Patch   Units   Diff
+VectorBitConversion.doubleToLongBits          0    2048  thrpt    8  1168.782   1157.717  ops/ms    -1%
+VectorBitConversion.doubleToRawLongBits       0    2048  thrpt    8  3999.387   7353.936  ops/ms   +83%
+VectorBitConversion.floatToIntBits            0    2048  thrpt    8  1200.338   1188.206  ops/ms    -1%
+VectorBitConversion.floatToRawIntBits         0    2048  thrpt    8  4058.248  14792.474  ops/ms  +264%
+VectorBitConversion.intBitsToFloat            0    2048  thrpt    8  3050.313  14984.246  ops/ms  +391%
+VectorBitConversion.longBitsToDouble          0    2048  thrpt    8  3022.691   7379.360  ops/ms  +144%
+```
+
+The improvements observed are a result of vectorization.
+The lack of vectorization in `doubleToLongBits` and `floatToIntBits` demonstrates that these changes do not affect their performance.
+These methods do not vectorize because of flow control.
+
+I've run the tier1-3 tests on linux/aarch64 and didn't observe any regressions.
 * 22.7.25
 completed all fp to bits vector and opposite conversions.
-
+** tier1-3 test
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+>> jtreg:test/hotspot/jtreg:tier1                     3032  2861     2     0   169 <<
+   jtreg:test/jdk:tier1                               2507  2467     0     0    40
+   jtreg:test/langtools:tier1                         4664  4655     0     0     9
+   jtreg:test/jaxp:tier1                                 0     0     0     0     0
+   jtreg:test/lib-test:tier1                            38    38     0     0     0
+>> jtreg:test/hotspot/jtreg:tier2                      948   924     1     0    23 <<
+>> jtreg:test/jdk:tier2                               4321  4076    11     4   230 <<
+   jtreg:test/langtools:tier2                           14    12     0     0     2
+   jtreg:test/jaxp:tier2                               517   516     0     0     1
+   jtreg:test/docs:tier2                                 4     0     0     0     4
+   jtreg:test/hotspot/jtreg:tier3                      296   275     0     0    21
+>> jtreg:test/jdk:tier3                               1573  1459    33     0    81 <<
+   jtreg:test/langtools:tier3                            0     0     0     0     0
+   jtreg:test/jaxp:tier3                                 0     0     0     0     0
+==============================
+TEST FAILURE
+#+end_src
 ** benchmark
 *** base
 #+begin_src bash
