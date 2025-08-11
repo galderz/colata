@@ -70,4 +70,4 @@ CONF=release make clean-csv
 benchmark_branch "topic.fp-bits-vector" "" "noprof"
 #benchmark_branch "topic.fp-bits-vector.base" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
 #benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.fp-bits-vector.base" "" "noprof-base"
+#benchmark_branch "topic.fp-bits-vector.base" "" "noprof-base"
