@@ -2,5 +2,9 @@
 
 set -e -x
 
-TEST="test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java" make test
-TEST="test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java" make test
+tests=\
+  "test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java"\
+  "test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java"\
+  "test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java"
+
+TEST="$(printf '"%s" ' "$tests")" make test
