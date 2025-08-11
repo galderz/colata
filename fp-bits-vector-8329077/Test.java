@@ -1,5 +1,3 @@
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.LongStream;
 import java.util.Arrays;
 
 public class Test
@@ -7,43 +5,44 @@ public class Test
     static final int RANGE = 1_024;
     static final int ITER = 10_000;
 
-    static double[] test(double[] result, long[] values)
+    static void test(short[] result, float[] input)
     {
-        for (int i = 0; i < values.length; i++)
+        for (int i = 0; i < input.length; i++)
         {
-            final long value = values[i];
-            final double bits = Double.longBitsToDouble(value);
-            result[i] = bits;
+            final float v = input[i];
+            final short r = Float.floatToFloat16(v);
+            result[i] = r;
         }
-        return result;
     }
 
     public static void main(String[] args)
     {
-        final long[] values = init();
-        final double[] expected = test(new double[RANGE], values);
+        final float[] input = init();
+        final short[] gold = new short[RANGE];
+        test(gold, input);
 
-        System.out.println("Expected: " + Arrays.toString(expected));
+        System.out.println("Expected: " + Arrays.toString(gold));
 
-        final double[] result = new double[RANGE];
+        final short[] result = new short[RANGE];
         for (int i = 0; i < ITER; i++)
         {
-            test(result, values);
-            validate(expected, result);
+            test(result, input);
+            validate(gold, result);
+            Arrays.fill(result, (short) 0);
         }
     }
 
-    static long[] init()
+    static float[] init()
     {
-        final long[] longs = new long[RANGE];
+        final float[] result = new float[RANGE];
         for (int i = 0; i < RANGE; i++)
         {
-            longs[i] = i;
+            result[i] = i;
         }
-        return longs;
+        return result;
     }
 
-    static void validate(double[] expected, double[] actual)
+    static void validate(short[] expected, short[] actual)
     {
         if (Arrays.equals(expected, actual))
         {
