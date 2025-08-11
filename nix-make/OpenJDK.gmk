@@ -263,6 +263,7 @@ define tools
 sudo dnf groupinstall -y "Development Tools"
 sudo dnf install -y \
   alsa-lib-devel \
+  capstone \
   cups-devel \
   fontconfig-devel \
   libXi-devel \
