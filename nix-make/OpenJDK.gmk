@@ -211,6 +211,10 @@ print-flags: $(java)
 > $< -XX:+UnlockDiagnosticVMOptions -XX:+PrintFlagsFinal --version
 .PHONY: print-flags
 
+print-properties: $(java)
+> $< -XshowSettings:properties -version
+.PHONY: print-properties
+
 run-use: configure clean-jdk
 > $(TOPDIR)/nix-make/run-use.sh $(CURDIR)
 .PHONY: run-use
