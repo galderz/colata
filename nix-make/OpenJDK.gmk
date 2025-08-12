@@ -281,5 +281,5 @@ tools:
 .PHONY: tools
 
 aws-type:
-> ./aws-type.sh
+> $(TOPDIR)/nix-make/aws-type.sh
 .PHONY: aws-type
