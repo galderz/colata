@@ -70,4 +70,13 @@ public class BoxInBoxSmall
  *
  * --- Compiler Statistics ---
  * Objects scalar replaced = 2, Monitor objects removed = 0, GC barriers removed = 0, Memory barriers removed = 4
+ *
+ * Why are allocations removed here? Because the "use" of CheckCastPP are MemBarStoreStore:
+ *
+ * bool PhaseMacroExpand::can_eliminate_allocation(PhaseIterGVN* igvn, AllocateNode *alloc, GrowableArray <SafePointNode *>* safepoints) {
+ *       } else if (res_type->is_inlinetypeptr() && (use->Opcode() == Op_MemBarRelease || use->Opcode() == Op_MemBarStoreStore)) {
+ *         // Inline type buffer allocations are followed by a membar
+ *
+ *   224  MemBarStoreStore  === 140 1 156 1 1 143  [[ 225 226 ]]  !jvms: BoxInBoxSmall$BoxOuter::<init> @ bci:-1 (line 20) BoxInBoxSmall::test @ bci:22 (line 8)
+ *   113  MemBarStoreStore  === 41 1 52 1 1 44  [[ 114 115 ]]  !jvms: BoxInBoxSmall$BoxSmall::<init> @ bci:-1 (line 33) BoxInBoxSmall::test @ bci:13 (line 7)
  */
