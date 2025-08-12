@@ -279,3 +279,7 @@ endef
 tools:
 > $(call tools)
 .PHONY: tools
+
+aws-type:
+> ./aws-type.sh
+.PHONY: aws-type
