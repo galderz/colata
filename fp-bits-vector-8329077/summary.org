@@ -1,3 +1,415 @@
+* 9.8.25
+** reply to emanuel
+I've done some testing on x86_64 and aarch64 and the tests pass.
+
+I also made sure that the test output demonstrated execution of the expected IR rule as per the requirements of each platform.
+
+- c7gn.2xlarge (graviton 3):
+
+```bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java
+                                                         1     1     0     0     0
+==============================
+TEST SUCCESS
+
+$ tail ConvF2HFIdealizationTests.jtr
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in test1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+
+$ tail TestFloat16ScalarOperations.jtr
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivByPOT: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMulByTWO: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testInexactFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSNaNFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testQNaNFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testExactFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRandomFP16ConstantPatternSet1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRandomFP16ConstantPatternSet2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRounding1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRounding2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMax: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAddConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMin: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMinConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testEliminateIntermediateHF2S: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivByOne: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testFMAConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMaxConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMul: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testconvF2HFAndS2HF: Feature constraint not met (applyIfCPUFeature): avx512_fp16, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDiv: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSqrtConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSqrt: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMulConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testFma: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAdd1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAdd2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSubConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSub: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+```
+
+- `c7i.xlarge` Intel(R) Xeon(R) Platinum 8488C (saphire rapids):
+
+```bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java
+                                                         1     1     0     0     0
+==============================
+TEST SUCCESS
+
+$ tail ConvF2HFIdealizationTests.jtr
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in test1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+
+$ tail TestFloat16ScalarOperations.jtr
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivByPOT: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMulByTWO: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testInexactFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSNaNFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testQNaNFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testExactFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRandomFP16ConstantPatternSet1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRandomFP16ConstantPatternSet2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRounding1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRounding2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMax: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAddConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMin: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMinConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testEliminateIntermediateHF2S: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivByOne: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testFMAConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMaxConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMul: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testconvF2HFAndS2HF: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDiv: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSqrtConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSqrt: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMulConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testFma: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAdd1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAdd2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSubConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSub: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+```
+* 8.8.25
+** aws-2 intel v0
+*** results
+#+begin_src bash
+$ cat /home/ec2-user/src/jdk-fp-bits-vector/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java/compiler/c2/irTests/ConvF2HFIdealizationTests.jtr
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in test1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+
+#+end_src
+
+#+begin_src bash
+$ cat /home/ec2-user/src/jdk-fp-bits-vector/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_TestFloat16ScalarOperations_java/compiler/c2/irTests/TestFloat16ScalarOperations.jtr
+
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivByPOT: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMulByTWO: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testInexactFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSNaNFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testQNaNFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testExactFP16ConstantPatterns: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRandomFP16ConstantPatternSet1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRandomFP16ConstantPatternSet2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRounding1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testRounding2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMax: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAddConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMin: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMinConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testEliminateIntermediateHF2S: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDivByOne: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testFMAConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMaxConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMul: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testconvF2HFAndS2HF: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testDiv: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSqrtConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSqrt: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testMulConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testFma: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAdd1: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testAdd2: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSubConstantFolding: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+[IREncodingPrinter] Disabling IR matching for rule 2 of 2 in testSub: Not all feature constraints are met (applyIfCPUFeatureAnd): fphp, true, asimdhp, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+#+end_src
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP   
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+                                                         1     1     0     0     0   
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java
+                                                         1     1     0     0     0   
+   jtreg:test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java
+                                                         1     1     0     0     0   
+==============================
+TEST SUCCESS
+#+end_src
+*** environment
+#+begin_src bash
+[ec2-user@ip-172-31-36-29 fp-bits-vector-8329077]$ uname -a
+Linux ip-172-31-36-29.ec2.internal 6.1.147-172.266.amzn2023.x86_64 #1 SMP PREEMPT_DYNAMIC Thu Aug  7 19:30:40 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+[ec2-user@ip-172-31-36-29 fp-bits-vector-8329077]$ lscpu
+Architecture:                x86_64
+  CPU op-mode(s):            32-bit, 64-bit
+  Address sizes:             46 bits physical, 48 bits virtual
+  Byte Order:                Little Endian
+CPU(s):                      4
+  On-line CPU(s) list:       0-3
+Vendor ID:                   GenuineIntel
+  Model name:                Intel(R) Xeon(R) Platinum 8488C
+    CPU family:              6
+    Model:                   143
+    Thread(s) per core:      2
+    Core(s) per socket:      2
+    Socket(s):               1
+    Stepping:                8
+    BogoMIPS:                4800.00
+    Flags:                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon rep_good nopl xtopology nonstop_tsc cpuid
+                             aperfmperf tsc_known_freq pni pclmulqdq monitor ssse3 fma cx16 pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault
+                             invpcid_single ssbd ibrs ibpb stibp ibrs_enhanced fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsav
+                             eopt xsavec xgetbv1 xsaves avx_vnni avx512_bf16 wbnoinvd ida arat avx512vbmi umip pku ospke waitpkg avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg tme avx512_vpopcntdq rdpid cldemote movdi
+                             ri movdir64b md_clear serialize amx_bf16 avx512_fp16 amx_tile amx_int8 flush_l1d arch_capabilities
+Virtualization features:
+  Hypervisor vendor:         KVM
+  Virtualization type:       full
+Caches (sum of all):
+  L1d:                       96 KiB (2 instances)
+  L1i:                       64 KiB (2 instances)
+  L2:                        4 MiB (2 instances)
+  L3:                        105 MiB (1 instance)
+NUMA:
+  NUMA node(s):              1
+  NUMA node0 CPU(s):         0-3
+Vulnerabilities:
+  Gather data sampling:      Not affected
+  Indirect target selection: Not affected
+  Itlb multihit:             Not affected
+  L1tf:                      Not affected
+  Mds:                       Not affected
+  Meltdown:                  Not affected
+  Mmio stale data:           Not affected
+  Reg file data sampling:    Not affected
+  Retbleed:                  Not affected
+  Spec rstack overflow:      Not affected
+  Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl
+  Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+  Spectre v2:                Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI BHI_DIS_S
+  Srbds:                     Not affected
+  Tsa:                       Not affected
+  Tsx async abort:           Not affected
+#+end_src
+** aws-1 arm v1
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java
+                                                         1     1     0     0     0
+   jtreg:test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java
+                                                         1     1     0     0     0
+==============================
+TEST SUCCESS
+#+end_src
+
+#+begin_src bash
+$ cat /local/galder/src/jdk-fp-bits-vector/build/fast-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java/compiler/c2/irTests/ConvF2HFIdealizationTests.jtr
+
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in test1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+#+end_src
+
+#+begin_src bash
+  $ cat /local/galder/src/jdk-fp-bits-vector/build/fast-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_TestFloat16ScalarOperations_java/compiler/c2/irTests/TestFloat16ScalarOperations.jtr
+  
+
+  Messages from Test VM
+  ---------------------
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivByPOT: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMulByTWO: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testInexactFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSNaNFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testQNaNFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testExactFP16ConstantPatterns: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRandomFP16ConstantPatternSet1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRandomFP16ConstantPatternSet2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRounding1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testRounding2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMax: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAddConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMin: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMinConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testEliminateIntermediateHF2S: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDivByOne: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testFMAConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMaxConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMul: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testconvF2HFAndS2HF: Feature constraint not met (applyIfCPUFeature): avx512_fp16, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testDiv: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSqrtConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSqrt: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testMulConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testFma: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAdd1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testAdd2: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSubConstantFolding: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+  [IREncodingPrinter] Disabling IR matching for rule 1 of 2 in testSub: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+
+
+  ----------System.err:(3/35)----------
+
+  JavaTest Message: Test complete.
+
+  result: Passed. Execution successful
+
+
+  test result: Passed. Execution successful
+#+end_src
+** aws-1 arm v0
+#+begin_src bash
+Test selection 'test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java', will run:
+- jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+Clean up dirs for jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java
+
+Running test 'jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java'
+Passed: compiler/c2/irTests/ConvF2HFIdealizationTests.java
+Test results: passed: 1
+Report written to /local/galder/src/jdk-fp-bits-vector/build/fast-linux-aarch64/test-results/jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java/html/report.html
+Results written to /local/galder/src/jdk-fp-bits-vector/build/fast-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java
+Finished running test 'jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java'
+Test report is stored in build/fast-linux-aarch64/test-results/jtreg_test_hotspot_jtreg_compiler_c2_irTests_ConvF2HFIdealizationTests_java
+
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
+                                                         1     1     0     0     0
+==============================
+TEST SUCCESS
+#+end_src
+
+#+begin_src bash
+Messages from Test VM
+---------------------
+[IREncodingPrinter] Disabling IR matching for rule 1 of 2 in test1: None of the feature constraints met (applyIfCPUFeatureOr): avx512_fp16, true, zfh, true
+
+
+----------System.err:(3/35)----------
+
+JavaTest Message: Test complete.
+
+result: Passed. Execution successful
+
+
+test result: Passed. Execution successful
+#+end_src
 * 5.8.25
 tier1-3 testing:
 #+begin_src bash
