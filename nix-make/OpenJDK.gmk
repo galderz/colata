@@ -131,10 +131,15 @@ else
 endif
 > touch $@
 
-test: build-jdk
+test: clear-logs build-jdk
 > cd $(JDK_HOME)
 > CONF=$(conf_name) make exploded-test
 .PHONY: test
+
+jtreg: clear-logs build-jdk
+> cd $(JDK_HOME)
+> JAVA_HOME=$(java_home) $(jtreg_bin) $(TEST)
+.PHONY: jtreg
 
 $(benchmarks_jar): build-jdk
 > pushd $(JDK_HOME)
