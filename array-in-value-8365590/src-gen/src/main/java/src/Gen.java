@@ -8,6 +8,7 @@ import com.squareup.javapoet.TypeSpec;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static javax.lang.model.element.Modifier.FINAL;
@@ -19,30 +20,34 @@ public class Gen
 {
     public static void main(String[] args) throws IOException
     {
+        final Map<String, Object> data = new HashMap<>();
+        data.put("fieldName", "v");
+        data.put("fieldValue", "new int[]{16}");
+
         var boxCtor = MethodSpec.constructorBuilder()
-            .addParameter(int[].class, "v")
-            .addStatement("this.v = v")
+            .addParameter(int[].class, data.get("fieldName").toString())
+            .addNamedCode("this.$fieldName:L = $fieldName:L;", data)
             .build();
 
         var box = TypeSpec.classBuilder("Box")
             .addModifiers(STATIC, VALUE)
-            .addField(int[].class, "v", FINAL)
+            .addField(int[].class, data.get("fieldName").toString(), FINAL)
             .addMethod(boxCtor)
             .build();
+
+        data.put("type", box);
 
         var iter = FieldSpec.builder(int.class, "ITER", STATIC, FINAL)
             .initializer("10_000")
             .build();
-
-        var value = "new int[]{16}";
 
         var test = MethodSpec.methodBuilder("test")
             .returns(int[].class)
             .addModifiers(STATIC)
             // .addStatement("var value = $L", value)
             // .addStatement("var box = new $N(value)", box)
-            .addStatement("var box = new $N($L)", box, value)
-            .addStatement("return box.v")
+            .addNamedCode("var obj = new $type:N($fieldValue:L);\n", data)
+            .addNamedCode("return obj.$fieldName:L;", data)
             .build();
 
         var validate = MethodSpec.methodBuilder("validate")
@@ -68,7 +73,7 @@ public class Gen
             .addParameter(String[].class, "args")
             .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
             .addStatement("var result = $N()", test)
-            .addStatement("validate($L, result)", value)
+            .addNamedCode("validate($fieldValue:L, result);", data)
             .endControlFlow()
             .build();
 
