@@ -1,0 +1,6 @@
+* 18.8.25
+replicated outside of test with poet generated test?
+#+begin_src bash
+AFTER: BEFORE_ITER_GVN
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:0 (line 8) !jvms: Test::test @ bci:0 (line 8)
+#+end_src
