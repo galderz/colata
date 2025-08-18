@@ -1,0 +1,1262 @@
+* Ideas
+Test single field array primitives, do they break? do they scalarize?
+* 15.8.25
+** draft template-based test PR
+This is a **very early draft** for a template-based test that addresses the requirements of JDK-8364421.
+
+NOTE: the PR also includes the commits to add template-based testing framework since that's not yet in `lworld`,
+and also adds https://github.com/openjdk/valhalla/commit/68e4a60c1ff62f4d0b8b31cb0bd729f1d67748e2
+so that Boolean types are supported in `checkEQ`.
+
+This test has surfaced JDK-8365590 bug, and as I focus on that bug,
+I thought it'd be a good moment to share what I've done so far with the test and get some feedback.
+
+The test is very simple so far, creating value classes that contain a single field,
+testing for each of the primitive types.
+I also started testing having this field be a primitive array type and that's when I encountered JDK-8365590.
+
+I've tried to create value classes that had multiple fields,
+but I've hit some obstacles here:
+
+First, I tried to use data names to create value classes that would have N fields,
+and have these fields initialized via a constructor, but I couldn't get it to work.
+So the example present in the test uses external data structures to keep track of these fields, values...etc.
+I have discussed these issues in more detail with @CH and bounced some ideas of how to improve data names,
+but these need to be discussed in more detail.
+
+The second obstacle I found is related to nuances on when value classes with multiple fields will be scalarized,
+when these classes are part of another value classes.
+Depending on the combination of fields, they can be considered that they can be flattened or not,
+so handling this in a test like this would need to track the sizes of each fields, add them up,
+and decide whether the test should be positive on scalarization or negative.
+I traced this logic to `FieldLayoutBuilder::compute_inline_class_layout`,
+and the way `_nullable_layout_size_in_bytes` is then used to decide whether to flatten or not.
+I've been using `PrintFieldLayout` option to see what nullable flat layout values each of these box instances would have.
+
+So, given these complexities of multiple fields, I'm might keep `TestOne` (note: name is temporary) focused on value classes with a single field.
+And then have another test with multiple fields.
+** issue draft
+A value class containing that an int[] does not scalarized when the array is initialized and passed directly in the constructor.
+
+Given:
+```
+static value class Box_11 {
+    final int[] v_11;
+
+    @ForceInline
+    Box_11(int[] v_11) {
+        this.v_11 = v_11;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int[] test_11() {
+    var box = new Box_11(new int[]{16});
+    return box.v_11;
+}
+@Check(test = "test_11")
+public void checkTest_11(int[] result) {
+    Verify.checkEQ(new int[]{16}, (int[]) result);
+}
+```
+
+It fails with:
+```
+Failed IR Rules (1) of Methods (1)
+----------------------------------
+1) Method "public static int[] compiler.valhalla.inlinetypes.templating.generated.TestBox.test_11()" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={}, applyIfPlatform={}, applyIfPlatformOr={}, failOn={"_#ALLOC_OF_BOX_KLASS#I_", "_#STORE_OF_ANY_KLASS#I_", "_#UNSTABLE_IF_TRAP#_", "_#PREDICATE_TRAP#_"}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "Before Macro Expansion":
+       - failOn: Graph contains forbidden nodes:
+         * Constraint 1: "(\\d+(\\s){2}(Allocate\\b.*)+(\\s){2}===.*allocationKlass:.*\\bcompiler/valhalla/inlinetypes/templating/generated/.*Box\\w*\\s.*)"
+           - Matched forbidden node:
+             * 25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11 TestBox::test_11 @ bci:0 (line 202) !jvms: TestBox::test_11 @ bci:0 (line 202)
+```
+
+If you change the shape of the code to be like this, then the allocation gets scalarized.
+```
+public static int[] test_11() {
+    var v = new int[]{16};
+    var box = new Box_11(v);
+    return box.v_11;
+}
+```
+
+The constructor was already being inlined without @ForceInline, but following a chat with Tobias I've added it because it's a pre-requisite for the scalarization to occur.
+
+I'm assigning this to myself to try to understand what is going on.
+** print inlining tests
+PrintInlining fail:
+#+begin_src bash
+1309 1327    b  3       compiler.valhalla.inlinetypes.templating.generated.TestBox::test_11 (21 bytes)
+                              @ 12   compiler.valhalla.inlinetypes.templating.generated.TestBox$Box_11::<init> (10 bytes)   inline
+                                @ 6   java.lang.Object::<init> (1 bytes)   inline
+...
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11 TestBox::test_11 @ bci:0 (line 192) !jvms: TestBox::test_11 @ bci:0 (line 192)
+...
+1374 1327       3       compiler.valhalla.inlinetypes.templating.generated.TestBox::test_11 (21 bytes)   made not entrant: not used
+                              @ 12   compiler.valhalla.inlinetypes.templating.generated.TestBox$Box_11::<init> (10 bytes)   inline (hot)
+                                @ 6   java.lang.Object::<init> (1 bytes)   inline (hot)
+#+end_src
+
+#+begin_src java
+static value class Box_11 {
+    final int[] v_11;
+
+    @ForceInline
+    Box_11(int[] v_11) {
+        this.v_11 = v_11;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int[] test_11() {
+    var box = new Box_11(new int[]{16});
+    return box.v_11;
+}
+@Check(test = "test_11")
+public void checkTest_11(int[] result) {
+    Verify.checkEQ(new int[]{16}, (int[]) result);
+}
+#+end_src
+
+Fails with
+#+begin_src bash
+Failed IR Rules (1) of Methods (1)
+----------------------------------
+1) Method "public static int[] compiler.valhalla.inlinetypes.templating.generated.TestBox.test_11()" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={}, applyIfPlatform={}, applyIfPlatformOr={}, failOn={"_#ALLOC_OF_BOX_KLASS#I_", "_#STORE_OF_ANY_KLASS#I_", "_#UNSTABLE_IF_TRAP#_", "_#PREDICATE_TRAP#_"}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "Before Macro Expansion":
+       - failOn: Graph contains forbidden nodes:
+         * Constraint 1: "(\\d+(\\s){2}(Allocate\\b.*)+(\\s){2}===.*allocationKlass:.*\\bcompiler/valhalla/inlinetypes/templating/generated/.*Box\\w*\\s.*)"
+           - Matched forbidden node:
+             * 25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11 TestBox::test_11 @ bci:0 (line 202) !jvms: TestBox::test_11 @ bci:0 (line 202)
+#+end_src
+
+Even when constructor is forced inlined:
+#+begin_src bash
+1378 1358    b  3       compiler.valhalla.inlinetypes.templating.generated.TestBox::test_11 (21 bytes)
+                              @ 12   compiler.valhalla.inlinetypes.templating.generated.TestBox$Box_11::<init> (10 bytes)   force inline by annotation
+                                @ 6   java.lang.Object::<init> (1 bytes)   inline
+...
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11 TestBox::test_11 @ bci:0 (line 202) !jvms: TestBox::test_11 @ bci:0 (line 202)
+...
+1499 1358       3       compiler.valhalla.inlinetypes.templating.generated.TestBox::test_11 (21 bytes)   made not entrant: not used
+                              @ 12   compiler.valhalla.inlinetypes.templating.generated.TestBox$Box_11::<init> (10 bytes)   force inline by annotation
+                                @ 6   java.lang.Object::<init> (1 bytes)   inline (hot)
+#+end_src
+* 14.8.25
+discovered a bug in valhalla
+for int[] box, this works:
+#+begin_src java
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int[] test_3() {
+    var value = new int[]{-1048576};
+    var box = new Box_3(value);
+    return box.v_3;
+}
+#+end_src
+but this fails:
+#+begin_src java
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int[] test_3() {
+    var box = new Box_3(new int[]{-1428521074});
+    return box.v_3;
+}
+#+end_src
+
+Here's the field layout from a run with all the other types:
+#+begin_src bash
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11@0x600000fe5f90 extends java/lang/Object@0x600000fe40d0
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "v_11" [I
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+#+end_src
+* 13.8.25
+** null layout size for single types
+byte:
+Nullable flat layout: 2/2
+
+char:
+Nullable flat layout: 4/4
+
+short:
+Nullable flat layout: 4/4
+
+int:
+Nullable flat layout: 8/8
+
+long:
+Nullable flat layout: -/-
+
+float:
+Nullable flat layout: 2/2
+
+double:
+Nullable flat layout: -/-
+
+boolean:
+Nullable flat layout: 2/2
+
+short (4) + byte (2) + round up to a power of 2
+Nullable flat layout: 8/8
+
+boolean (2) + boolean (2)
+Nullable flat layout: 4/4
+
+#+begin_src java
+package compiler.valhalla.inlinetypes.templating.generated;
+// --- IMPORTS start ---
+import compiler.lib.ir_framework.*;
+import compiler.lib.verify.Verify;
+import compiler.valhalla.inlinetypes.InlineTypeIRNode;
+// --- IMPORTS end   ---
+public class TestBox {
+// --- CLASS_HOOK insertions start ---
+// --- CLASS_HOOK insertions end   ---
+    public static void main(String[] vmFlags) {
+        TestFramework framework = new TestFramework(TestBox.class);
+        framework.addFlags("-classpath", "/Users/galder/src/colata/template-101/JTwork/classes/compiler/valhalla/inlinetypes/templating/TestOne.d:/Users/galder/src/jdk-template-101/test/hotspot/jtreg/compiler/valhalla/inlinetypes/templating:/Users/galder/src/colata/template-101/JTwork/classes/compiler/valhalla/inlinetypes/templating/TestOne.d/test/lib:/Users/galder/src/jdk-template-101/test/lib:/Users/galder/src/jdk-template-101/test/hotspot/jtreg:/Users/galder/opt/jtreg/build/images/jtreg/lib/javatest.jar:/Users/galder/opt/jtreg/build/images/jtreg/lib/jtreg.jar:/Users/galder/src/colata/template-101/JTwork/scratch/./compile-framework-classes-4431294172457055981");
+        framework.addFlags(vmFlags);
+        framework.start();
+    }
+// --- LIST OF TESTS start ---
+static final String BOX_KLASS = "compiler/valhalla/inlinetypes/templating/generated/.*Box\\w*";
+static final String MY_TIME_INSTANT_KLASS = "compiler/valhalla/inlinetypes/templating/generated/.*MyTimeInstant\\w*";
+static final String ANY_KLASS = "compiler/valhalla/inlinetypes/templating/generated/[\\w/]*";
+
+static final String ALLOC_OF_BOX_KLASS = IRNode.PREFIX + "ALLOC_OF_BOX_KLASS" + InlineTypeIRNode.POSTFIX;
+static {
+     IRNode.allocateOfNodes(ALLOC_OF_BOX_KLASS, BOX_KLASS);
+}
+
+static final String ALLOC_OF_MY_TIME_INSTANT_KLASS = IRNode.PREFIX + "ALLOC_OF_MY_TIME_INSTANT_KLASS" + InlineTypeIRNode.POSTFIX;
+static {
+     IRNode.allocateOfNodes(ALLOC_OF_MY_TIME_INSTANT_KLASS, BOX_KLASS);
+}
+
+static final String STORE_OF_ANY_KLASS = IRNode.PREFIX + "STORE_OF_ANY_KLASS" + InlineTypeIRNode.POSTFIX;
+static {
+    IRNode.anyStoreOfNodes(STORE_OF_ANY_KLASS, ANY_KLASS);
+}
+
+static value class MyTimeInstant {
+    // final long seconds;
+    // final int nanos;
+    final short seconds;
+    final byte nanos;
+
+    // MyTimeInstant(long seconds, int nanos) {
+    MyTimeInstant(short seconds, byte nanos) {
+        this.seconds = seconds;
+        this.nanos = nanos;
+    }
+}
+static value class Box_3 {
+    final byte v_3;
+
+    Box_3(byte v_3) {
+        this.v_3 = v_3;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static byte test_3() {
+    var box = new Box_3((byte)-18);
+    return box.v_3;
+}
+
+@Check(test = "test_3")
+public void checkTest_3(byte result) {
+    Verify.checkEQ((byte)-18, (Byte) result);
+}
+static value class Box_4 {
+    final char v_4;
+
+    Box_4(char v_4) {
+        this.v_4 = v_4;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static char test_4() {
+    var box = new Box_4((char)2);
+    return box.v_4;
+}
+
+@Check(test = "test_4")
+public void checkTest_4(char result) {
+    Verify.checkEQ((char)2, (Character) result);
+}
+static value class Box_5 {
+    final short v_5;
+
+    Box_5(short v_5) {
+        this.v_5 = v_5;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static short test_5() {
+    var box = new Box_5((short)-1707);
+    return box.v_5;
+}
+
+@Check(test = "test_5")
+public void checkTest_5(short result) {
+    Verify.checkEQ((short)-1707, (Short) result);
+}
+static value class Box_6 {
+    final int v_6;
+
+    Box_6(int v_6) {
+        this.v_6 = v_6;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int test_6() {
+    var box = new Box_6(-1643582586);
+    return box.v_6;
+}
+
+@Check(test = "test_6")
+public void checkTest_6(int result) {
+    Verify.checkEQ(-1643582586, (Integer) result);
+}
+static value class Box_7 {
+    final long v_7;
+
+    Box_7(long v_7) {
+        this.v_7 = v_7;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static long test_7() {
+    var box = new Box_7(274877906945L);
+    return box.v_7;
+}
+
+@Check(test = "test_7")
+public void checkTest_7(long result) {
+    Verify.checkEQ(274877906945L, (Long) result);
+}
+static value class Box_8 {
+    final float v_8;
+
+    Box_8(float v_8) {
+        this.v_8 = v_8;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static float test_8() {
+    var box = new Box_8(-2783.3503f);
+    return box.v_8;
+}
+
+@Check(test = "test_8")
+public void checkTest_8(float result) {
+    Verify.checkEQ(-2783.3503f, (Float) result);
+}
+static value class Box_9 {
+    final double v_9;
+
+    Box_9(double v_9) {
+        this.v_9 = v_9;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static double test_9() {
+    var box = new Box_9(0.9998045321316397);
+    return box.v_9;
+}
+
+@Check(test = "test_9")
+public void checkTest_9(double result) {
+    Verify.checkEQ(0.9998045321316397, (Double) result);
+}
+static value class Box_10 {
+    final boolean v_10;
+
+    Box_10(boolean v_10) {
+        this.v_10 = v_10;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static boolean test_10() {
+    var box = new Box_10(false);
+    return box.v_10;
+}
+
+@Check(test = "test_10")
+public void checkTest_10(boolean result) {
+    Verify.checkEQ(false, (Boolean) result);
+}
+static value class Box_11 {
+    final MyTimeInstant v_11;
+
+    Box_11(MyTimeInstant v_11) {
+        this.v_11 = v_11;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, ALLOC_OF_MY_TIME_INSTANT_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static MyTimeInstant test_11() {
+    var box = new Box_11(new MyTimeInstant((short)-19127, (byte)-14));
+    return box.v_11;
+}
+
+@Check(test = "test_11")
+public void checkTest_11(MyTimeInstant result) {
+    Verify.checkEQ(new MyTimeInstant((short)-19127, (byte)-14), (MyTimeInstant) result);
+}
+static value class Box_12 {
+final boolean v0 = false;
+final boolean v1 = false;
+int hash() {
+    return
+Boolean.hashCode(v0) +
+Boolean.hashCode(v1) +
+    0;
+}
+}
+static int expected_12 = test_12();
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static int test_12() {
+    var box = new Box_12();
+    return box.hash();
+}
+
+@Check(test = "test_12")
+public void checkTest_12(int result) {
+    Verify.checkEQ(expected_12, result);
+}
+// --- LIST OF TESTS end   ---
+}
+
+#+end_src
+#+begin_src bash
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_12@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 1/1 "v0" Z
+ @13 REGULAR 1/1 "v1" Z
+ @14 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 4/4
+Non atomic flat layout: -/-
+Atomic flat layout: 2/2
+Nullable flat layout: 4/4
+Null marker offset = 14
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_3@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 1/1 "v_3" B
+ @13 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 2/2
+Non atomic flat layout: 1/1
+Atomic flat layout: 1/1
+Nullable flat layout: 2/2
+Null marker offset = 13
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_4@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 2/2 "v_4" C
+ @14 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 4/4
+Non atomic flat layout: 2/2
+Atomic flat layout: 2/2
+Nullable flat layout: 4/4
+Null marker offset = 14
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_5@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 2/2 "v_5" S
+ @14 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 4/4
+Non atomic flat layout: 2/2
+Atomic flat layout: 2/2
+Nullable flat layout: 4/4
+Null marker offset = 14
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_6@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "v_6" I
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_7@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 8/8 "v_7" J
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 8/8
+Atomic flat layout: 8/8
+Nullable flat layout: -/-
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_8@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "v_8" F
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_9@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 8/8 "v_9" D
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 8/8
+Atomic flat layout: 8/8
+Nullable flat layout: -/-
+w---
+946  715    b  3       sun.net.www.ParseUtil::firstEncodeIndex (86 bytes)
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_10@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 1/1 "v_10" Z
+ @13 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 2/2
+Non atomic flat layout: 1/1
+Atomic flat layout: 1/1
+Nullable flat layout: 2/2
+Null marker offset = 13
+---
+Layout of class compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11@0x600003eb1150 extends java/lang/Object@0x600003ea4550
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 FLAT 4/4 "v_11" Lcompiler/valhalla/inlinetypes/templating/generated/TestBox$MyTimeInstant; compiler/valhalla/inlinetypes/templating/generated/TestBox$MyTimeInstant@0x600003eb1150 NULLABLE_ATOMIC_FLAT
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: -/-
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+#+end_src
+** where is the pid log file?
+#+begin_src bash
+Output and diagnostic info for process 24621 was saved into 'pid-24621-output.log'
+#+end_src
+Use jtreg directly instead
+** why does LongLongBox$BoxJJ does get allocation removed then?
+#+begin_src bash
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:LongLongBox$BoxJJ LongLongBox::test @ bci:0 (line 5) !jvms: LongLongBox::test @ bci:0 (line 5)
+Scalar   42  CheckCastPP  === 39 37  [[ 112 ]]  #LongLongBox$BoxJJ:NotNull:exact *  Oop:LongLongBox$BoxJJ:NotNull:exact * !jvms: LongLongBox::test @ bci:0 (line 5)
+++++ Eliminated: 25 Allocate
+#+end_src
+
+#+begin_src bash
+Layout of class LongLongBox$BoxJJ@0x6000017c5a50 extends java/lang/Object@0x6000017eca90
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 8/8 "j1" J
+ @24 REGULAR 8/8 "j2" J
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 32 bytes
+First field offset = 16
+Payload layout: 16/8
+Non atomic flat layout: -/-
+Atomic flat layout: -/-
+Nullable flat layout: -/-
+#+end_src
+
+BoxSmall:
+new_raw_size = 17
+nullable_size = 32
+
+The null flat layout indicates that it's too big too be flattened,
+  but yet the allocation is removed.
+** where does the _nullable_layout_size_in_bytes be set?
+~FieldLayoutBuilder::compute_inline_class_layout~
+#+begin_src cpp
+      // Now that the null marker is there, the size of the nullable layout must computed (remember, must be atomic too)
+      int new_raw_size = _layout->last_block()->offset() - _layout->first_field_block()->offset();
+      int nullable_size = round_up_power_of_2(new_raw_size);
+      if (nullable_size <= (int)MAX_ATOMIC_OP_SIZE) {
+        _nullable_layout_size_in_bytes = nullable_size;
+        _null_marker_offset = null_marker_offset;
+      } else {
+        // If the nullable layout is rejected, the NULL_MARKER block should be removed
+        // from the layout, otherwise it will appear anyway if the layout is printer
+        if (!_is_empty_inline_class) {  // empty values don't have a dedicated NULL_MARKER block
+          _layout->remove_null_marker();
+        }
+        _null_marker_offset = -1;
+      }
+#+end_src
+
+MAX_ATOMIC_OP_SIZE = 8
+
+BoxSmall:
+new_raw_size = 4
+nullable_size = 4
+
+BoxOuter (in small):
+new_raw_size = 5
+nullable_size = 8
+
+BoxLarge:
+new_raw_size = 13
+nullable_size = 16
+
+BoxOuter (in large):
+new_raw_size = 5
+nullable_size = 8
+** what does print field layout show for large and small?
+~_nullable_layout_size_in_bytes~ is shown in "Nullable flat layout:"
+small:
+#+begin_src bash
+---
+Layout of class BoxInBoxSmall$BoxSmall@0x60000056e410 extends java/lang/Object@0x600000574310
+Instance fields:
+ @0 RESERVED 12/-
+ @12 REGULAR 2/2 "f1" S
+ @14 REGULAR 1/1 "f2" B
+ @15 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 16 bytes
+First field offset = 12
+Payload layout: 4/4
+Non atomic flat layout: -/-
+Atomic flat layout: 4/4
+Nullable flat layout: 4/4
+Null marker offset = 15
+---
+Layout of class BoxInBoxSmall$BoxOuter@0x60000056e410 extends java/lang/Object@0x600000574310
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 FLAT 4/4 "field" LBoxInBoxSmall$BoxSmall; BoxInBoxSmall$BoxSmall@0x60000056e410 NULLABLE_ATOMIC_FLAT
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: -/-
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+#+end_src
+
+large:
+#+begin_src bash
+---
+Layout of class BoxInBoxLarge$BoxLarge@0x6000024d0490 extends java/lang/Object@0x6000024c8010
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 8/8 "f1" J
+ @24 REGULAR 4/4 "f2" I
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 32 bytes
+First field offset = 16
+Payload layout: 12/8
+Non atomic flat layout: -/-
+Atomic flat layout: -/-
+Nullable flat layout: -/-
+---
+Layout of class BoxInBoxLarge$BoxOuter@0x6000024d0490 extends java/lang/Object@0x6000024c8010
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "field" LBoxInBoxLarge$BoxLarge;
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+---
+#+end_src
+** what sets the nullable size in bytes?
+In ~ClassFileParser::fill_instance_klass~
+
+#+begin_src cpp
+    vk->set_nullable_size_in_bytes(_layout_info->_nullable_layout_size_in_bytes);
+#+end_src
+
+When looking for references to ~_nullable_layout_size_in_bytes~ I discovered this:
+#+begin_src cpp
+  if (PrintFieldLayout || (PrintInlineLayout && _has_flattening_information)) {
+    ResourceMark rm;
+    stringStream st;
+    if (first_layout_print) {
+      st.print_cr("Field layout log format: @offset size/alignment [name] [signature] [comment]");
+      st.print_cr("Heap oop size = %d", heapOopSize);
+      first_layout_print = false;
+    }
+    if (_super_klass != nullptr) {
+      st.print_cr("Layout of class %s@%p extends %s@%p", _classname->as_C_string(),
+                    _loader_data, _super_klass->name()->as_C_string(), _super_klass->class_loader_data());
+    } else {
+      st.print_cr("Layout of class %s@%p", _classname->as_C_string(), _loader_data);
+    }
+    st.print_cr("Instance fields:");
+    _layout->print(&st, false, _super_klass, _inline_layout_info_array);
+    st.print_cr("Static fields:");
+    _static_layout->print(&st, true, nullptr, _inline_layout_info_array);
+    st.print_cr("Instance size = %d bytes", _info->_instance_size * wordSize);
+    if (_is_inline_type) {
+      st.print_cr("First field offset = %d", _payload_offset);
+      st.print_cr("Payload layout: %d/%d", _payload_size_in_bytes, _payload_alignment);
+      if (has_non_atomic_flat_layout()) {
+        st.print_cr("Non atomic flat layout: %d/%d", _non_atomic_layout_size_in_bytes, _non_atomic_layout_alignment);
+      } else {
+        st.print_cr("Non atomic flat layout: -/-");
+      }
+      if (has_atomic_layout()) {
+        st.print_cr("Atomic flat layout: %d/%d", _atomic_layout_size_in_bytes, _atomic_layout_size_in_bytes);
+      } else {
+        st.print_cr("Atomic flat layout: -/-");
+      }
+      if (has_nullable_atomic_layout()) {
+        st.print_cr("Nullable flat layout: %d/%d", _nullable_layout_size_in_bytes, _nullable_layout_size_in_bytes);
+      } else {
+        st.print_cr("Nullable flat layout: -/-");
+      }
+      if (_null_marker_offset != -1) {
+        st.print_cr("Null marker offset = %d", _null_marker_offset);
+      }
+    }
+    st.print_cr("---");
+    // Print output all together.
+    tty->print_raw(st.as_string());
+  }
+#+end_src
+
+So there's a way to print out nullable layout size in bytes with ~PrintFieldLayout~
+** what field->is_flat() returning true/false?
+it's decided in ~FieldLayoutBuilder::regular_field_sorting~
+
+For T_OBJECT and T_ARRAY there is this call:
+#+begin_src cpp
+LayoutKind lk = field_layout_selection(fieldinfo, _inline_layout_info_array, true);
+#+end_src
+
+When layout is NOT ~LayoutKind::REFERENCE~ then it's set the field to flat.
+
+The relevant section for small vs large is in the ~vk->has_nullable_atomic_layout()~ call inside ~LayoutKind field_layout_selection~:
+#+begin_src cpp
+    if (UseNullableValueFlattening && vk->has_nullable_atomic_layout()) {
+      return use_atomic_flat ? LayoutKind::NULLABLE_ATOMIC_FLAT : LayoutKind::REFERENCE;
+    } else {
+      return LayoutKind::REFERENCE;
+    }
+#+end_src
+
+#+begin_src cpp
+  bool has_nullable_atomic_layout() const { return nullable_atomic_size_in_bytes() != -1; }
+  int nullable_atomic_size_in_bytes() const { return *(int*)adr_nullable_atomic_size_in_bytes(); }
+
+  address adr_nullable_atomic_size_in_bytes() const {
+    assert(_adr_inlineklass_fixed_block != nullptr, "Should have been initialized");
+    return ((address)_adr_inlineklass_fixed_block) + in_bytes(byte_offset_of(InlineKlassFixedBlock, _nullable_size_in_bytes));
+  }
+#+end_src
+** why EncodeP?
+it's decided in ~Parse::do_put_xxx~ where ~field->is_flat()~ is called
+  it decides if the field should be a flat inline field,
+  or it should be stored as a value refence (this is what results in EncodeP)
+
+trying to understand how the MemBarStoreStore becomes use of InlineType vs EncodeP
+
+in large:
+#+begin_src bash
+ 116  InlineType  === _ 106 24 99 119 121  [[ 176 186 124 176 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !jvms: BoxInBoxLarge::test @ bci:13 (line 7)
+
+ 215  InlineType  === _ 198 99 99 119 121  [[ 216 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=116 !jvms: BoxInBoxLarge::test @ bci:13 (line 7)
+ 216  EncodeP  === _ 215  [[ 217 ]]  #narrowoop: BoxInBoxLarge$BoxLarge:NotNull:exact * !jvms: BoxInBoxLarge$BoxOuter::<init> @ bci:2 (line 20) BoxInBoxLarge::test @ bci:22 (line 8)
+#+end_src
+
+in small:
+#+begin_src bash
+ 117  InlineType  === _ 107 24 99 120 122  [[ 126 ]]  #BoxInBoxSmall$BoxSmall:NotNull:exact *  Oop:BoxInBoxSmall$BoxSmall:NotNull:exact * !jvms: BoxInBoxSmall::test @ bci:13 (line 7)
+ 126  Allocate  === 114 38 115 8 1 (124 123 24 1 1 _ _ _ 1 1 117 1 ) [[ 127 128 129 136 137 138 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:BoxInBoxSmall$BoxOuter BoxInBoxSmall::test @ bci:17 (line 8) !jvms: BoxInBoxSmall::test @ bci:17 (line 8)
+#+end_src
+
+Klass::print_on
+#+begin_src bash
+BoxInBoxSmall$BoxSmall {0x000003f800218238}
+ - instance size:     2
+ - klass size:        183
+ - access:            final value
+ - flags:             has_nonstatic_fields should_verify_class must_be_atomic
+ - state:             loaded
+ - name:              'BoxInBoxSmall$BoxSmall'
+ - super:             'java/lang/Object'
+ - sub:
+ - arrays:            null
+ - methods:           Array<T>(0x000000012a2fcb48)
+ - method ordering:   Array<T>(0x0000000129000018)
+ - local interfaces:  Array<T>(0x000000012a2fcc40)
+ - trans. interfaces: Array<T>(0x0000000129000048)
+ - secondary supers: Array<T>(0x0000000129000038)
+ - hash_slot:         51
+ - secondary bitmap: 0x0000000000000000
+ - constants:         constant pool [27] {0x000000012a2fca00} for 'BoxInBoxSmall$BoxSmall'
+ - class loader data:  loader data: 0x00006000021e8610 for instance a 'com/sun/tools/javac/launcher/MemoryClassLoader'{0x000000052f830120}
+ - source file:       'BoxInBoxSmall.java'
+ - inner classes:     Array<T>(0x000000012a2fcc28)
+ - nest members:     Array<T>(0x0000000129000020)
+ - permitted subclasses:     Array<T>(0x0000000129000020)
+ - loadable descriptors:     Array<T>(0x0000000129000020)
+ - java mirror:       a 'java/lang/Class'{0x000000052f8391a8} = 'BoxInBoxSmall$BoxSmall'
+ - vtable length      5  (start addr: 0x000003f800218438)
+ - itable length      2 (start addr: 0x000003f800218460)
+ - ---- static fields (1 words):
+ - ---- non-static fields (1 words):
+ - final value 'f1' 'S' @12
+ - final value 'f2' 'B' @14
+ - non-static oop maps (0 entries):
+#+end_src
+
+Klass::print_on
+#+begin_src bash
+BoxInBoxLarge$BoxLarge {0x00007ffc00218238}
+ - instance size:     4
+ - klass size:        183
+ - access:            final value
+ - flags:             has_nonstatic_fields should_verify_class must_be_atomic
+ - state:             loaded
+ - name:              'BoxInBoxLarge$BoxLarge'
+ - super:             'java/lang/Object'
+ - sub:
+ - arrays:            null
+ - methods:           Array<T>(0x000000012b31cb58)
+ - method ordering:   Array<T>(0x000000012a000018)
+ - local interfaces:  Array<T>(0x000000012b31cc50)
+ - trans. interfaces: Array<T>(0x000000012a000048)
+ - secondary supers: Array<T>(0x000000012a000038)
+ - hash_slot:         21
+ - secondary bitmap: 0x0000000000000000
+ - constants:         constant pool [27] {0x000000012b31ca10} for 'BoxInBoxLarge$BoxLarge'
+ - class loader data:  loader data: 0x0000600001b76650 for instance a 'com/sun/tools/javac/launcher/MemoryClassLoader'{0x000000052f82f0c0}
+ - source file:       'BoxInBoxLarge.java'
+ - inner classes:     Array<T>(0x000000012b31cc38)
+ - nest members:     Array<T>(0x000000012a000020)
+ - permitted subclasses:     Array<T>(0x000000012a000020)
+ - loadable descriptors:     Array<T>(0x000000012a000020)
+ - java mirror:       a 'java/lang/Class'{0x000000052f838148} = 'BoxInBoxLarge$BoxLarge'
+ - vtable length      5  (start addr: 0x00007ffc00218438)
+ - itable length      2 (start addr: 0x00007ffc00218460)
+ - ---- static fields (1 words):
+ - ---- non-static fields (4 words):
+ - final value 'f1' 'J' @16
+ - final value 'f2' 'I' @24
+ - non-static oop maps (0 entries):
+#+end_src
+* 12.8.25
+** digging into test failure part 2
+replicated box in box with small vs large objects
+
+in small:
+#+begin_src bash
+AFTER: BEFORE_ITER_GVN
+  27  Allocate  === 5 6 7 8 1 (25 23 24 1 1 _ _ _ 21 22 1 1 ) [[ 28 29 30 37 38 39 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:BoxInBoxSmall$BoxSmall BoxInBoxSmall::test @ bci:7 (line 7) !jvms: BoxInBoxSmall::test @ bci:7 (line 7)
+ 126  Allocate  === 114 38 115 8 1 (124 123 24 1 1 _ _ _ 1 1 250 1 99 21 22 ) [[ 127 128 129 136 137 138 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:BoxInBoxSmall$BoxOuter BoxInBoxSmall::test @ bci:17 (line 8) !jvms: BoxInBoxSmall::test @ bci:17 (line 8)
+
+Scalar  143  CheckCastPP  === 140 138  [[ 224 ]]  #BoxInBoxSmall$BoxOuter:NotNull:exact *  Oop:BoxInBoxSmall$BoxOuter:NotNull:exact * !jvms: BoxInBoxSmall::test @ bci:17 (line 8)
+++++ Eliminated: 126 Allocate
+Scalar   44  CheckCastPP  === 41 39  [[ 113 ]]  #BoxInBoxSmall$BoxSmall:NotNull:exact *  Oop:BoxInBoxSmall$BoxSmall:NotNull:exact * !jvms: BoxInBoxSmall::test @ bci:7 (line 7)
+++++ Eliminated: 27 Allocate
+
+--- Compiler Statistics ---
+Objects scalar replaced = 2, Monitor objects removed = 0, GC barriers removed = 0, Memory barriers removed = 4
+
+Why are allocations removed here? Because the "use" of CheckCastPP are MemBarStoreStore:
+
+bool PhaseMacroExpand::can_eliminate_allocation(PhaseIterGVN* igvn, AllocateNode *alloc, GrowableArray <SafePointNode *>* safepoints) {
+      } else if (res_type->is_inlinetypeptr() && (use->Opcode() == Op_MemBarRelease || use->Opcode() == Op_MemBarStoreStore)) {
+        // Inline type buffer allocations are followed by a membar
+
+  224  MemBarStoreStore  === 140 1 156 1 1 143  [[ 225 226 ]]  !jvms: BoxInBoxSmall$BoxOuter::<init> @ bci:-1 (line 20) BoxInBoxSmall::test @ bci:22 (line 8)
+  113  MemBarStoreStore  === 41 1 52 1 1 44  [[ 114 115 ]]  !jvms: BoxInBoxSmall$BoxSmall::<init> @ bci:-1 (line 33) BoxInBoxSmall::test @ bci:13 (line 7)
+#+end_src
+
+in large:
+#+begin_src bash
+AFTER: BEFORE_ITER_GVN
+  27  Allocate  === 5 6 7 8 1 (25 23 24 1 1 _ _ _ 21 1 22 1 1 ) [[ 28 29 30 37 38 39 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:BoxInBoxLarge$BoxLarge BoxInBoxLarge::test @ bci:7 (line 7) !jvms: BoxInBoxLarge::test @ bci:7 (line 7)
+
+NotScalar (Object is referenced by node) 215  InlineType  === _ 198 99 99 21 22  [[ 216 277 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=116 !jvms: BoxInBoxLarge::test @ bci:13 (line 7)
+  >>>>  216  EncodeP  === _ 215  [[ 217 ]]  #narrowoop: BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=[255] !jvms: BoxInBoxLarge$BoxOuter::<init> @ bci:2 (line 20) BoxInBoxLarge::test @ bci:22 (line 8)
+Scalar  141  CheckCastPP  === 138 136  [[ 248 186 186 176 176 186 158 158 176 ]]  #BoxInBoxLarge$BoxOuter:NotNull:exact *  Oop:BoxInBoxLarge$BoxOuter:NotNull:exact * !jvms: BoxInBoxLarge::test @ bci:17 (line 8)
+Scalar   44  CheckCastPP  === 41 39  [[ 112 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !jvms: BoxInBoxLarge::test @ bci:7 (line 7)
+++++ Eliminated: 27 Allocate
+
+NotScalar (Object is referenced by node) 215  InlineType  === _ 198 99 99 21 22  [[ 216 277 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=116 !jvms: BoxInBoxLarge::test @ bci:13 (line 7)
+  >>>>  216  EncodeP  === _ 215  [[ 217 ]]  #narrowoop: BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=[255] !jvms: BoxInBoxLarge$BoxOuter::<init> @ bci:2 (line 20) BoxInBoxLarge::test @ bci:22 (line 8)
+Scalar  141  CheckCastPP  === 138 136  [[ 248 186 186 176 176 186 158 158 176 ]]  #BoxInBoxLarge$BoxOuter:NotNull:exact *  Oop:BoxInBoxLarge$BoxOuter:NotNull:exact * !jvms: BoxInBoxLarge::test @ bci:17 (line 8)
+
+NotScalar (Object is referenced by node) 215  InlineType  === _ 198 99 99 21 22  [[ 216 277 ]]  #BoxInBoxLarge$BoxLarge:NotNull:exact *  Oop:BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=116 !jvms: BoxInBoxLarge::test @ bci:13 (line 7)
+  >>>>  216  EncodeP  === _ 215  [[ 217 ]]  #narrowoop: BoxInBoxLarge$BoxLarge:NotNull:exact * !orig=[255] !jvms: BoxInBoxLarge$BoxOuter::<init> @ bci:2 (line 20) BoxInBoxLarge::test @ bci:22 (line 8)
+Scalar  141  CheckCastPP  === 138 136  [[ 248 186 186 176 176 186 158 158 176 ]]  #BoxInBoxLarge$BoxOuter:NotNull:exact *  Oop:BoxInBoxLarge$BoxOuter:NotNull:exact * !jvms: BoxInBoxLarge::test @ bci:17 (line 8)
+#+end_src
+
+The traditional behaviour is EncodeP, the optimizatio is the use followed by a MemBarStoreStore. What situations triggers it?
+** digging into test failure part 1
+Digging into the test failure when a value box contains another.
+From trying/testing realised that it seems to be hitting the 64 bits limit:
+#+begin_quote
+On common platforms, this limits the size of most flattened references to no more than 64 bits.
+#+end_quote
+When swapping MyTimeInstant from long,int to short,byte it worked.
+Let's try to debug it...
+
+Tried to replicate outside of the test framework but doesn't seem to result on same nodes...
+So what about trying to debug with ide the test failure itself?
+
+#+begin_src bash
+STDERR:
+
+Command Line:
+/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/jdk/bin/java -DReproduce=true -cp /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d:/Users/galder/src/jdk-template-101/test/hotspot/jtreg/compiler/valhalla/inlinetypes/templating:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d/test/lib:/Users/galder/src/jdk-template-101/test/lib:/Users/galder/src/jdk-template-101/test/hotspot/jtreg:/Users/galder/opt/jtreg/build/images/jtreg/lib/javatest.jar:/Users/galder/opt/jtreg/build/images/jtreg/lib/jtreg.jar -Djava.library.path=/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/images/test/hotspot/jtreg/native -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:MaxRAMPercentage=3.57143 -Dtest.boot.jdk=/nix/store/bndjn9f1xzsvx9m59ppnm7wddxhlk765-temurin-bin-24.0.0 -Djava.io.tmpdir=/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/tmp -Dir.framework.server.port=57731 -classpath /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d:/Users/galder/src/jdk-template-101/test/hotspot/jtreg/compiler/valhalla/inlinetypes/templating:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d/test/lib:/Users/galder/src/jdk-template-101/test/lib:/Users/galder/src/jdk-template-101/test/hotspot/jtreg:/Users/galder/opt/jtreg/build/images/jtreg/lib/javatest.jar:/Users/galder/opt/jtreg/build/images/jtreg/lib/jtreg.jar:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/scratch/0/./compile-framework-classes-1025077221979152499 --enable-preview -XX:-DoEscapeAnalysis -XX:+PrintCompilation -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation -XX:CompilerDirectivesFile=test-vm-compile-commands-pid-58957.log -XX:CompilerDirectivesLimit=101 -XX:-OmitStackTraceInFastThrow -DShouldDoIRVerification=true -XX:-BackgroundCompilation -XX:CompileCommand=quiet compiler.lib.ir_framework.test.TestVM compiler.valhalla.inlinetypes.templating.generated.TestBox
+
+One or more @IR rules failed:
+
+Failed IR Rules (1) of Methods (1)
+----------------------------------
+#+end_src
+
+When execute the command line you get:
+#+begin_src bash
+galder@m25:~/src/jdk-template-101/ > /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/jdk/bin/java ...
+Could not load file: test-vm-compile-commands-pid-58957.log
+#+end_src
+
+Where is ~test-vm-compile-commands-pid-58957.log~ ?
+#+begin_src bash
+galder@m25:~/src/jdk-template-101/ > fnd test-vm-compile-commands-pid-58
+./build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne/test-vm-compile-commands-pid-58957.log
+#+end_src
+
+Change directory to ~.../TestOne~ and execute from there:
+#+begin_src bash
+galder@m25:~/src/jdk-template-101/ > cd build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne
+
+galder@m25:~/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne/ > /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/jdk/bin/java ...
+...
+Exception in thread "main" compiler.lib.ir_framework.shared.TestRunException: Could not find test class
+	at compiler.lib.ir_framework.test.TestVM.getClassObject(TestVM.java:179)
+	at compiler.lib.ir_framework.test.TestVM.main(TestVM.java:165)
+Caused by: java.lang.ClassNotFoundException: compiler.valhalla.inlinetypes.templating.generated.TestBox
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:477)
+	at java.base/java.lang.Class.forName(Class.java:468)
+	at compiler.lib.ir_framework.test.TestVM.getClassObject(TestVM.java:177)
+	... 1 more
+#+end_src
+
+The issue could be in this classpath entry: ~:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/scratch/0/./compile-framework-classes-1025077221979152499~
+It doesn't appear anywhere, so maybe it was deleted when the jvm stopped or failed? It needs to remain there...?
+
+Turns out folder ~compile-framework-classes-1025077221979152499~ exists but elsewhere:
+#+begin_src bash
+$ ls /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne/compile-framework-classes-1025077221979152499
+compiler
+#+end_src
+
+After modifying that it works:
+#+begin_src bash
+galder@m25:~/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne/ >
+/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/jdk/bin/java -DReproduce=true -cp /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d:/Users/galder/src/jdk-template-101/test/hotspot/jtreg/compiler/valhalla/inlinetypes/templating:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d/test/lib:/Users/galder/src/jdk-template-101/test/lib:/Users/galder/src/jdk-template-101/test/hotspot/jtreg:/Users/galder/opt/jtreg/build/images/jtreg/lib/javatest.jar:/Users/galder/opt/jtreg/build/images/jtreg/lib/jtreg.jar -Djava.library.path=/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/images/test/hotspot/jtreg/native -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:MaxRAMPercentage=3.57143 -Dtest.boot.jdk=/nix/store/bndjn9f1xzsvx9m59ppnm7wddxhlk765-temurin-bin-24.0.0 -Djava.io.tmpdir=/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/tmp -Dir.framework.server.port=57731 -classpath /Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d:/Users/galder/src/jdk-template-101/test/hotspot/jtreg/compiler/valhalla/inlinetypes/templating:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/classes/0/compiler/valhalla/inlinetypes/templating/TestOne.d/test/lib:/Users/galder/src/jdk-template-101/test/lib:/Users/galder/src/jdk-template-101/test/hotspot/jtreg:/Users/galder/opt/jtreg/build/images/jtreg/lib/javatest.jar:/Users/galder/opt/jtreg/build/images/jtreg/lib/jtreg.jar:/Users/galder/src/jdk-template-101/build/fast-darwin-arm64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_templating_TestOne_java/compiler/valhalla/inlinetypes/templating/TestOne/compile-framework-classes-1025077221979152499 --enable-preview -XX:-DoEscapeAnalysis -XX:+PrintCompilation -XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation -XX:CompilerDirectivesFile=test-vm-compile-commands-pid-58957.log -XX:CompilerDirectivesLimit=101 -XX:-OmitStackTraceInFastThrow -DShouldDoIRVerification=true -XX:-BackgroundCompilation -XX:CompileCommand=quiet compiler.lib.ir_framework.test.TestVM compiler.valhalla.inlinetypes.templating.generated.TestBox
+...
+#+end_src
+* 6.8.25
+First unexpected failure, Box_11 gets instantiated:
+#+begin_src bash
+static value class MyTimeInstant {
+    final long seconds;
+    final int nanos;
+
+    MyTimeInstant(long seconds, int nanos) {
+        this.seconds = seconds;
+        this.nanos = nanos;
+    }
+}
+
+static value class Box_11 {
+    final MyTimeInstant v_11;
+
+    Box_11(MyTimeInstant v_11) {
+        this.v_11 = v_11;
+    }
+}
+
+@Test
+@IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP})
+public static MyTimeInstant test_11() {
+    var box = new Box_11(new MyTimeInstant(-576460752303423491L, 16777204));
+    return box.v_11;
+}
+
+@Check(test = "test_11")
+public void checkTest_11(MyTimeInstant result) {
+    Verify.checkEQ(new MyTimeInstant(-576460752303423491L, 16777204), (MyTimeInstant) result);
+}
+
+Failed IR Rules (1) of Methods (1)
+----------------------------------
+1) Method "public static compiler.valhalla.inlinetypes.templating.generated.TestBox$MyTimeInstant compiler.valhalla.inlinetypes.templating.generated.TestBox.test_11()" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={}, failOn={"_#ALLOC_OF_BOX_KLASS#I_", "_#STORE_OF_ANY_KLASS#I_", "_#UNSTABLE_IF_TRAP#_", "_#PREDICATE_TRAP#_"}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "Before Macro Expansion":
+       - failOn: Graph contains forbidden nodes:
+         * Constraint 1: "(\d+(\s){2}(Allocate\b.*)+(\s){2}===.*allocationKlass:.*\bcompiler/valhalla/inlinetypes/templating/generated/.*Box\w*\s.*)"
+           - Matched forbidden node:
+             * 25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:compiler/valhalla/inlinetypes/templating/generated/TestBox$Box_11 TestBox::test_11 @ bci:0 (line 202) !jvms: TestBox::test_11 @ bci:0 (line 202)
+#+end_src
+* 31.7.25
+How to escape # in the template?
+
+#+begin_src bash
+compiler.lib.template_framework.RendererException: Missing hashtag replacement for #I_
+	at compiler.lib.template_framework.TemplateFrame.getHashtagReplacement(TemplateFrame.java:93)
+	at compiler.lib.template_framework.Renderer.getHashtagReplacement(Renderer.java:167)
+	at compiler.lib.template_framework.Renderer.lambda$renderStringWithDollarAndHashtagReplacementsPart$0(Renderer.java:420)
+	at java.base/java.util.regex.Matcher.replaceFirst(Matcher.java:1514)
+	at compiler.lib.template_framework.Renderer.renderStringWithDollarAndHashtagReplacementsPart(Renderer.java:412)
+	at compiler.lib.template_framework.Renderer.renderStringWithDollarAndHashtagReplacements(Renderer.java:366)
+	at compiler.lib.template_framework.Renderer.renderToken(Renderer.java:262)
+	at compiler.lib.template_framework.Renderer.renderTokenList(Renderer.java:328)
+	at compiler.lib.template_framework.Renderer.renderTemplateToken(Renderer.java:251)
+	at compiler.lib.template_framework.Renderer.renderToken(Renderer.java:314)
+	at compiler.lib.template_framework.Renderer.renderTokenList(Renderer.java:328)
+	at compiler.lib.template_framework.Renderer.renderToken(Renderer.java:281)
+	at compiler.lib.template_framework.Renderer.renderTokenList(Renderer.java:328)
+	at compiler.lib.template_framework.Renderer.renderTemplateToken(Renderer.java:251)
+	at compiler.lib.template_framework.Renderer.render(Renderer.java:132)
+	at compiler.lib.template_framework.Renderer.render(Renderer.java:122)
+	at compiler.lib.template_framework.TemplateToken.render(TemplateToken.java:163)
+	at compiler.lib.template_framework.Template$ZeroArgs.render(Template.java:308)
+	at compiler.lib.template_framework.library.TestFrameworkClass.render(TestFrameworkClass.java:117)
+	at compiler.valhalla.inlinetypes.templating.TestOne.generate(TestOne.java:69)
+	at compiler.valhalla.inlinetypes.templating.TestOne.main(TestOne.java:132)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at com.sun.javatest.regtest.agent.MainActionHelper$AgentVMRunnable.run(MainActionHelper.java:335)
+	at java.base/java.lang.Thread.run(Thread.java:1447)
+#+end_src
+
+Tried ~%%~ but doesn't work:
+
+#+begin_src bash
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.template_framework.RendererException: Is not a valid '#' replacement pattern: '#' in 'static final String BOX_KLASS = "compiler/valhalla/inlinetypes/templating/generated/.*Box\\w*"; static final String ANY_KLASS = "compiler/valhalla/inlinetypes/templating/generated/[\\w/]*"; static final String POSTFIX = "##I_"; static final String ALLOC_OF_BOX_KLASS = IRNode.PREFIX + "ALLOC_OF_BOX_KLASS" + InlineTypeIRNode.POSTFIX; static { IRNode.allocateOfNodes(ALLOC_OF_BOX_KLASS, BOX_KLASS); } static final String STORE_OF_ANY_KLASS = IRNode.PREFIX + "STORE_OF_ANY_KLASS" + InlineTypeIRNode.POSTFIX; static { IRNode.anyStoreOfNodes(STORE_OF_ANY_KLASS, ANY_KLASS); } value class Box1 { final boolean b; Box1(boolean b) { this.b = b; } } @Test @IR(failOn = {ALLOC_OF_BOX_KLASS, STORE_OF_ANY_KLASS, IRNode.UNSTABLE_IF_TRAP, IRNode.PREDICATE_TRAP}) public boolean test1() { final Box1 v = new Box1(#v); return v.b; } @Check(test = "test1") public void test1_verifier(boolean result) { Asserts.assertTrue(result); } '.
+#+end_src
+* 29.7.25
+Questions:
+- What are the calling/return conventions? Check source code/tests. Can focus on scalarization for now...
+  TestCallingConvention.java has some information.
+  For returns check InlineTypeReturnedAsFields, for arguments there's InlineTypePassFieldsAsArgs
+- If I encounter bugs, I fill them and can have a go?
+
+First test:
+Create a Box value class that has 1 instance field of all types.
+Verify that no allocation happens (scalarization)
+** ideas for TYPE1/TYPE2...etc
+- primitives
+- identity classes (e.g. String)
+- user defined value classes
+- record identity classes
+- record value classes
+- built-in value classes:
+#+begin_quote
+In Java NN, with preview features enabled, 29 classes in the JDK are declared as value classes. These include:
+
+In java.lang: Integer, Long, Float, Double, Byte, Short, Boolean, and Character
+In java.util: Optional, OptionalInt, OptionalLong, and OptionalDouble
+In java.time: LocalDate, LocalTime, Instant, Duration, LocalDateTime, OffsetDateTime, and ZonedDateTime
+#+end_quote
+
+Take into account that some might not scalarize, so keep it simple:
+#+begin_quote
+Some value classes, like LocalDateTime, are too large to take advantage of this particular technique.
+But the lack of identity enables the JVM to optimize references to those objects in other ways.
+#+end_quote
+
+Why does size matter?
+#+begin_quote
+Heap flattening must maintain the integrity of object data.
+For example, the flattened reference must be read and written atomically,
+or it could become corrupted.
+On common platforms, this limits the size of most flattened references to no more than 64 bits.
+So while it would theoretically be possible to flatten LocalDateTime references too,
+in practice they would probably be too big.
+#+end_quote
+
+But note:
+#+begin_quote
+Unlike heap flattening, scalarization is not constrained by the size of the data—local variables
+being operated on in the stack are not at risk of data races.
+A scalarized encoding of a LocalDateTime reference might consist of a null flag,
+four components for the LocalDate reference, and five components for the LocalTime reference.
+#+end_quote
+
+A more extensive list of JDK value classes:
+#+begin_quote
+The full list of classes in the JDK that are treated as value classes when preview features is as follows:
+
+In java.lang: Integer, Long, Float, Double, Byte, Short, Boolean, Character, Number, and Record
+In java.util: Optional, OptionalInt, OptionalLong, and OptionalDouble
+In java.time: LocalDate, Period, Year, YearMonth, MonthDay, LocalTime, Instant, Duration, LocalDateTime, OffsetTime, OffsetDateTime, ZonedDateTime
+In java.time.chrono: HijrahDate, JapaneseDate, MinguoDate, ThaiBuddhistDate, and ChronoLocalDateImpl
+#+end_quote
+** test idea: verify that boxed primitives have additional extra bits
+#+begin_quote
+An array of boxed Integer objects can be similarly flattened, in this case by simply concatenating a null flag to each int value.
+
++--------------+
+| Integer[5]   |
++--------------+
+| 1|1996       |
+| 1|2006       |
+| 1|1996       |
+| 1|1          |
+| 1|23         |
++--------------+
+The layout of this array is not significantly different from that of a plain int array,
+except that it requires some extra bits for each null flag (in practice, this probably means that each reference takes up 64 bits).
+#+end_quote
+** test idea: impact of +/- InlineTypePassFieldsAsArgs/InlineTypeReturnedAsFields in calling convention
+Combined with the multi type scenario.
+InlineTypes has different scenarios defined there
+** chat with tobias
+As per chat with Tobias, potential template:
+#+begin_src java
+value class MyValue {
+    {TYPE1} field1;
+    {TYPE2} field2;
+    // Variable number of fields here ...
+}
+#+end_src
+What it can uncover:
+#+begin_quote
+The advantage of templating is that we certainly have bugs
+that only show up when scalarizing or flattening a very specific value object (i.e. some specific combinations of fields).
+And with bugs I mean both asserts/crashes/incorrect execution as well as performance bugs
+(no scalarization applied - costly allocations + indirection remains in the code).
+
+And anything more complicated than above test is valuable, especially with complex control flow from loops.
+
+Same with what the value class extends/implements.
+
+And now this value class would need to be used in as many as possible places where value class specific optimizations are triggered.
+I.e. scalarization in the method body, the calling convention and the return convention
+#+end_quote
+#+begin_quote
+> TYPE1/TYPE2 could be anything from primitives all the way to classes/records/value classes...etc?
+
+As many variants as possible.
+#+end_quote
