@@ -6,6 +6,7 @@ CONF ?= fast
 # can be combined with cmdlines, e.g. LOG=info,cmdlines
 LOG ?= info
 
+BASE_JDK ?= jdk
 SRC ?= $(A_ROOT)/src
 WORKTREE ?= topic
 BRANCH ?= topic.${ID}
@@ -156,15 +157,15 @@ compile-commands:
 .PHONY: compile-commands
 
 new-worktree:
-> pushd $(SRC)/jdk
+> pushd $(SRC)/$(BASE_JDK)
 > git fetch $(base_remote)
 > git checkout $(base_remote)/$(base_branch)
-> git worktree add ../$(jdk_tree_name) $(worktree_id)
+> git worktree add -b $(worktree_id) ../$(jdk_tree_name) $(base_remote)/$(base_branch)
 > popd
 .PHONY: new-worktree
 
 checkout-worktree:
-> cd $(SRC)/jdk
+> cd $(SRC)/$(BASE_JDK)
 > git fetch origin
 > git pull
 > git worktree add -b $(worktree_id) ../$(jdk_tree_name) origin/$(worktree_id)
