@@ -1,3 +1,49 @@
+* 23.7.25
+** avx512
+jtr output:
+#+begin_src bash
+[2025-07-23T16:19:31.538235205Z] Gathering output for process 174665
+[2025-07-23T16:19:31.538665071Z] Waiting for completion for process 174665
+[2025-07-23T16:19:34.452609979Z] Waiting for completion finished for process 174665
+Output and diagnostic info for process 174665 was saved into 'pid-174665-output.log'
+----------System.err:(3/35)----------
+JavaTest Message: Test complete.
+result: Passed. Execution successful
+test result: Passed. Execution successful
+#+end_src
+
+Test output:
+#+begin_src bash
+[roland@ws2 jdk-jdk]$ make CONF=linux-x86_64-server-fastdebug test TEST="test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java"
+Building target 'test' in configuration 'linux-x86_64-server-fastdebug'
+Creating 1 test library file(s) for BUILD_JDK_JTREG_LIBRARIES
+Compiling up to 718 files for BUILD_JDK_MICROBENCHMARK
+Modifying images/test/micro/benchmarks.jar
+  updating 9438 files
+Test selection 'test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java', will run:
+jtreg:test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java
+Clean up dirs for jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java
+
+Running test 'jtreg:test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java'
+Passed: compiler/loopopts/superword/MinMaxRed_Long.java
+Test results: passed: 1
+Report written to /home/roland/jdk-jdk/build/linux-x86_64-server-fastdebug/test-results/jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java/html/report.html
+Results written to /home/roland/jdk-jdk/build/linux-x86_64-server-fastdebug/test-support/jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java
+Finished running test 'jtreg:test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java'
+Test report is stored in build/linux-x86_64-server-fastdebug/test-results/jtreg_test_hotspot_jtreg_compiler_loopopts_superword_MinMaxRed_Long_java
+
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/loopopts/superword/MinMaxRed_Long.java
+                                                         1     1     0     0     0
+==============================
+TEST SUCCESS
+
+Finished building target 'test' in configuration 'linux-x86_64-server-fastdebug'
+[roland@ws2 jdk-jdk]$ 
+#+end_src
 * 22.7.25
 #+begin_src bash
 Test Failures (1)
