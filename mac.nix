@@ -9,6 +9,7 @@ pkgs.mkShell {
     pkgs.ant
     pkgs.autoconf
     pkgs.capstone
+    pkgs.maven
     pkgs.pigz
     pkgs.temurin-bin-24
 
@@ -26,6 +27,7 @@ pkgs.mkShell {
   CAPSTONE_HOME="${pkgs.capstone}";
   DEVELOPER_DIR="${devdir}";
   DEVKIT_ROOT="${devkit}";
+  MAVEN_HOME="${pkgs.maven}";
   MIGCC="${devdir}/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc";
 
   shellHook = ''
@@ -35,6 +37,7 @@ pkgs.mkShell {
     echo "DEVELOPER_DIR set to $DEVELOPER_DIR"
     echo "DEVKIT_ROOT set to $DEVKIT_ROOT"
     echo "MIGCC set to $MIGCC"
+    echo "MAVEN_HOME set to $MAVEN_HOME"
 
     unset SOURCE_DATE_EPOCH
     echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"
