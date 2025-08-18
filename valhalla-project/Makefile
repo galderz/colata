@@ -17,7 +17,8 @@ include $(TOPDIR)/nix-make/OpenJDK.gmk
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
-base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::testFill
+base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::testCopy
 
 jvm_args += $(base_jvm_args)
 
@@ -25,6 +26,14 @@ jvm_args += $(base_jvm_args)
 IGV ?=
 ifdef IGV
   jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
+endif
+
+vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::testFill,ALL
+vector_jvm_args += -XX:CompileCommand=TraceAutoVectorization,$(CLASS)::testCopy,ALL
+vector_jvm_args += -XX:+TraceNewVectors
+
+ifdef VECTOR_ARGS
+  jvm_args += $(vector_jvm_args)
 endif
 
 jvm_args += --enable-preview
