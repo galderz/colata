@@ -44,12 +44,17 @@ public class Gen
         var test = MethodSpec.methodBuilder("test")
             .returns(int[].class)
             .addModifiers(STATIC)
-            // .addStatement("var value = $L", value)
-            // .addStatement("var box = new $N(value)", box)
+            // Allocate gets removed
             .addNamedCode("""
-                var obj = new $type:N($fieldValue:L);
+                var value = $fieldValue:L;
+                var obj = new $type:N(value);
                 return obj.$fieldName:L;
                 """, data)
+            // Allocate does not get removed
+            // .addNamedCode("""
+            //     var obj = new $type:N($fieldValue:L);
+            //     return obj.$fieldName:L;
+            //     """, data)
             .build();
 
         var validate = MethodSpec.methodBuilder("validate")

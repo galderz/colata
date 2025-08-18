@@ -30,6 +30,7 @@ ifdef IDEAL_ARGS
 endif
 
 valhalla_jvm_args += --enable-preview
+valhalla_jvm_args += -XX:-DoEscapeAnalysis
 
 jvm_args += $(base_jvm_args)
 jvm_args += $(valhalla_jvm_args)
