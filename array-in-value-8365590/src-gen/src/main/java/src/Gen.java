@@ -46,8 +46,10 @@ public class Gen
             .addModifiers(STATIC)
             // .addStatement("var value = $L", value)
             // .addStatement("var box = new $N(value)", box)
-            .addNamedCode("var obj = new $type:N($fieldValue:L);\n", data)
-            .addNamedCode("return obj.$fieldName:L;", data)
+            .addNamedCode("""
+                var obj = new $type:N($fieldValue:L);
+                return obj.$fieldName:L;
+                """, data)
             .build();
 
         var validate = MethodSpec.methodBuilder("validate")
