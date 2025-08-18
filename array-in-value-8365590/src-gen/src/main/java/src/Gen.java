@@ -45,16 +45,17 @@ public class Gen
             .returns(int[].class)
             .addModifiers(STATIC)
             // Allocate gets removed
+            // .addNamedCode("""
+            //     var value = $fieldValue:L;
+            //     var obj = new $type:N(value);
+            //     return obj.$fieldName:L;
+            //    """, data)
+
+            // Allocate does not get removed
             .addNamedCode("""
-                var value = $fieldValue:L;
-                var obj = new $type:N(value);
+                var obj = new $type:N($fieldValue:L);
                 return obj.$fieldName:L;
                 """, data)
-            // Allocate does not get removed
-            // .addNamedCode("""
-            //     var obj = new $type:N($fieldValue:L);
-            //     return obj.$fieldName:L;
-            //     """, data)
             .build();
 
         var validate = MethodSpec.methodBuilder("validate")
