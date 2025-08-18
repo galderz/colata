@@ -39,6 +39,8 @@ public class Gen
         var test = MethodSpec.methodBuilder("test")
             .returns(int[].class)
             .addModifiers(STATIC)
+            // .addStatement("var value = $L", value)
+            // .addStatement("var box = new $N(value)", box)
             .addStatement("var box = new $N($L)", box, value)
             .addStatement("return box.v")
             .build();
