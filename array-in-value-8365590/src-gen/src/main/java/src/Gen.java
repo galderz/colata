@@ -49,7 +49,7 @@ public class Gen
             //     var value = $fieldValue:L;
             //     var obj = new $type:N(value);
             //     return obj.$fieldName:L;
-            //    """, data)
+            //     """, data)
 
             // Allocate does not get removed
             .addNamedCode("""
@@ -58,12 +58,20 @@ public class Gen
                 """, data)
             .build();
 
+        var blackhole = MethodSpec.methodBuilder("blackhole")
+            .addModifiers(STATIC)
+            .addParameter(Object.class, "obj")
+            .beginControlFlow("if (obj.hashCode() == $T.nanoTime())", System.class)
+            .addStatement("$T.out.println(obj)", System.class)
+            .endControlFlow()
+            .build();
+
         var validate = MethodSpec.methodBuilder("validate")
             .addModifiers(STATIC)
             .addParameter(int[].class, "expected")
             .addParameter(int[].class, "actual")
             .beginControlFlow("if($T.equals(expected, actual))", Arrays.class)
-            .addStatement("System.out.print(\".\")")
+            .addStatement("$N(actual)", blackhole)
             .nextControlFlow("else")
             .addStatement("""
                 throw new AssertionError(String.format(
@@ -91,6 +99,7 @@ public class Gen
             .addType(box)
             .addMethod(test)
             .addMethod(main)
+            .addMethod(blackhole)
             .addMethod(validate)
             .build();
 
