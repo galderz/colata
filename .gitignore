@@ -12,3 +12,5 @@ target/
 jdk
 # Environment info
 .env
+# Log files
+*.log
