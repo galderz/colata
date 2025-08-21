@@ -29,7 +29,9 @@ benchmark_all()
     local extra_args=$2
     local rff_prefix=$3
 
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.VectorBitConversion\" MICRO=\"OPTIONS=-rff ${rff_prefix}.csv ${extra_args}\" CONF=release LOG=warn make test
+    local prefix="micro:org\.openjdk\.bench\.vm\.compiler\.TypeVectorOperations.TypeVectorOperationsSuperWord\.convert"
+
+    log TEST=\"${prefix}\.*Bits\.*\" MICRO=\"OPTIONS=-rff ${rff_prefix}.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
@@ -70,4 +72,4 @@ CONF=release make clean-csv
 benchmark_branch "topic.fp-bits-vector" "" "noprof"
 #benchmark_branch "topic.fp-bits-vector.base" "-prof ${ASM_PROFILER};FORK=1" "perfasm"
 #benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-#benchmark_branch "topic.fp-bits-vector.base" "" "noprof-base"
+benchmark_branch "topic.fp-bits-vector.base" "" "noprof-base"
