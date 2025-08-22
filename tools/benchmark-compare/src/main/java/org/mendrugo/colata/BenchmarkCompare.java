@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -105,9 +104,8 @@ public class BenchmarkCompare
 
     }
 
-    record WorkloadParams(
-        SortedMap<String, String> params
-    )
+    record WorkloadParams(SortedMap<String, Value> params)
+        implements Comparable<WorkloadParams>
     {
         Collection<String> keys()
         {
@@ -116,7 +114,39 @@ public class BenchmarkCompare
 
         String get(String name)
         {
-            return params.get(name);
+            Value value = params.get(name);
+            return value == null ? null : value.value();
+        }
+
+        @Override
+        public int compareTo(WorkloadParams o)
+        {
+            if (!params.keySet().equals(o.params.keySet()))
+            {
+                throw new IllegalStateException("Comparing actual params with different key sets.");
+            }
+
+            for (Map.Entry<String, Value> e : params.entrySet())
+            {
+                int cr = e.getValue().compareTo(o.params.get(e.getKey()));
+                if (cr != 0)
+                {
+                    return cr;
+                }
+            }
+            return 0;
+        }
+
+        private record Value(
+            String value
+            , int order
+        ) implements Comparable<Value>
+        {
+            @Override
+            public int compareTo(Value o)
+            {
+                return Integer.compare(order, o.order);
+            }
         }
     }
 
@@ -124,7 +154,7 @@ public class BenchmarkCompare
         String benchmark
         , Mode mode
         , WorkloadParams params
-    )
+    ) implements Comparable<BenchmarkParams>
     {
         Collection<String> paramsKeys()
         {
@@ -141,6 +171,29 @@ public class BenchmarkCompare
             {
                 return null;
             }
+        }
+
+        @Override
+        public int compareTo(BenchmarkParams o)
+        {
+            int v = mode.compareTo(o.mode);
+            if (v != 0)
+            {
+                return v;
+            }
+
+            int v1 = benchmark.compareTo(o.benchmark);
+            if (v1 != 0)
+            {
+                return v1;
+            }
+
+            if (params == null || o.params == null)
+            {
+                return 0;
+            }
+
+            return params.compareTo(o.params);
         }
     }
 
@@ -159,7 +212,7 @@ public class BenchmarkCompare
     )
     {
         public static final Comparator<RunResult> DEFAULT_SORT_COMPARATOR =
-            Comparator.comparing(o -> o.params.benchmark);
+            Comparator.comparing(RunResult::params);
     }
 
     public static void main(String[] args) throws IOException
@@ -196,7 +249,7 @@ public class BenchmarkCompare
     }
 
     record CsvLine(Map<String, String> data) {}
-    record CsvFile(Map<String, CsvLine> data) {}
+    record CsvFile(Map<BenchmarkParams, CsvLine> data) {}
 
     private static Collection<RunResult> readCsvFiles(List<Path> csvPaths) throws IOException
     {
@@ -211,29 +264,29 @@ public class BenchmarkCompare
         final CsvFile baseCsvFile = readCsv(labelCsvPaths.get(Label.BASE));
         final CsvFile patchCsvFile = readCsv(labelCsvPaths.get(Label.PATCH));
         final Collection<RunResult> results = new TreeSet<>(RunResult.DEFAULT_SORT_COMPARATOR);
-        for (Map.Entry<String, CsvLine> lineEntry : baseCsvFile.data.entrySet())
+        for (Map.Entry<BenchmarkParams, CsvLine> lineEntry : baseCsvFile.data.entrySet())
         {
-            final String benchmark = lineEntry.getKey();
+            final BenchmarkParams params = lineEntry.getKey();
             final CsvLine baseValues = lineEntry.getValue();
-            final CsvLine patchValues = patchCsvFile.data.get(benchmark);
+            final CsvLine patchValues = patchCsvFile.data.get(params);
 
-            final SortedMap<String, String> workloadParams = new TreeMap<>();
-            for (Map.Entry<String, String> entry : baseValues.data.entrySet())
-            {
-                final String name = entry.getKey();
-                final String value = entry.getKey();
-                if (name.startsWith("Param:"))
-                {
-                    final String trimmedName = name.split(":")[1].trim();
-                    workloadParams.put(trimmedName, value);
-                }
-            }
+//            final SortedMap<String, String> workloadParams = new TreeMap<>();
+//            for (Map.Entry<String, String> entry : baseValues.data.entrySet())
+//            {
+//                final String name = entry.getKey();
+//                final String value = entry.getKey();
+//                if (name.startsWith("Param:"))
+//                {
+//                    final String trimmedName = name.split(":")[1].trim();
+//                    workloadParams.put(trimmedName, value);
+//                }
+//            }
 
-            final BenchmarkParams params = new BenchmarkParams(
-                benchmark
-                , Mode.deepValueOf(baseValues.data.get("Mode"))
-                , new WorkloadParams(workloadParams)
-            );
+//            final BenchmarkParams params = new BenchmarkParams(
+//                benchmark
+//                , Mode.deepValueOf(baseValues.data.get("Mode"))
+//                , new WorkloadParams(workloadParams)
+//            );
             final double baseScore = Double.parseDouble(baseValues.data.get("Score"));
             final double patchScore = Double.parseDouble(patchValues.data.get("Score"));
             final Result result = new Result(
@@ -245,6 +298,19 @@ public class BenchmarkCompare
                 , baseValues.data.get("Unit")
             );
             final RunResult runResult = new RunResult(params, result);
+            if (results.contains(runResult))
+            {
+                RunResult existing = null;
+                for (RunResult tmp : results)
+                {
+                    if (tmp.equals(runResult))
+                    {
+                        existing = tmp;
+                    }
+                }
+                // throw new IllegalStateException("Duplicate run result found: existing: " + existing + ", current " + runResult);
+            }
+
             results.add(runResult);
         }
         return results;
@@ -257,7 +323,8 @@ public class BenchmarkCompare
 
     private static CsvFile readCsv(Path path) throws IOException
     {
-        final Map<String, CsvLine> fileData = new HashMap<>();
+        final Map<BenchmarkParams, CsvLine> fileData = new HashMap<>();
+        int valueId = 0;
         try (BufferedReader br = Files.newBufferedReader(path))
         {
             final String header = br.readLine();
@@ -285,7 +352,26 @@ public class BenchmarkCompare
 
                 final CsvLine csvLine = new CsvLine(lineData);
                 final String benchmark = lineData.get("Benchmark");
-                fileData.put(benchmark, csvLine);
+
+                final SortedMap<String, WorkloadParams.Value> workloadParams = new TreeMap<>();
+                for (Map.Entry<String, String> entry : lineData.entrySet())
+                {
+                    final String name = entry.getKey();
+                    final String value = entry.getValue();
+                    if (name.startsWith("Param:"))
+                    {
+                        final String trimmedName = name.split(":")[1].trim();
+                        workloadParams.put(trimmedName, new WorkloadParams.Value(value, valueId++));
+                    }
+                }
+
+                final BenchmarkParams params = new BenchmarkParams(
+                    benchmark
+                    , Mode.deepValueOf(lineData.get("Mode"))
+                    , new WorkloadParams(workloadParams)
+                );
+
+                fileData.put(params, csvLine);
             }
         }
         return new CsvFile(fileData);
@@ -416,8 +502,7 @@ public class BenchmarkCompare
         // todo score error
         // out.printf("%" + scoreErrLen + "s", "Error");
         out.printf("%" + unitLen + "s", "Units");
-        out.print("  ");
-        out.printf("%" + diffLen + "s", "diff");
+        out.printf("%" + diffLen + "s", "Diff");
         out.println();
 
         for (RunResult res : runResults)
@@ -455,15 +540,7 @@ public class BenchmarkCompare
             // }
 
             out.printf("%" + unitLen + "s", pRes.scoreUnit());
-            if (pRes.diff() > 0)
-            {
-                out.print(" +");
-            }
-            else
-            {
-                out.print(" -");
-            }
-            out.printf("%" + diffLen + "s", pRes.diff());
+            out.printf("%" + diffLen + "s", pRes.diff() > 0 ? "+" + pRes.diff() : pRes.diff());
             out.println();
 
             // todo secondary results
