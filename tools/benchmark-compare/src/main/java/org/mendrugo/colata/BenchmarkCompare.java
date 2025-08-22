@@ -471,7 +471,7 @@ public class BenchmarkCompare
             // todo score error
             // scoreErrLen = Math.max(scoreErrLen, ScoreFormatter.format(primRes.scoreError()).length());
             unitLen     = Math.max(unitLen, primRes.scoreUnit().length());
-            diffLen     = Math.max(diffLen, ScoreFormatter.format(primRes.diff()).length());
+            diffLen     = Math.max(diffLen, formatDiff(primRes.diff()).length());
 
             // todo secondary results
             // for (Result subRes : res.getSecondaryResults().values()) {
@@ -488,7 +488,7 @@ public class BenchmarkCompare
         // todo score error
         // scoreErrLen += COLUMN_PAD - 1; // digest a single character for +- separator
         unitLen += COLUMN_PAD;
-        diffLen += COLUMN_PAD - 1; // digest a single character for + or - separator
+        diffLen += COLUMN_PAD;
 
         out.printf("%-" + nameLen + "s", "Benchmark");
         for (String k : params) {
@@ -540,7 +540,7 @@ public class BenchmarkCompare
             // }
 
             out.printf("%" + unitLen + "s", pRes.scoreUnit());
-            out.printf("%" + diffLen + "s", pRes.diff() > 0 ? "+" + pRes.diff() : pRes.diff());
+            out.printf("%" + diffLen + "s", formatDiff(pRes.diff()));
             out.println();
 
             // todo secondary results
@@ -578,6 +578,14 @@ public class BenchmarkCompare
             //     out.println();
             // }
         }
+    }
+
+    private static String formatDiff(long diff)
+    {
+        return String.format(
+            "%s%%"
+            , diff > 0 ? "+" + diff : String.valueOf(diff)
+        );
     }
 
     private static Map<String, String> denseClassNames(Collection<String> src)
