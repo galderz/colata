@@ -1,4 +1,200 @@
+* 19.8.25
+Eliminating:
+#+begin_src bash
+  73  Allocate  === 60 57 42 8 1 (41 71 27 1 1 _ _ _ 63 1 ) [[ 74 75 76 83 84 85 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:9 (line 9) !jvms: Test::test @ bci:9 (line 9)
+Scalar   90  CheckCastPP  === 87 85  [[ 157 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:9 (line 9)
+++++ Eliminated: 73 Allocate
+  46  AllocateArray  === 5 6 7 8 1 (41 22 27 21 21 _ _ _ 1 1 ) [[ 47 48 49 56 57 58 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:1 (line 8) !jvms: Test::test @ bci:1 (line 8)
+  46  AllocateArray  === 5 6 7 8 1 (41 22 27 21 21 _ _ _ 1 1 ) [[ 47 48 49 56 57 58 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:1 (line 8) !jvms: Test::test @ bci:1 (line 8)
+  46  AllocateArray  === 5 6 7 8 1 (41 22 27 21 21 _ _ _ 1 1 ) [[ 47 48 49 56 57 58 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:1 (line 8) !jvms: Test::test @ bci:1 (line 8)
+#+end_src
+
+In non-eliminating:
+#+begin_src bash
+  68  AllocateArray  === 39 36 24 8 1 (23 46 22 45 45 _ _ _ 1 42 42 ) [[ 69 70 71 78 79 80 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:5 (line 8) !jvms: Test::test @ bci:5 (line 8)
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:0 (line 8) !jvms: Test::test @ bci:0 (line 8)
+Scalar   42  CheckCastPP  === 39 37  [[ 154 110 68 68 110 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:0 (line 8)
+  68  AllocateArray  === 39 36 24 8 1 (23 46 22 45 45 _ _ _ 1 42 42 ) [[ 69 70 71 78 79 80 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:5 (line 8) !jvms: Test::test @ bci:5 (line 8)
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:0 (line 8) !jvms: Test::test @ bci:0 (line 8)
+Scalar   42  CheckCastPP  === 39 37  [[ 154 110 68 68 110 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:0 (line 8)
+#+end_src
+
+The reason it's not eliminated is:
+#+begin_src cpp
+  GrowableArray <SafePointNode *> safepoints;
+  if (!can_eliminate_allocation(&_igvn, alloc, &safepoints)) {
+    return false;
+  }
+
+  if (!alloc->_is_scalar_replaceable) {
+    assert(res == nullptr || inline_alloc, "sanity");
+    // We can only eliminate allocation if all debug info references
+    // are already replaced with SafePointScalarObject because
+    // we can't search for a fields value without instance_id.
+    if (safepoints.length() > 0) {
+      return false;
+    }
+  }
+#+end_src
+
+safepoints lenght is 1 in this case, why is that?
+
+One of the use nodes in AllocateArrayNode and that goes into:
+#+begin_src cpp
+      } else if (use->is_SafePoint()) {
+        SafePointNode* sfpt = use->as_SafePoint();
+        if (sfpt->is_Call() && sfpt->as_Call()->has_non_debug_use(res)) {
+          // Object is passed as argument.
+          DEBUG_ONLY(disq_node = use;)
+          NOT_PRODUCT(fail_eliminate = "Object is passed as argument";)
+          can_eliminate = false;
+        }
+        Node* sfptMem = sfpt->memory();
+        if (sfptMem == nullptr || sfptMem->is_top()) {
+          DEBUG_ONLY(disq_node = use;)
+          NOT_PRODUCT(fail_eliminate = "null or TOP memory";)
+          can_eliminate = false;
+        } else if (!reduce_merge_precheck) {
+          assert(!res->is_Phi() || !res->as_Phi()->can_be_inline_type(), "Inline type allocations should not have safepoint uses");
+          safepoints->append_if_missing(sfpt); // <- SAFEPOINT ADDED HERE
+        }
+#+end_src
+
+safepoint appended at the end, which trigges size being > 1
+
+When it works, there's no AllocateArrayNode use...
+Look at the IR graph before this and see how different they look
+
+Not eliminated should have a sign of AllocatedAN being in use and indeed it has:
+#+begin_src bash
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:0 (line 10) !jvms: Test::test @ bci:0 (line 10)
+  37  Proj  === 25  [[ 38 42 ]] #5 !jvms: Test::test @ bci:0 (line 10)
+  42  CheckCastPP  === 39 37  [[ 154 110 68 68 110 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:0 (line 10)
+
+ 110  AddP  === _ 42 42 54  [[ 112 ]]   Oop:Test$Box:NotNull:exact+16 * [narrow] !jvms: Test$Box::<init> @ bci:2 (line 43) Test::test @ bci:12 (line 10)
+ 154  MemBarStoreStore  === 82 1 106 1 1 42  [[ 155 156 ]]  !jvms: Test$Box::<init> @ bci:-1 (line 43) Test::test @ bci:12 (line 10)
+  68  AllocateArray  === 39 36 24 8 1 (23 46 22 45 45 _ _ _ 1 42 42 ) [[ 69 70 71 78 79 80 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:5 (line 10) !jvms: Test::test @ bci:5 (line 10)
+#+end_src
+
+In the eliminated case:
+#+begin_src bash
+  46  AllocateArray  === 5 6 7 8 1 (41 22 27 21 21 _ _ _ 1 1 ) [[ 47 48 49 56 57 58 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, int, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:[I Test::test @ bci:1 (line 10) !jvms: Test::test @ bci:1 (line 10)
+  57  Proj  === 46  [[ 73 ]] #1 !jvms: Test::test @ bci:1 (line 10)
+
+  73  Allocate  === 60 57 42 8 1 (41 71 27 1 1 _ _ _ 63 1 ) [[ 74 75 76 83 84 85 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:9 (line 11) !jvms: Test::test @ bci:9 (line 11)
+  85  Proj  === 73  [[ 86 90 114 ]] #5 !jvms: Test::test @ bci:9 (line 11)
+  90  CheckCastPP  === 87 85  [[ 157 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:9 (line 11)
+
+ 157  MemBarStoreStore  === 87 1 106 1 1 90  [[ 158 159 ]]  !jvms: Test$Box::<init> @ bci:-1 (line 44) Test::test @ bci:14 (line 11)
+
+Scalar   90  CheckCastPP  === 87 85  [[ 157 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:9 (line 11)
+++++ Eliminated: 73 Allocate
+#+end_src
+
+Looked at IGV output and from remove useless the graphs look like this,
+  so maybe the graph is fine as is because of the shape of the code?
+
+Tried a simple fix of adding to ~PhaseMacroExpand::can_eliminate_allocation~:
+#+begin_src cpp
+      } else if (use->is_AllocateArray()) {
+        // ok to eliminate inline allocated arrays
+#+end_src
+
+But that crashes application.
+
+For the not eliminated case, how does the before remove useless graph look like in with a normal class in mainline?
+The IR looks the same, so sounds like it's a case of having to tweak ~can_eliminate_allocation~ accordingly?
+
+The suggested change is one step, seems like more work is required in ~PhaseMacroExpand::process_users_of_allocation~.
+Check what is done with the use of AllocationNode when it's eliminated and maybe try to mimmic it?
+
 * 18.8.25
+** print eliminate allocation
+assuming escape analysis is disabled, and this code shape:
+#+begin_src java
+  static int[] test() {
+    var value = new int[]{16};
+    var obj = new Box(value);
+    return obj.v;
+  }
+#+end_src
+
+when the allocation is removed:
+#+begin_src bash
+Layout of class Test$Box@0x600002fc1690 extends java/lang/Object@0x600002fdca90
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "v" [I
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+---
+
+Scalar   90  CheckCastPP  === 87 85  [[ 157 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:9 (line 9)
+++++ Eliminated: 73 Allocate
+#+end_src
+
+but with this java shape:
+#+begin_src java
+  static int[] test() {
+    var obj = new Box(new int[]{16});
+    return obj.v;
+  }
+#+end_src
+
+#+begin_src bash
+Layout of class Test$Box@0x6000010e8e50 extends java/lang/Object@0x6000010fc0d0
+Instance fields:
+ @0 RESERVED 12/-
+ @12 PADDING 4/1
+ @16 REGULAR 4/4 "v" [I
+ @20 NULL_MARKER 1/1
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+Instance size = 24 bytes
+First field offset = 16
+Payload layout: 8/8
+Non atomic flat layout: 4/4
+Atomic flat layout: 4/4
+Nullable flat layout: 8/8
+Null marker offset = 20
+---
+
+Scalar   42  CheckCastPP  === 39 37  [[ 154 110 68 68 110 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:0 (line 8)
+Scalar   42  CheckCastPP  === 39 37  [[ 154 110 68 68 110 ]]  #Test$Box:NotNull:exact *  Oop:Test$Box:NotNull:exact * !jvms: Test::test @ bci:0 (line 8)
+#+end_src
+** escape analysis
+given this java code:
+#+begin_src java
+  static int[] test() {
+    var obj = new Box(new int[]{16});
+    return obj.v;
+  }
+#+end_src
+
+With escape analysis disabled the allocation is not removed
+#+begin_src bash
+  25  Allocate  === 5 6 7 8 1 (23 21 22 1 1 _ _ _ 1 ) [[ 26 27 28 35 36 37 ]]  rawptr:NotNull ( int:>=0, java/lang/Object:NotNull *, bool, top, bool, bottom, java/lang/Object:NotNull *, long ) allocationKlass:Test$Box Test::test @ bci:0 (line 8) !jvms: Test::test @ bci:0 (line 8)
+#+end_src
+
+with escape analysis enabled the allocation gets removed
+#+begin_src bash
+#+end_src
+
+so the question is twofold:
+why doesn't the value class scalarization work in this case?
+why does escape analysis make the allocation go away?
+** initial thoughts
 replicated outside of test with poet generated test?
 #+begin_src bash
 AFTER: BEFORE_ITER_GVN
