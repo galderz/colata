@@ -20,6 +20,8 @@ public class Gen
 {
     public static void main(String[] args) throws IOException
     {
+        final ClassNames className = ClassNames.valueOf(args[0]);
+
         final Map<String, Object> data = new HashMap<>();
         data.put("fieldName", "v");
         data.put("fieldValue", "new int[]{16}");
@@ -41,22 +43,32 @@ public class Gen
             .initializer("10_000")
             .build();
 
-        var test = MethodSpec.methodBuilder("test")
+        var testBuilder = MethodSpec.methodBuilder("test")
             .returns(int[].class)
-            .addModifiers(STATIC)
-            // Allocate gets removed
-            // .addNamedCode("""
-            //     var value = $fieldValue:L;
-            //     var obj = new $type:N(value);
-            //     return obj.$fieldName:L;
-            //     """, data)
+            .addModifiers(STATIC);
 
-            // Allocate does not get removed
-            .addNamedCode("""
-                var obj = new $type:N($fieldValue:L);
-                return obj.$fieldName:L;
-                """, data)
-            .build();
+        switch (className)
+        {
+            case Eliminated ->
+                // Allocate Eliminated
+                testBuilder.addNamedCode("""
+                    var value = $fieldValue:L;
+                    var obj = new $type:N(value);
+                    return obj.$fieldName:L;
+                    """
+                    , data
+                );
+            case NotEliminated ->
+                // Allocate NOT Eliminated
+                testBuilder.addNamedCode("""
+                    var obj = new $type:N($fieldValue:L);
+                    return obj.$fieldName:L;
+                    """
+                , data
+                );
+        };
+
+        var test = testBuilder.build();
 
         var blackhole = MethodSpec.methodBuilder("blackhole")
             .addModifiers(STATIC)
@@ -93,7 +105,7 @@ public class Gen
             .endControlFlow()
             .build();
 
-        var type = TypeSpec.classBuilder("Test")
+        var type = TypeSpec.classBuilder(className.name())
             .addModifiers(PUBLIC, FINAL)
             .addField(iter)
             .addType(box)
@@ -117,5 +129,11 @@ public class Gen
         }
 
         javaFile.writeTo(target);
+    }
+
+    private enum ClassNames
+    {
+        Eliminated,
+        NotEliminated
     }
 }

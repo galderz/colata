@@ -21,9 +21,9 @@ base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 
-ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION"
 #ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN"
-#ideal_jvm_args += -XX:+PrintIdeal
+ideal_jvm_args += -XX:+PrintIdeal
 
 ifdef IDEAL_ARGS
   jvm_args += $(ideal_jvm_args)
@@ -31,9 +31,18 @@ endif
 
 valhalla_jvm_args += --enable-preview
 valhalla_jvm_args += -XX:-DoEscapeAnalysis
+valhalla_jvm_args += -XX:+PrintEliminateAllocations
+valhalla_jvm_args += -XX:+PrintOptoStatistics
+#valhalla_jvm_args += -XX:+PrintFieldLayout
 
 jvm_args += $(base_jvm_args)
 jvm_args += $(valhalla_jvm_args)
+
+# E.g. IGV=3 (0 print nothing except IGVPrintLevel directives, 6 all details)
+IGV ?=
+ifdef IGV
+  jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
+endif
 
 gen_file = target/$(CLASS).java
 
@@ -45,12 +54,12 @@ $(gen_file): $(java)
 > pushd src-gen
 > JAVA_HOME=$(java_home) mvn package
 > popd
-> $(java) -cp $(shell pwd)/src-gen/target/src-gen.jar:$(HOME)/.m2/repository/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar src.Gen
+> $(java) -cp $(shell pwd)/src-gen/target/src-gen.jar:$(HOME)/.m2/repository/com/squareup/javapoet/1.13.0/javapoet-1.13.0.jar src.Gen $(CLASS)
 
 gen: $(gen_file)
 .PHONY: gen
 
-run: clear-logs $(gen_file)
+run: clear-logs
 > $(java) \
 >   $(jvm_args) $(shell pwd)/target/$(CLASS).java
 .PHONY: run
