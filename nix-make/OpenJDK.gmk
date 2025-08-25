@@ -137,17 +137,15 @@ test: clear-logs build-jdk
 > CONF=$(conf_name) make exploded-test
 .PHONY: test
 
-jtreg: clear-logs build-jdk
+jtreg: clear-logs test-image
 > cd $(JDK_HOME)
-> JAVA_HOME=$(java_home) $(jtreg_bin) $(TEST)
+> JAVA_HOME=$(java_home) $(jtreg_bin) -verbose:all $(TEST)
+> cat JTreport/text/summary.txt
 .PHONY: jtreg
 
-$(benchmarks_jar): build-jdk
-> pushd $(JDK_HOME)
-> CONF=$(conf_name) make test-image
-> popd
+$(benchmarks_jar): test-image
 
-debug-jmh: $(java)
+debug-jmh: $(java) $(benchmarks_jar)
 > $< -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 -jar $(benchmarks_jar) $(JMH_ARGS)
 .PHONY: debug-jmh
 
@@ -225,6 +223,11 @@ run-use: configure clean-jdk
 > $(TOPDIR)/nix-make/run-use.sh $(CURDIR)
 .PHONY: run-use
 
+test-image: build-jdk
+> cd $(JDK_HOME)
+> CONF=$(conf_name) make test-image
+.PHONY: test-image
+
 test-tier1: build-jdk
 > cd $(JDK_HOME)
 > CONF=$(conf_name) TEST="tier1" make test
@@ -251,6 +254,13 @@ $(jtreg_src):
 $(gtest_src):
 > cd $(opt)
 > git clone -b v1.14.0 https://github.com/google/googletest
+
+igv:
+> pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
+> JAVA_HOME=$(IGV_JDK_HOME) mvn install -DskipTests
+> popd
+> $(TOPDIR)/nix-make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(IGV_JDK_HOME)
+.PHONY: igv
 
 clear-logs:
 > rm -f *.log

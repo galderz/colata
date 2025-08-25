@@ -12,6 +12,7 @@ pkgs.mkShell {
     pkgs.maven
     pkgs.pigz
     pkgs.temurin-bin-24
+    pkgs.temurin-bin-21
 
     devkit
   ];
@@ -27,6 +28,7 @@ pkgs.mkShell {
   CAPSTONE_HOME="${pkgs.capstone}";
   DEVELOPER_DIR="${devdir}";
   DEVKIT_ROOT="${devkit}";
+  IGV_JDK_HOME="${pkgs.temurin-bin-21}";
   MAVEN_HOME="${pkgs.maven}";
   MIGCC="${devdir}/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc";
 
@@ -36,6 +38,7 @@ pkgs.mkShell {
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
     echo "DEVELOPER_DIR set to $DEVELOPER_DIR"
     echo "DEVKIT_ROOT set to $DEVKIT_ROOT"
+    echo "IGV_JDK_HOME set to $IGV_JDK_HOME"
     echo "MIGCC set to $MIGCC"
     echo "MAVEN_HOME set to $MAVEN_HOME"
 
