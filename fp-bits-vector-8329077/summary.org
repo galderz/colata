@@ -1,3 +1,53 @@
+* 21.8.25
+** dry run comparison
+#+begin_src bash
+Benchmark                                                             (COUNT)  (seed)   Mode  Cnt      Score   Error   Units
+TypeVectorOperations.TypeVectorOperationsSuperWord.convertD2LBits         512       0  thrpt        4897.299          ops/ms (patch)
+TypeVectorOperations.TypeVectorOperationsSuperWord.convertD2LBits         512       0  thrpt        4660.395          ops/ms (base)
+#+end_src
+
+#+begin_src bash
+Benchmark                                                             (COUNT)  (seed)   Mode  Cnt      Base     Patch   Units   Diff
+TypeVectorOperations.TypeVectorOperationsSuperWord.convertD2LBits         512       0  thrpt       4660.395  4897.299  ops/ms    +5%
+#+end_src
+* 20.8.25
+x86:
+#+begin_src bash
+Test results: passed: 11; did not meet platform requirements: 1
+#+end_src
+
+aarch64:
+#+begin_src bash
+Test results: passed: 10; failed: 1; did not meet platform requirements: 1
+#+end_src
+
+failed aarch64:
+#+begin_src bash
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  Internal Error (/local/galder/src/jdk-fp-bits-vector/src/hotspot/cpu/aarch64/assembler_aarch64.hpp:3756), pid=111388, tid=111404
+#  guarantee(false) failed: invalid immediate
+#
+# JRE version: OpenJDK Runtime Environment (26.0) (fastdebug build 26-internal-adhoc.ec2user.jdk-fp-bits-vector)
+# Java VM: OpenJDK 64-Bit Server VM (fastdebug 26-internal-adhoc.ec2user.jdk-fp-bits-vector, mixed mode, tiered, compressed oops, compressed class ptrs, g1 gc, linux-aarch64)
+# Problematic frame:
+# V  [libjvm.so+0x485da4]  Assembler::sve_dup(FloatRegister, Assembler::SIMD_RegVariant, int)+0x124
+#
+# Core dump will be written. Default location: Core dumps may be processed with "/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h" (or dumping to /local/galder/src/jdk-fp-bits-vector/JTwork/scratch/core.111388)
+#
+Unsupported internal testing APIs have been used.
+
+# An error report file with more information is saved as:
+# /local/galder/src/jdk-fp-bits-vector/JTwork/scratch/hs_err_pid111388.log
+#
+# Compiler replay data is saved as:
+# /local/galder/src/jdk-fp-bits-vector/JTwork/scratch/replay_pid111388.log
+#
+# If you would like to submit a bug report, please visit:
+#   https://bugreport.java.com/bugreport/crash.jsp
+#
+#+end_src
 * 9.8.25
 ** reply to emanuel
 I've done some testing on x86_64 and aarch64 and the tests pass.
