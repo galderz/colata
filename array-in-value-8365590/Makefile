@@ -19,10 +19,10 @@ include $(TOPDIR)/nix-make/OpenJDK.gmk
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
-base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=compileonly,Test::test
 
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_MACRO_EXPANSION"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,Test::test,"BEFORE_MACRO_EXPANSION"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,Test::test,"BEFORE_ITER_GVN"
 ideal_jvm_args += -XX:+PrintIdeal
 
 ifdef IDEAL_ARGS

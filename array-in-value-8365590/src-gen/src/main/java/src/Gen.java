@@ -6,7 +6,10 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,7 +67,7 @@ public class Gen
                     var obj = new $type:N($fieldValue:L);
                     return obj.$fieldName:L;
                     """
-                , data
+                    , data
                 );
         };
 
@@ -105,8 +108,8 @@ public class Gen
             .endControlFlow()
             .build();
 
-        var type = TypeSpec.classBuilder(className.name())
-            .addModifiers(PUBLIC, FINAL)
+        var type = TypeSpec.classBuilder("Test")
+            .addModifiers(FINAL)
             .addField(iter)
             .addType(box)
             .addMethod(test)
@@ -128,7 +131,28 @@ public class Gen
             throw new RuntimeException("Couldn't create directory: " + target);
         }
 
-        javaFile.writeTo(target);
+        var javaFilePath = target.toPath().resolve("%s.java".formatted(className.name()));
+        Files.writeString(javaFilePath, javaFile.toString());
+        Files.writeString(javaFilePath, entryPoint(className).toString(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+    }
+
+    private static JavaFile entryPoint(ClassNames className)
+    {
+        var main = MethodSpec.methodBuilder("main")
+            .addModifiers(PUBLIC, STATIC)
+            .returns(void.class)
+            .addParameter(String[].class, "args")
+            .addStatement("Test.main(args)")
+            .build();
+
+        var type = TypeSpec.classBuilder(className.name())
+            .addModifiers(PUBLIC, FINAL)
+            .addMethod(main)
+            .build();
+
+        return JavaFile.builder("", type)
+            .skipJavaLangImports(true)
+            .build();
     }
 
     private enum ClassNames
