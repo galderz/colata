@@ -23,7 +23,7 @@ public class Gen
 {
     public static void main(String[] args) throws IOException
     {
-        final ClassNames className = ClassNames.valueOf(args[0]);
+        final Option option = Option.valueOf(args[0]);
 
         final Map<String, Object> data = new HashMap<>();
         data.put("fieldName", "v");
@@ -50,7 +50,7 @@ public class Gen
             .returns(int[].class)
             .addModifiers(STATIC);
 
-        switch (className)
+        switch (option)
         {
             case Eliminated ->
                 // Allocate Eliminated
@@ -124,38 +124,13 @@ public class Gen
         var target = Path
             .of(System.getProperty("user.dir"))
             .resolve("target")
+            .resolve(option.name())
             .toFile();
 
-        if (!target.exists() && !target.mkdirs())
-        {
-            throw new RuntimeException("Couldn't create directory: " + target);
-        }
-
-        var javaFilePath = target.toPath().resolve("%s.java".formatted(className.name()));
-        Files.writeString(javaFilePath, javaFile.toString());
-        Files.writeString(javaFilePath, entryPoint(className).toString(), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+        javaFile.writeTo(target);
     }
 
-    private static JavaFile entryPoint(ClassNames className)
-    {
-        var main = MethodSpec.methodBuilder("main")
-            .addModifiers(PUBLIC, STATIC)
-            .returns(void.class)
-            .addParameter(String[].class, "args")
-            .addStatement("Test.main(args)")
-            .build();
-
-        var type = TypeSpec.classBuilder(className.name())
-            .addModifiers(PUBLIC, FINAL)
-            .addMethod(main)
-            .build();
-
-        return JavaFile.builder("", type)
-            .skipJavaLangImports(true)
-            .build();
-    }
-
-    private enum ClassNames
+    private enum Option
     {
         Eliminated,
         NotEliminated
