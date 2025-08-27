@@ -1,3 +1,74 @@
+* 26.8.25
+Confirmed that this is supposed to work in ~PhaseMacroExpand::eliminate_allocate_node~:
+#+begin_src bash
+  // Attempt to eliminate inline type buffer allocations
+  // regardless of usage and escape/replaceable status.
+#+end_src
+
+Next step, read:
+https://grothoff.org/christian/teaching/2007/3353/papers/click95simple.pdf
+* 25.8.25
+Eliminated bytecode:
+#+begin_src java
+  static int[] test() {
+    var value = new int[]{16};
+    var obj = new Box(value);
+    return obj.v;
+  }
+
+  static int[] test();
+    descriptor: ()[I
+    flags: (0x0008) ACC_STATIC
+    Code:
+      stack=4, locals=2, args_size=0
+         0: iconst_1                          // push 1 into stack (array length)
+         1: newarray       int                // new int[1] on the stack
+         3: dup                               // duplicate array ref (we need one copy for store, one to keep)
+         4: iconst_0                          // push index 0
+         5: bipush        16                  // push value 16
+         7: iastore                           // stores into int[] array (consumes array ref, index, value)
+         8: astore_0                          // value = (int[])<dup’d array>
+
+         9: new           #7                  // class Test$Box
+        12: dup
+        13: aload_0                           // push 'value' int[]
+        14: invokespecial #9                  // Method Test$Box."<init>":([I)V
+        17: astore_1                          // obj = <initialized Test$Box)
+
+        18: aload_1
+        19: getfield      #12                 // Field Test$Box.v:[I
+        22: areturn
+      LineNumberTable:
+        line 10: 0
+        line 11: 9
+        line 12: 18
+#+end_src
+
+NotEliminated bytecode:
+#+begin_src java
+  static int[] test();
+    descriptor: ()[I
+    flags: (0x0008) ACC_STATIC
+    Code:
+      stack=6, locals=1, args_size=0
+         0: new           #7                  // class Test$Box
+         3: dup
+         4: iconst_1                          // push 1 into stack (array length)
+         5: newarray       int                // new int[1] on the stack
+         7: dup                               // duplicate array ref (we need one copy for store, one to keep)
+         8: iconst_0                          // push index 0
+         9: bipush        16                  // push index 16
+        11: iastore                           // stores into int[] array (consumes array ref, index, value)
+        12: invokespecial #9                  // Method Test$Box."<init>":([I)V
+        15: astore_0
+
+        16: aload_0
+        17: getfield      #12                 // Field Test$Box.v:[I
+        20: areturn
+      LineNumberTable:
+        line 10: 0
+        line 11: 16
+#+end_src
 * 19.8.25
 Eliminating:
 #+begin_src bash
