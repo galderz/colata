@@ -29,7 +29,12 @@ public class PrimitiveAndIfUnrolled
             {
                 throw new RuntimeException("some error condition, probably deopt");
             }
-            x = Math.max(v3, Math.max(v2, Math.max(v1, Math.max(v0, x))));
+            // Expanded:
+            // x = Math.max(v3, Math.max(v2, Math.max(v1, Math.max(v0, x))));
+            x = Math.max(v0, x);
+            x = Math.max(v1, x);
+            x = Math.max(v2, x);
+            x = Math.max(v3, x);
         }
         return x;
     }
