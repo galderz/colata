@@ -42,14 +42,12 @@ pkgs.mkShell {
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
-  JMH_SNAPSHOT="false";
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
     echo "BOOT_JDK_set HOME to $BOOT_JDK_HOME"
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
     echo "FREETYPE_INCLUDE set to $FREETYPE_INCLUDE"
-    echo "JMH_SNAPSHOT set to $JMH_SNAPSHOT"
     echo "FREETYPE_LIB set to $FREETYPE_LIB"
 
     ln -sf ${gdbInit} $HOME/.gdbinit

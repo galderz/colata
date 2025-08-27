@@ -1,9 +1,6 @@
 ID ?= fp-bits-vector
 CLASS ?= Test
 
-# Use JMH snapshot to access xctraceasm profiler
-JMH_SNAPSHOT ?= true
-
 default: run
 
 TOPDIR = ..

@@ -71,6 +71,13 @@ else
 endif
 conf_name = $(CONF)-$(os)-$(cpu)
 
+ifeq ($(os),darwin)
+  # Use JMH snapshot to access xctraceasm profiler
+  JMH_SNAPSHOT := true
+else ifeq ($(os),linux)
+  JMH_SNAPSHOT := false
+endif
+
 $(java): $(shell find $(JDK_HOME)/src -type f -name '*.java')
 $(java): $(shell find $(JDK_HOME)/src -type f -name '*pp')
 $(java): $(shell find $(JDK_HOME)/test -type f -name '*.java')

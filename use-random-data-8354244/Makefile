@@ -1,12 +1,5 @@
 ID ?= use-random-data
 
-ifeq ($(os),darwin)
-  # Use JMH snapshot to access xctraceasm profiler
-  JMH_SNAPSHOT := true
-else ifeq ($(os),linux)
-  JMH_SNAPSHOT := false
-endif
-
 default: run
 
 TOPDIR = ..

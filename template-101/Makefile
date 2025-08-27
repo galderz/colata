@@ -1,9 +1,6 @@
 ID ?= template-101
 CLASS ?= Test
 
-# Use JMH snapshot to access xctraceasm profiler
-JMH_SNAPSHOT ?= false
-
 # Workaround temporary errors
 NO_WARNINGS_ERRORS := true
 
