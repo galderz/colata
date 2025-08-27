@@ -114,7 +114,7 @@ configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
 >   --with-jtreg=$(jtreg_home) \
 >   $(conf_args)
 > popd
-ifeq ($(UNAME_S),Darwin)
+ifeq ($(os),darwin)
 > cp $(lldbinit) $(JDK_HOME)/build/$(conf_name)
 endif
 .PHONY: configure
