@@ -16,10 +16,10 @@ public class PrimitiveAndIfUnrolled
             // Expand
             // x = Math.max(v3, Math.max(v2, Math.max(v1, Math.max(v0, x))));
             // To
-            long x0 = Math.max(v0, x);
-            long x1 = Math.max(v1, x0);
-            long x2 = Math.max(v2, x1);
-            x = Math.max(v3, x2);
+            long t0 = Math.max(v0, x);
+            long t1 = Math.max(v1, t0);
+            long t2 = Math.max(v2, t1);
+            x = Math.max(v3, t2);
         }
         return x;
     }
