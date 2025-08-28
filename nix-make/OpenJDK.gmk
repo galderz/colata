@@ -308,3 +308,15 @@ tools:
 aws-type:
 > $(TOPDIR)/nix-make/aws-type.sh
 .PHONY: aws-type
+
+print-java-home:
+> $(info $(java_home))
+.PHONY: print-java-home
+
+print-jdk-home:
+> $(info $(JDK_HOME))
+.PHONY: print-jdk-home
+
+print-jtreg-bin:
+> $(info $(jtreg_bin))
+.PHONY: print-jtreg-bin
