@@ -11,5 +11,5 @@ tests=(
   "test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java"
 )
 
-#JTREG="JAVA_OPTIONS=-XX:+PrintIdeal"
+TEST="${tests[*]}" JTREG="JAVA_OPTIONS=-XX:UseAVX=1" make jtreg
 TEST="${tests[*]}" make jtreg
