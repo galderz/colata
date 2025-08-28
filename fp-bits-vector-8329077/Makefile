@@ -52,6 +52,11 @@ ifdef IGV
   jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
 endif
 
+AVX ?=
+ifdef AVX
+  jvm_args += -XX:UseAVX=$(AVX)
+endif
+
 jvm_args += $(base_jvm_args)
 
 run: clear-logs $(java)
