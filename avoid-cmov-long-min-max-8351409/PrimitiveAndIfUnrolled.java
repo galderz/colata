@@ -12,29 +12,14 @@ public class PrimitiveAndIfUnrolled
             long v1 = array[i + 1];
             long v2 = array[i + 2];
             long v3 = array[i + 3];
-            // Control flow that prevents vectorization:
-//            if (v0 < 0)
-//            {
-//                throw new RuntimeException("some error condition, probably deopt");
-//            }
-//            if (v1 < 0)
-//            {
-//                throw new RuntimeException("some error condition, probably deopt");
-//            }
-//            if (v2 < 0)
-//            {
-//                throw new RuntimeException("some error condition, probably deopt");
-//            }
-//            if (v3 < 0)
-//            {
-//                throw new RuntimeException("some error condition, probably deopt");
-//            }
-            // Expanded:
+
+            // Expand
             // x = Math.max(v3, Math.max(v2, Math.max(v1, Math.max(v0, x))));
-            x = Math.max(v0, x);
-            x = Math.max(v1, x);
-            x = Math.max(v2, x);
-            x = Math.max(v3, x);
+            // To
+            x0 = Math.max(v0, x);
+            x1 = Math.max(v1, x0);
+            x2 = Math.max(v2, x1);
+            x = Math.max(v3, x2);
         }
         return x;
     }
