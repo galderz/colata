@@ -1,7 +1,7 @@
 import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
-public class PrimitiveAndIfReassociatedBasic
+public class PrimitiveAndIfReassociatedOptimal
 {
     public static long test(long[] array)
     {
