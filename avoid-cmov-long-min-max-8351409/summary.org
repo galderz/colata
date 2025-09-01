@@ -1,6 +1,106 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 28.8.25
+** reassociated basic
+#+begin_src bash
+#+end_src
+
+#+begin_src asm
+#+end_src
+** unrolled howard
+#+begin_src bash
+Running
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+#+end_src
+https://uica.uops.info/?code=.loop%3A%0D%0Amovq%09%090x28(%25rsi%2C%20%25r9%2C%208)%2C%20%25r11%0D%0Amovq%09%090x20(%25rsi%2C%20%25r9%2C%208)%2C%20%25r8%0D%0Amovq%09%090x10(%25rsi%2C%20%25r9%2C%208)%2C%20%25rcx%0D%0Amovq%09%090x18(%25rsi%2C%20%25r9%2C%208)%2C%20%25rbx%0D%0Acmpq%09%09%25rcx%2C%20%25rax%0D%0Acmovlq%09%09%25rcx%2C%20%25rax%0D%0Acmpq%09%09%25rbx%2C%20%25rax%0D%0Acmovlq%09%09%25rbx%2C%20%25rax%0D%0Acmpq%09%09%25r8%2C%20%25rax%0D%0Acmovlq%09%09%25r8%2C%20%25rax%0D%0Acmpq%09%09%25r11%2C%20%25rax%0D%0Acmovlq%09%09%25r11%2C%20%25rax%0D%0Aaddl%09%09%244%2C%20%25r9d%0D%0Acmpl%09%09%25r10d%2C%20%25r9d%0D%0Ajl%09%09.loop&syntax=asATT&uArchs=SKL&tools=uiCA&alignment=0&uiCAHtmlOptions=traceTable
+#+begin_src asm
+.loop:
+movq		0x28(%rsi, %r9, 8), %r11
+movq		0x20(%rsi, %r9, 8), %r8
+movq		0x10(%rsi, %r9, 8), %rcx
+movq		0x18(%rsi, %r9, 8), %rbx
+cmpq		%rcx, %rax
+cmovlq		%rcx, %rax
+cmpq		%rbx, %rax
+cmovlq		%rbx, %rax
+cmpq		%r8, %rax
+cmovlq		%r8, %rax
+cmpq		%r11, %rax
+cmovlq		%r11, %rax
+addl		$4, %r9d
+cmpl		%r10d, %r9d
+jl		.loop
+#+end_src
+* 27.8.25
+next steps:
+- [ ] try out theoretical reassociation assembly and see how it performs
+- [ ] try out emanuel hacked reassociation assembly and see how it performs
+** latency bound v2 howard
+#+begin_src asm
+.loop:
+movq	0x28(%rsi, %r9, 8), %r11
+movq	0x20(%rsi, %r9, 8), %r8
+movq	0x10(%rsi, %r9, 8), %rcx
+movq	0x18(%rsi, %r9, 8), %rbx
+cmpq	%rcx, %rax
+cmovlq  %rcx, %rax
+cmpq	%rbx, %rax
+cmovlq	%rbx, %rax
+cmpq	%r8, %rax
+cmovlq	%r8, %rax
+cmpq	%r11, %rax
+cmovlq	%r11, %rax
+addl	$4, %r9d
+cmpl	%r10d, %r9d
+jl	.loop
+#+end_src
+https://uica.uops.info/?code=.loop%3A%0D%0Amovq%090x28(%25rsi%2C%20%25r9%2C%208)%2C%20%25r11%0D%0Amovq%090x20(%25rsi%2C%20%25r9%2C%208)%2C%20%25r8%0D%0Amovq%090x10(%25rsi%2C%20%25r9%2C%208)%2C%20%25rcx%0D%0Amovq%090x18(%25rsi%2C%20%25r9%2C%208)%2C%20%25rbx%0D%0Acmpq%09%25rcx%2C%20%25rax%0D%0Acmovlq%20%20%25rcx%2C%20%25rax%0D%0Acmpq%09%25rbx%2C%20%25rax%0D%0Acmovlq%09%25rbx%2C%20%25rax%0D%0Acmpq%09%25r8%2C%20%25rax%0D%0Acmovlq%09%25r8%2C%20%25rax%0D%0Acmpq%09%25r11%2C%20%25rax%0D%0Acmovlq%09%25r11%2C%20%25rax%0D%0Aaddl%09%244%2C%20%25r9d%0D%0Acmpl%09%25r10d%2C%20%25r9d%0D%0Ajl%20%20%20%20%20%20.loop&syntax=asATT&uArchs=SKL&tools=uiCA&alignment=0&uiCAHtmlOptions=traceTable
+** latency bound v1 chatgpt
+#+begin_src asm
+.loop4:
+    mov     r8,  [rdi]
+    mov     r9,  [rdi+8]
+    mov     r10, [rdi+16]
+    mov     r11, [rdi+24]
+    cmp     rax, r8
+    cmovl   rax, r8
+    cmp     rax, r9
+    cmovl   rax, r9
+    cmp     rax, r10
+    cmovl   rax, r10
+    cmp     rax, r11
+    cmovl   rax, r11
+    add     rdi, 32
+    sub     rcx, 4
+    cmp     rcx, 4
+    jae     .loop4
+#+end_src
+https://uica.uops.info/?code=.loop4%3A%0D%0A%20%20%20%20mov%20%20%20%20%20r8%2C%20%20%5Brdi%5D%0D%0A%20%20%20%20mov%20%20%20%20%20r9%2C%20%20%5Brdi%2B8%5D%0D%0A%20%20%20%20mov%20%20%20%20%20r10%2C%20%5Brdi%2B16%5D%0D%0A%20%20%20%20mov%20%20%20%20%20r11%2C%20%5Brdi%2B24%5D%0D%0A%20%20%20%20cmp%20%20%20%20%20rax%2C%20r8%0D%0A%20%20%20%20cmovl%20%20%20rax%2C%20r8%0D%0A%20%20%20%20cmp%20%20%20%20%20rax%2C%20r9%0D%0A%20%20%20%20cmovl%20%20%20rax%2C%20r9%0D%0A%20%20%20%20cmp%20%20%20%20%20rax%2C%20r10%0D%0A%20%20%20%20cmovl%20%20%20rax%2C%20r10%0D%0A%20%20%20%20cmp%20%20%20%20%20rax%2C%20r11%0D%0A%20%20%20%20cmovl%20%20%20rax%2C%20r11%0D%0A%20%20%20%20add%20%20%20%20%20rdi%2C%2032%0D%0A%20%20%20%20sub%20%20%20%20%20rcx%2C%204%0D%0A%20%20%20%20cmp%20%20%20%20%20rcx%2C%204%0D%0A%20%20%20%20jae%20%20%20%20%20.loop4&syntax=asIntel&uArchs=SKL&tools=uiCA&alignment=0&uiCAHtmlOptions=traceTable&uiCAHtmlOptions=dependencies
+** latency bound v0
+Sample assembly for
+x = max(v3, max(v2, max(v1, max(v0, x))))
+#+begin_src asm
+mov     rax, rdi
+cmp     rax, rsi
+cmovl   rax, rsi
+cmp     rax, rdx
+cmovl   rax, rdx
+cmp     rax, rcx
+cmovl   rax, rcx
+cmp     rax, r8
+cmovl   rax, r8
+#+end_src
+uica: https://uica.uops.info/?code=mov%20%20%20%20%20rax%2C%20rdi%0D%0Acmp%20%20%20%20%20rax%2C%20rsi%0D%0Acmovl%20%20%20rax%2C%20rsi%0D%0Acmp%20%20%20%20%20rax%2C%20rdx%0D%0Acmovl%20%20%20rax%2C%20rdx%0D%0Acmp%20%20%20%20%20rax%2C%20rcx%0D%0Acmovl%20%20%20rax%2C%20rcx%0D%0Acmp%20%20%20%20%20rax%2C%20r8%0D%0Acmovl%20%20%20rax%2C%20r8&syntax=asIntel&uArchs=SKL&tools=uiCA&alignment=0
 * 20-24.6.25
 ** simple 100
 *** branch never
