@@ -39,6 +39,8 @@ ideal_jvm_args += -XX:+PrintIdeal
 asm_jvm_args += -XX:+PrintNMethods
 #asm_jvm_args += -XX:+PrintAssembly
 
+loop_jvm_args += -XX:+TraceLoopOpts
+
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
 endif
@@ -51,6 +53,10 @@ ifdef ASM_ARGS
   jvm_args += $(asm_jvm_args)
 endif
 
+ifdef LOOP_ARGS
+  jvm_args += $(loop_jvm_args)
+endif
+
 ifdef NO_SUPERWORD
   jvm_args += -XX:-UseSuperWord
 endif
@@ -61,6 +67,12 @@ endif
 
 ifdef BRANCH_NEVER_MIN
   jvm_args += -XX:+UseNewCode2
+endif
+
+# E.g. IGV=3 (0 print nothing except IGVPrintLevel directives, 6 all details)
+IGV ?=
+ifdef IGV
+  jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
 endif
 
 jvm_args += $(base_jvm_args)
