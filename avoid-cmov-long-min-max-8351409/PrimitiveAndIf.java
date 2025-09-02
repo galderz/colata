@@ -10,10 +10,10 @@ public class PrimitiveAndIf
         {
             long v = array[i];
             // Control flow that prevents vectorization:
-            if (v < 0)
-            {
-                throw new RuntimeException("some error condition, probably deopt");
-            }
+            // if (v < 0)
+            // {
+            //     throw new RuntimeException("some error condition, probably deopt");
+            // }
             x = Math.max(x, v);
         }
         return x;
