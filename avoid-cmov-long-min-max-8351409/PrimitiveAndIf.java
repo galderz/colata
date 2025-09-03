@@ -1,6 +1,9 @@
 import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
+import static java.lang.System.out;
+import static java.lang.System.nanoTime;
+
 public class PrimitiveAndIf
 {
     static final int ITER = 100_000;
@@ -37,13 +40,13 @@ public class PrimitiveAndIf
         long[] array = new long[SIZE];
         init(array);
 
-        System.out.println("Warmup");
+        out.println("Warmup");
         for (int i = 0; i < ITER; i++)
         {
             test(array);
         }
 
-        System.out.println("Running");
+        out.println("Running");
         int numRuns = 10;
         for (int run = 1; run <= numRuns; run++)
         {
@@ -55,22 +58,22 @@ public class PrimitiveAndIf
                 expected = mirror(array);
             }
 
-            long t0 = System.nanoTime();
+            long t0 = nanoTime();
             long operations = 0;
             for (int i = 0; i < ITER; i++)
             {
                 test(array);
                 operations++;
             }
-            long t1 = System.nanoTime();
-            System.out.printf(
+            long t1 = nanoTime();
+            out.printf(
                 "Throughput: %d ops/ms%n"
                 , operations / TimeUnit.NANOSECONDS.toMillis(t1 - t0)
             );
 
             if (numRuns == run)
             {
-                System.out.println("Validate");
+                out.println("Validate");
                 long value = test(array);
                 validate(expected, value);
             }
@@ -105,7 +108,7 @@ public class PrimitiveAndIf
     {
         if (value == System.nanoTime())
         {
-            System.out.println(value);
+            out.println(value);
         }
     }
 }
