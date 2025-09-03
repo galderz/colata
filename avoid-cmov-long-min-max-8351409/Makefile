@@ -40,6 +40,7 @@ asm_jvm_args += -XX:+PrintNMethods
 #asm_jvm_args += -XX:+PrintAssembly
 
 loop_jvm_args += -XX:+TraceLoopOpts
+loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
 
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
