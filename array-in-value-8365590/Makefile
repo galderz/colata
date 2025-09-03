@@ -47,7 +47,7 @@ ifdef IGV
   jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
 endif
 
-gen_file = target/$(CLASS).java
+gen_file = $(target)/Test.java
 
 # todo generate src-gen jar with all dependencies
 
