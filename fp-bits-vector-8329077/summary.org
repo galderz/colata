@@ -1,3 +1,221 @@
+* 1.9.25
+** Matcher::vector_width_in_bytes
+First call for ints, returns 32 for UseAVX=2
+For UseAVX=1 this is 16
+#+begin_src gdb
+Thread 15 "C2 CompilerThre" hit Breakpoint 5, Matcher::vector_width_in_bytes (bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:2171
+(gdb) bt
+#0  Matcher::vector_width_in_bytes (bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:2171
+#1  0x00007ffff51984cb in Matcher::max_vector_size (bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:2213
+#2  0x00007ffff51985aa in Matcher::max_vector_size_auto_vectorization (bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:2232
+#3  0x00007ffff67622d7 in SuperWord::unrolling_analysis (vloop=...,
+    local_loop_unroll_factor=@0x7fff6807451c: 4)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/superword.cpp:201
+#4  0x00007ffff6196909 in IdealLoopTree::policy_unroll_slp_analysis (this=0x7fff680744e8,
+    cl=0x7fff68095d70, phase=0x7fffb20fb040, future_unroll_cnt=4)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:1172
+#5  0x00007ffff6196571 in IdealLoopTree::policy_unroll (this=0x7fff680744e8, phase=0x7fffb20fb040)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:1122
+#6  0x00007ffff61a21e7 in IdealLoopTree::iteration_split_impl (this=0x7fff680744e8,
+    phase=0x7fffb20fb040, old_new=...)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3496
+#7  0x00007ffff61a2529 in IdealLoopTree::iteration_split (this=0x7fff680744e8, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3585
+#8  0x00007ffff61a245d in IdealLoopTree::iteration_split (this=0x7fff68074578, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3569
+#9  0x00007ffff61a25f0 in IdealLoopTree::iteration_split (this=0x7fff680743c8, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3597
+#10 0x00007ffff61a25f0 in IdealLoopTree::iteration_split (this=0x7fff680746f0, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3597
+#11 0x00007ffff61c2e46 in PhaseIdealLoop::build_and_optimize (this=0x7fffb20fb040)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopnode.cpp:5229
+#+end_src
+** Matcher::match_rule_supported_vector
+Second call:
+#+begin_src gdb
+#0  Matcher::match_rule_supported_vector (opcode=449, vlen=8, bt=T_FLOAT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:1589
+#+end_src
+
+This is key in using UseAVX, I've been down this path before.
+First call
+#+begin_src gdb
+(gdb) bt
+#0  Matcher::match_rule_supported_vector (opcode=452, vlen=8, bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:1589
+#1  0x00007ffff5196bbe in Matcher::match_rule_supported_auto_vectorization (opcode=452, vlen=8,
+    bt=T_INT) at /home/g/src/jdk-fp-bits-vector/src/hotspot/cpu/x86/x86.ad:1583
+#2  0x00007ffff68689ec in VectorNode::implemented (opc=340, vlen=8, bt=T_INT)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/vectornode.cpp:432
+#3  0x00007ffff6762387 in SuperWord::unrolling_analysis (vloop=...,
+    local_loop_unroll_factor=@0x7fff6807c52c: 4)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/superword.cpp:218
+#4  0x00007ffff6196909 in IdealLoopTree::policy_unroll_slp_analysis (this=0x7fff6807c4f8,
+    cl=0x7fff6809dd80, phase=0x7fffb20fb040, future_unroll_cnt=4)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:1172
+#5  0x00007ffff6196571 in IdealLoopTree::policy_unroll (this=0x7fff6807c4f8, phase=0x7fffb20fb040)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:1122
+#6  0x00007ffff61a21e7 in IdealLoopTree::iteration_split_impl (this=0x7fff6807c4f8,
+    phase=0x7fffb20fb040, old_new=...)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3496
+#7  0x00007ffff61a2529 in IdealLoopTree::iteration_split (this=0x7fff6807c4f8, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3585
+#8  0x00007ffff61a245d in IdealLoopTree::iteration_split (this=0x7fff6807c588, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3569
+#9  0x00007ffff61a25f0 in IdealLoopTree::iteration_split (this=0x7fff6807c3d8, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3597
+#10 0x00007ffff61a25f0 in IdealLoopTree::iteration_split (this=0x7fff6807c700, phase=0x7fffb20fb040,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3597
+#11 0x00007ffff61c2e46 in PhaseIdealLoop::build_and_optimize (this=0x7fffb20fb040)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopnode.cpp:5229
+#+end_src
+** initial iteration impl call
+#+begin_src gdb
+(gdb) bt
+#0  PhaseIdealLoop::do_unroll (this=0x7fffb20fb0d0, loop=0x7fff6002cd50, old_new=...,
+    adjust_min_trip=true)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:1883
+#1  0x00007ffff61a23ac in IdealLoopTree::iteration_split_impl (this=0x7fff6002cd50,
+    phase=0x7fffb20fb0d0, old_new=...)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3549
+#2  0x00007ffff61a2529 in IdealLoopTree::iteration_split (this=0x7fff6002cd50, phase=0x7fffb20fb0d0,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3585
+#3  0x00007ffff61a245d in IdealLoopTree::iteration_split (this=0x7fff68086468, phase=0x7fffb20fb0d0,
+    old_new=...) at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopTransform.cpp:3569
+#4  0x00007ffff61c2e46 in PhaseIdealLoop::build_and_optimize (this=0x7fffb20fb0d0)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopnode.cpp:5229
+#5  0x00007ffff588b5bd in PhaseIdealLoop::PhaseIdealLoop (this=0x7fffb20fb0d0, igvn=...,
+    mode=LoopOptsSkipSplitIf)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopnode.hpp:1189
+#6  0x00007ffff588ba5c in PhaseIdealLoop::optimize (igvn=..., mode=LoopOptsSkipSplitIf)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/loopnode.hpp:1283
+#7  0x00007ffff587aa77 in Compile::Optimize (this=0x7fffb20fd740)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/compile.cpp:2468
+#8  0x00007ffff5871fb6 in Compile::Compile (this=0x7fffb20fd740, ci_env=0x7fffb20fe6b0,
+    target=0x7ffff0202700, osr_bci=2, options=..., directive=0x7ffff0739dc0)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/compile.cpp:859
+#9  0x00007ffff571a7c7 in C2Compiler::compile_method (this=0x7ffff022e7a0, env=0x7fffb20fe6b0,
+    target=0x7ffff0202700, entry_bci=2, install_code=true, directive=0x7ffff0739dc0)
+    at /home/g/src/jdk-fp-bits-vector/src/hotspot/share/opto/c2compiler.cpp:147
+#+end_src
+* 28.8.25
+It's the unrolling factor that is deciding the vector size.
+
+On avx2:
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+
+Predicate IC   Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Predicate IC   Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Loop: N0/N0  has_sfpt
+  Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+PartialPeel    Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Counted          Loop: N352/N178  counted [int,int),+1 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N351/N350
+    Loop: N352/N178  counted [int,int),+1 (-1 iters)  has_sfpt strip_mined
+Multiversion     Loop: N352/N178  counted [int,int),+1 (1025 iters)  has_sfpt strip_mined
+PreMainPost      Loop: N352/N178  counted [int,int),+1 (1025 iters)  multiversion_fast has_sfpt strip_mined
+RangeCheck       Loop: N352/N178  counted [int,int),+1 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Unroll 2         Loop: N352/N178  limit_check counted [int,int),+1 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N389/N390  sfpts={ 392 }
+    Loop: N375/N385  counted [int,int),+1 (1025 iters)  rc  multiversion_delayed_slow has_sfpt strip_mined
+  Loop: N483/N493  counted [int,int),+1 (4 iters)  pre rc  multiversion_fast
+  Loop: N351/N350  limit_check sfpts={ 353 }
+    Loop: N659/N178  limit_check counted [int,int),+2 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+  Loop: N429/N439  counted [int,int),+1 (4 iters)  post rc  multiversion_fast
+Unroll 4         Loop: N659/N178  limit_check counted [int,int),+2 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N389/N390  sfpts={ 392 }
+    Loop: N375/N385  counted [int,int),+1 (1025 iters)  rc  multiversion_delayed_slow has_sfpt strip_mined
+  Loop: N483/N493  counted [int,int),+1 (4 iters)  pre rc  multiversion_fast
+  Loop: N351/N350  limit_check sfpts={ 353 }
+    Loop: N765/N178  limit_check counted [int,int),+4 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+  Loop: N429/N439  counted [int,int),+1 (4 iters)  post rc  multiversion_fast
+Unroll 8         Loop: N765/N178  limit_check counted [int,int),+4 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N389/N390  sfpts={ 392 }
+    Loop: N375/N385  counted [int,int),+1 (1025 iters)  rc  multiversion_delayed_slow has_sfpt strip_mined
+  Loop: N483/N493  counted [int,int),+1 (4 iters)  pre rc  multiversion_fast
+  Loop: N351/N350  limit_check sfpts={ 353 }
+    Loop: N863/N178  limit_check counted [int,int),+8 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+  Loop: N429/N439  counted [int,int),+1 (4 iters)  post rc  multiversion_fast
+
+VTransform::apply:
+#+end_src
+
+On avx1:
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Predicate IC   Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Predicate IC   Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Loop: N0/N0  has_sfpt
+  Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+PartialPeel    Loop: N263/N241  limit_check short_running profile_predicated predicated sfpts={ 241 }
+Counted          Loop: N352/N178  counted [int,int),+1 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N351/N350
+    Loop: N352/N178  counted [int,int),+1 (-1 iters)  has_sfpt strip_mined
+Multiversion     Loop: N352/N178  counted [int,int),+1 (1025 iters)  has_sfpt strip_mined
+PreMainPost      Loop: N352/N178  counted [int,int),+1 (1025 iters)  multiversion_fast has_sfpt strip_mined
+RangeCheck       Loop: N352/N178  counted [int,int),+1 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Unroll 2         Loop: N352/N178  limit_check counted [int,int),+1 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N389/N390  sfpts={ 392 }
+    Loop: N375/N385  counted [int,int),+1 (1025 iters)  rc  multiversion_delayed_slow has_sfpt strip_mined
+  Loop: N483/N493  counted [int,int),+1 (4 iters)  pre rc  multiversion_fast
+  Loop: N351/N350  limit_check sfpts={ 353 }
+    Loop: N659/N178  limit_check counted [int,int),+2 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+  Loop: N429/N439  counted [int,int),+1 (4 iters)  post rc  multiversion_fast
+Unroll 4         Loop: N659/N178  limit_check counted [int,int),+2 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N389/N390  sfpts={ 392 }
+    Loop: N375/N385  counted [int,int),+1 (1025 iters)  rc  multiversion_delayed_slow has_sfpt strip_mined
+  Loop: N483/N493  counted [int,int),+1 (4 iters)  pre rc  multiversion_fast
+  Loop: N351/N350  limit_check sfpts={ 353 }
+    Loop: N765/N178  limit_check counted [int,int),+4 (1025 iters)  main multiversion_fast has_sfpt strip_mined
+  Loop: N429/N439  counted [int,int),+1 (4 iters)  post rc  multiversion_fast
+
+VTransform::apply:
+#+end_src
+
+UseAVX=1 failures
+** test6 linux UseAVX=1
+F size is 8, regex is <F,8>
+It's 8 because MaxVectorSize=32
+
+So, why then it works fine when UseAVX=2?
+#+begin_src bash
+  999  LoadVector  === 596 7 910  |340  [[ 1000 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched #vectory<F,8> !orig=[909],[823],[719],[349],215 !jvms: TestCompatibleUseDefTypeSize::test6 @ bci:12 (line 414)
+#+end_src
+
+Next:
+- [ ] why does the load vector use 8 in avx2 but 4 in avx1?
+** test6 darwin/aarch64
+F size is 4, regex is <F,4>
+PrintIdeal is also <F,4>:
+#+begin_src bash
+  900  LoadVector  === 596 7 824  |340  [[ 901 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=6; mismatched #vectorx<F,4> !orig=[823],[719],[349],215 !jvms: TestCompatibleUseDefTypeSize::test6 @ bci:12 (line 414)
+#+end_src
+** test6 UseAVX=1
+Issue is in the vector size.
+Expects F,8 but gets F,4
+
+PrintIdeal:
+#+begin_src bash
+  844  LoadVector  === 632 7 741  |297  [[ 845 ]]  @float[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any *, idx=5; mismatched #vectorx<F,4> (does not depend only on test, unknown control) !orig=[740],[647],[333],[157] !jvms: TestCompatibleUseDefTypeSize::test6 @ bci:12 (line 414)
+#+end_src
+Constraint:
+#+begin_src bash
+         * Constraint 1: "(\d+(\s){2}(LoadVector.*)+(\s){2}===.*vector[A-Za-z]<F,8>)"
+#+end_src
 * 21.8.25
 ** dry run comparison
 #+begin_src bash
@@ -276,13 +494,13 @@ test result: Passed. Execution successful
 ==============================
 Test summary
 ==============================
-   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP   
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
    jtreg:test/hotspot/jtreg/compiler/c2/irTests/ConvF2HFIdealizationTests.java
-                                                         1     1     0     0     0   
+                                                         1     1     0     0     0
    jtreg:test/hotspot/jtreg/compiler/c2/irTests/TestFloat16ScalarOperations.java
-                                                         1     1     0     0     0   
+                                                         1     1     0     0     0
    jtreg:test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java
-                                                         1     1     0     0     0   
+                                                         1     1     0     0     0
 ==============================
 TEST SUCCESS
 #+end_src
@@ -376,7 +594,7 @@ test result: Passed. Execution successful
 
 #+begin_src bash
   $ cat /local/galder/src/jdk-fp-bits-vector/build/fast-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_irTests_TestFloat16ScalarOperations_java/compiler/c2/irTests/TestFloat16ScalarOperations.jtr
-  
+
 
   Messages from Test VM
   ---------------------
