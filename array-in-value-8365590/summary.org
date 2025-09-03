@@ -1,3 +1,6 @@
+* 27.8.25
+next steps:
+Compiler::process_inline_types
 * 26.8.25
 Confirmed that this is supposed to work in ~PhaseMacroExpand::eliminate_allocate_node~:
 #+begin_src bash
