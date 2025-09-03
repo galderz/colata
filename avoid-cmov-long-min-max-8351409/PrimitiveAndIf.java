@@ -3,6 +3,11 @@ import java.util.Random;
 
 public class PrimitiveAndIf
 {
+    static final int ITER = 100_000;
+    static final int NUM_RUNS = 10;
+    static final int SIZE = 10_000;
+    static final Random R = new Random(42);
+
     public static long test(long[] array)
     {
         long x = Integer.MIN_VALUE;
@@ -29,15 +34,11 @@ public class PrimitiveAndIf
 
     public static void main(String[] args)
     {
-        Random r = new Random(42);
-        long[] array = new long[10_000];
-        for (int i = 0; i < array.length; i++)
-        {
-            array[i] = r.nextLong() & 0xFFFF_FFFFL;
-        }
+        long[] array = new long[SIZE];
+        init(array);
 
         System.out.println("Warmup");
-        for (int i = 0; i < 100_000; i++)
+        for (int i = 0; i < ITER; i++)
         {
             test(array);
         }
@@ -46,16 +47,17 @@ public class PrimitiveAndIf
         int numRuns = 10;
         for (int run = 1; run <= numRuns; run++)
         {
-            for (int i = 0; i < array.length; i++)
-            {
-                array[i] = r.nextLong() & 0xFFFF_FFFFL;
-            }
+            init(array);
 
-            long expected = mirror(array);
+            long expected = 0;
+            if (numRuns == run)
+            {
+                expected = mirror(array);
+            }
 
             long t0 = System.nanoTime();
             long operations = 0;
-            for (int i = 0; i < 100_000; i++)
+            for (int i = 0; i < ITER; i++)
             {
                 test(array);
                 operations++;
@@ -72,6 +74,14 @@ public class PrimitiveAndIf
                 long value = test(array);
                 validate(expected, value);
             }
+        }
+    }
+
+    private static void init(long[] array)
+    {
+        for (int i = 0; i < array.length; i++)
+        {
+            array[i] = R.nextLong() & 0xFFFF_FFFFL;
         }
     }
 
