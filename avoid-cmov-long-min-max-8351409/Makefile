@@ -13,7 +13,7 @@ NO_WARNINGS_ERRORS := true
 # Number of forks to run JMH benchmark manually with
 JMH_FORKS ?= 1
 
-default: run
+default: run-gen
 
 TOPDIR = ..
 include $(TOPDIR)/nix-make/MakeBase.gmk
@@ -124,3 +124,28 @@ debug-benchmarks: $(benchmarks_jar)
 > $(java) \
 >   $(debug_jmh_args)
 .PHONY: debug-benchmarks
+
+gen_file = $(target)/Test.java
+src_gen_jar = src-gen/target/src-gen.jar
+target = $(shell pwd)/target/$(GEN)
+
+$(src_gen_jar): $(shell find src-gen -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(src_gen_jar): $(shell find src-gen -type f -name '*.xml' | grep -v '/target/' | sed 's: :\\ :g')
+$(src_gen_jar): $(java)
+> pushd src-gen
+> JAVA_HOME=$(java_home) mvn package
+> popd
+> touch $@
+
+$(gen_file): $(src_gen_jar)
+> mkdir -p $(target)
+> $(java) -cp $<: src.Gen $(GEN)
+
+gen: $(gen_file)
+.PHONY: gen
+
+run-gen:
+> cd $(target)
+> $(java) \
+>   $(jvm_args) Test.java
+.PHONY: run-gen
