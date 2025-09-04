@@ -87,10 +87,12 @@ void main(String[] args) throws IOException
         .addStatement("operations++")
         .endControlFlow()
         .addStatement("var t1 = nanoTime()")
+        .addStatement("var durationNs = t1 - t0")
+        .addStatement("var outputTimeUnit = MILLISECONDS")
+        .addStatement("var throughput = operations * NANOSECONDS.convert(1, outputTimeUnit) / durationNs")
         .addStatement(
-            "println($S.formatted(operations / $T.NANOSECONDS.toMillis(t1 - t0)))"
+            "println($S.formatted(throughput))"
             , "Throughput: %d ops/ms"
-            , TimeUnit.class
         )
         .beginControlFlow("if ($N == run)", numRuns)
         .addStatement("println($S)", "Validate")
@@ -115,8 +117,9 @@ void main(String[] args) throws IOException
         .build();
 
     var javaFile = JavaFile.builder("", type)
-        .addStaticImport(System.class, "nanoTime")
         .addStaticImport(IO.class, "*")
+        .addStaticImport(System.class, "nanoTime")
+        .addStaticImport(TimeUnit.class, "*")
         .build();
 
     var target = Path
