@@ -7,9 +7,58 @@ import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
+MethodSpec buildTest(Option option, MethodSpec.Builder builder)
+{
+    builder
+        .addModifiers(STATIC)
+        .returns(long.class)
+        .addParameter(long[].class, "array");
+
+    builder
+        .addStatement("$T result = Integer.MIN_VALUE;", long.class);
+
+    switch(option)
+    {
+        case Base ->
+            builder
+                .beginControlFlow("for (int i = 0; i < array.length; i++)")
+                .addStatement("var v = array[i]")
+                .addStatement("result = Math.max(v, result)");
+        case Reassoc2 ->
+            builder
+                .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
+                .addStatement("var v0 = array[i + 0]")
+                .addStatement("var v1 = array[i + 1]")
+                // result = Math.max(result, Math.max(v1, v0))
+                .addStatement("var t0 = Math.max(v1, v0)")
+                .addStatement("result = Math.max(result, t0)");
+        case Unroll2 ->
+            builder
+                .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
+                .addStatement("var v0 = array[i + 0]")
+                .addStatement("var v1 = array[i + 1]")
+                // result = Math.max(v1, Math.max(v0, result))
+                .addStatement("var t0 = Math.max(v0, result)")
+                .addStatement("result = Math.max(v1, t0)");
+    }
+
+    builder
+        .endControlFlow()
+        .addStatement("return result");
+
+    return builder.build();
+}
+
+enum Option
+{
+    Base
+    , Reassoc2
+    , Unroll2
+}
+
 void main(String[] args) throws IOException
 {
-    // final Option option = Option.valueOf(args[0]);
+    var option = Option.valueOf(args[0]);
 
     var iter = FieldSpec.builder(int.class, "ITER", STATIC, FINAL)
         .initializer("100_000")
@@ -27,8 +76,8 @@ void main(String[] args) throws IOException
         .initializer("new $T(42)", Random.class)
         .build();
 
-    final var test = buildTest(MethodSpec.methodBuilder("test"));
-    final var mirror = buildTest(MethodSpec.methodBuilder("mirror"));
+    final var test = buildTest(option, MethodSpec.methodBuilder("test"));
+    final var mirror = buildTest(option, MethodSpec.methodBuilder("mirror"));
 
     var blackhole = MethodSpec.methodBuilder("blackhole")
         .addModifiers(STATIC)
@@ -139,40 +188,3 @@ void main(String[] args) throws IOException
     javaFile.writeTo(target);
 }
 
-private static MethodSpec buildTest(MethodSpec.Builder builder)
-{
-    builder
-        .addModifiers(STATIC)
-        .returns(long.class)
-        .addParameter(long[].class, "array");
-
-//        switch (option)
-//        {
-//            case Eliminated ->
-//                // Allocate Eliminated
-//                testBuilder.addNamedCode("""
-//                    var value = $fieldValue:L;
-//                    var obj = new $type:N(value);
-//                    return obj.$fieldName:L;
-//                    """
-//                    , data
-//                );
-//            case NotEliminated ->
-//                // Allocate NOT Eliminated
-//                testBuilder.addNamedCode("""
-//                    var obj = new $type:N($fieldValue:L);
-//                    return obj.$fieldName:L;
-//                    """
-//                    , data
-//                );
-//        };
-
-    return builder
-        .addStatement("$T result = Integer.MIN_VALUE;", long.class)
-        .beginControlFlow("for (int i = 0; i < array.length; i++)")
-        .addStatement("var v = array[i]")
-        .addStatement("result = Math.max(v, result)")
-        .endControlFlow()
-        .addStatement("return result")
-        .build();
-}
