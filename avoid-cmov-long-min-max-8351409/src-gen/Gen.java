@@ -3,23 +3,145 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
-public class Gen
+void main(String[] args) throws IOException
 {
-    private static MethodSpec buildTest(MethodSpec.Builder builder)
+    // final Option option = Option.valueOf(args[0]);
+
+    var iter = FieldSpec.builder(int.class, "ITER", STATIC, FINAL)
+        .initializer("100_000")
+        .build();
+
+    var numRuns = FieldSpec.builder(int.class, "NUM_RUNS", STATIC, FINAL)
+        .initializer("10")
+        .build();
+
+    var size = FieldSpec.builder(int.class, "SIZE", STATIC, FINAL)
+        .initializer("10_000")
+        .build();
+
+    var rnd = FieldSpec.builder(Random.class, "RND", STATIC, FINAL)
+        .initializer("new $T(42)", Random.class)
+        .build();
+
+    final var test = buildTest(MethodSpec.methodBuilder("test"));
+    final var mirror = buildTest(MethodSpec.methodBuilder("mirror"));
+
+    var blackhole = MethodSpec.methodBuilder("blackhole")
+        .addModifiers(STATIC)
+        .returns(void.class)
+        .addParameter(long.class, "value")
+        .beginControlFlow("if (value == nanoTime())")
+        .addStatement("println(value)")
+        .endControlFlow()
+        .build();
+
+    var validate = MethodSpec.methodBuilder("validate")
+        .addModifiers(STATIC)
+        .returns(void.class)
+        .addParameter(long.class, "expected")
+        .addParameter(long.class, "actual")
+        .beginControlFlow("if(expected == actual)")
+        .addStatement("$N(actual)", blackhole)
+        .nextControlFlow("else")
+        .addStatement(
+            "throw new AssertionError($S.formatted(expected, actual))"
+            , "Failed: expected: %d, actual: %d"
+        )
+        .endControlFlow()
+        .build();
+
+    var init = MethodSpec.methodBuilder("init")
+        .addModifiers(STATIC)
+        .returns(void.class)
+        .addParameter(long[].class, "array")
+        .beginControlFlow("for (int i = 0; i < array.length; i++)")
+        .addStatement("array[i] = $N.nextLong() & 0xFFFF_FFFFL", rnd)
+        .endControlFlow()
+        .build();
+
+    var main = MethodSpec.methodBuilder("main")
+        .addModifiers(PUBLIC, STATIC)
+        .returns(void.class)
+        .addParameter(String[].class, "args")
+        .addStatement("var array = new $T[$N]", long.class, size)
+        .addStatement("$N(array)", init)
+        .addStatement("println($S)", "Warmup")
+        .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
+        .addStatement("$N(array)", test)
+        .endControlFlow()
+        .addStatement("println($S)", "Running")
+        .beginControlFlow("for (int run = 1; run <= $N; run++)", numRuns)
+        .addStatement("$N(array)", init)
+        .addStatement("$T expected = 0", long.class)
+        .beginControlFlow("if ($N == run)", numRuns)
+        .addStatement("expected = $N(array)", mirror)
+        .endControlFlow()
+        .addStatement("var t0 = nanoTime()")
+        .addStatement("$T operations = 0", long.class)
+        .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
+        .addStatement("$N(array)", test)
+        .addStatement("operations++")
+        .endControlFlow()
+        .addStatement("var t1 = nanoTime()")
+        .addStatement(
+            "println($S.formatted(operations / $T.NANOSECONDS.toMillis(t1 - t0)))"
+            , "Throughput: %d ops/ms"
+            , TimeUnit.class
+        )
+        .beginControlFlow("if ($N == run)", numRuns)
+        .addStatement("println($S)", "Validate")
+        .addStatement("var value = $N(array)", test)
+        .addStatement("$N(expected, value)", validate)
+        .endControlFlow()
+        .endControlFlow()
+        .build();
+
+    var type = TypeSpec.classBuilder("Test")
+        .addModifiers(FINAL)
+        .addField(iter)
+        .addField(numRuns)
+        .addField(size)
+        .addField(rnd)
+        .addMethod(test)
+        .addMethod(main)
+        .addMethod(init)
+        .addMethod(mirror)
+        .addMethod(blackhole)
+        .addMethod(validate)
+        .build();
+
+    var javaFile = JavaFile.builder("", type)
+        .addStaticImport(System.class, "nanoTime")
+        .addStaticImport(IO.class, "*")
+        .build();
+
+    var target = Path
+        .of(System.getProperty("user.dir"))
+        .resolve("target")
+        .resolve(args[0])
+        .toFile();
+
+    if (!target.exists())
     {
-        builder
-            .addModifiers(STATIC)
-            .returns(long.class)
-            .addParameter(long[].class, "array");
+        if (!target.mkdirs())
+        {
+            throw new IOException("Couldn't make target directory: " + target);
+        }
+    }
+
+    javaFile.writeTo(target);
+}
+
+private static MethodSpec buildTest(MethodSpec.Builder builder)
+{
+    builder
+        .addModifiers(STATIC)
+        .returns(long.class)
+        .addParameter(long[].class, "array");
 
 //        switch (option)
 //        {
@@ -42,148 +164,12 @@ public class Gen
 //                );
 //        };
 
-        return builder
-            .addStatement("$T result = Integer.MIN_VALUE;", long.class)
-            .beginControlFlow("for (int i = 0; i < array.length; i++)")
-            .addStatement("var v = array[i]")
-            .addStatement("result = Math.max(v, result)")
-            .endControlFlow()
-            .addStatement("return result")
-            .build();
-    }
-
-    public static void main(String[] args) throws IOException
-    {
-        // final Option option = Option.valueOf(args[0]);
-
-        var iter = FieldSpec.builder(int.class, "ITER", STATIC, FINAL)
-            .initializer("100_000")
-            .build();
-
-        var numRuns = FieldSpec.builder(int.class, "NUM_RUNS", STATIC, FINAL)
-            .initializer("10")
-            .build();
-
-        var size = FieldSpec.builder(int.class, "SIZE", STATIC, FINAL)
-            .initializer("10_000")
-            .build();
-
-        var rnd = FieldSpec.builder(Random.class, "RND", STATIC, FINAL)
-            .initializer("new $T(42)", Random.class)
-            .build();
-
-        final var test = buildTest(MethodSpec.methodBuilder("test"));
-        final var mirror = buildTest(MethodSpec.methodBuilder("mirror"));
-
-        var blackhole = MethodSpec.methodBuilder("blackhole")
-            .addModifiers(STATIC)
-            .returns(void.class)
-            .addParameter(long.class, "value")
-            .beginControlFlow("if (value == nanoTime())")
-            .addStatement("println(value)")
-            .endControlFlow()
-            .build();
-
-        var validate = MethodSpec.methodBuilder("validate")
-            .addModifiers(STATIC)
-            .returns(void.class)
-            .addParameter(long.class, "expected")
-            .addParameter(long.class, "actual")
-            .beginControlFlow("if(expected == actual)")
-            .addStatement("$N(actual)", blackhole)
-            .nextControlFlow("else")
-            .addStatement(
-                "throw new AssertionError($S.formatted(expected, actual))"
-                , "Failed: expected: %d, actual: %d"
-            )
-            .endControlFlow()
-            .build();
-
-        var init = MethodSpec.methodBuilder("init")
-            .addModifiers(STATIC)
-            .returns(void.class)
-            .addParameter(long[].class, "array")
-            .beginControlFlow("for (int i = 0; i < array.length; i++)")
-            .addStatement("array[i] = $N.nextLong() & 0xFFFF_FFFFL", rnd)
-            .endControlFlow()
-            .build();
-
-        var main = MethodSpec.methodBuilder("main")
-            .addModifiers(PUBLIC, STATIC)
-            .returns(void.class)
-            .addParameter(String[].class, "args")
-            .addStatement("var array = new $T[$N]", long.class, size)
-            .addStatement("$N(array)", init)
-            .addStatement("println($S)", "Warmup")
-            .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
-            .addStatement("$N(array)", test)
-            .endControlFlow()
-            .addStatement("println($S)", "Running")
-            .beginControlFlow("for (int run = 1; run <= $N; run++)", numRuns)
-            .addStatement("$N(array)", init)
-            .addStatement("$T expected = 0", long.class)
-            .beginControlFlow("if ($N == run)", numRuns)
-            .addStatement("expected = $N(array)", mirror)
-            .endControlFlow()
-            .addStatement("var t0 = nanoTime()")
-            .addStatement("$T operations = 0", long.class)
-            .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
-            .addStatement("$N(array)", test)
-            .addStatement("operations++")
-            .endControlFlow()
-            .addStatement("var t1 = nanoTime()")
-            .addStatement(
-                "println($S.formatted(operations / $T.NANOSECONDS.toMillis(t1 - t0)))"
-                , "Throughput: %d ops/ms"
-                , TimeUnit.class
-            )
-            .beginControlFlow("if ($N == run)", numRuns)
-            .addStatement("println($S)", "Validate")
-            .addStatement("var value = $N(array)", test)
-            .addStatement("$N(expected, value)", validate)
-            .endControlFlow()
-            .endControlFlow()
-            .build();
-
-        var type = TypeSpec.classBuilder("Test")
-            .addModifiers(FINAL)
-            .addField(iter)
-            .addField(numRuns)
-            .addField(size)
-            .addField(rnd)
-            .addMethod(test)
-            .addMethod(main)
-            .addMethod(init)
-            .addMethod(mirror)
-            .addMethod(blackhole)
-            .addMethod(validate)
-            .build();
-
-        var javaFile = JavaFile.builder("", type)
-            .addStaticImport(System.class, "nanoTime")
-            .addStaticImport(IO.class, "*")
-            .build();
-
-        var target = Path
-            .of(System.getProperty("user.dir"))
-            .resolve("target")
-            .resolve(args[0])
-            .toFile();
-
-        if (!target.exists())
-        {
-            if (!target.mkdirs())
-            {
-                throw new IOException("Couldn't make target directory: " + target);
-            }
-        }
-
-        javaFile.writeTo(target);
-    }
-
-    // private enum Option
-    // {
-    //     Eliminated,
-    //     NotEliminated
-    // }
+    return builder
+        .addStatement("$T result = Integer.MIN_VALUE;", long.class)
+        .beginControlFlow("for (int i = 0; i < array.length; i++)")
+        .addStatement("var v = array[i]")
+        .addStatement("result = Math.max(v, result)")
+        .endControlFlow()
+        .addStatement("return result")
+        .build();
 }
