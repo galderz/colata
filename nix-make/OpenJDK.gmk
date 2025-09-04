@@ -212,7 +212,6 @@ store-devkit:
 boot-jdk:
 > mkdir -p $(opt)
 > $(TOPDIR)/nix-make/download-jdk.sh $(BOOT_JDK_VERSION) $(opt)
-> touch $@
 .PHONY: boot-jdk
 
 lldb: $(java)
