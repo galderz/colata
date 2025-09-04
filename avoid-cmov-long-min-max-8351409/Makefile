@@ -78,6 +78,11 @@ endif
 
 jvm_args += $(base_jvm_args)
 
+compile: $(java)
+> $(javac) $(javac_args) $(CLASS).java
+> $(javap) -v $(CLASS).class
+.PHONY: compile
+
 run: clear-logs $(java)
 > $(java) \
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
@@ -126,20 +131,20 @@ debug-benchmarks: $(benchmarks_jar)
 .PHONY: debug-benchmarks
 
 gen_file = $(target)/Test.java
-src_gen_jar = src-gen/target/src-gen.jar
+gen_lib_dir = src-gen/target/lib
+gen_lib = $(gen_lib_dir)/.touch
 target = $(shell pwd)/target/$(GEN)
 
-$(src_gen_jar): $(shell find src-gen -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
-$(src_gen_jar): $(shell find src-gen -type f -name '*.xml' | grep -v '/target/' | sed 's: :\\ :g')
-$(src_gen_jar): $(java)
+$(gen_lib):
 > pushd src-gen
-> JAVA_HOME=$(java_home) mvn package
+> ../$(TOPDIR)/nix-make/download-jar.sh com/squareup javapoet 1.13.0
 > popd
 > touch $@
 
-$(gen_file): $(src_gen_jar)
-> mkdir -p $(target)
-> $(java) -cp $<: src.Gen $(GEN)
+$(gen_file): $(shell find src-gen -type f -name '*.java' | sed 's: :\\ :g')
+$(gen_file): $(gen_lib)
+$(gen_file): $(java)
+> $(java) -cp $(gen_lib_dir)/* src-gen/Gen.java $(GEN)
 
 gen: $(gen_file)
 .PHONY: gen
@@ -149,3 +154,7 @@ run-gen:
 > $(java) \
 >   $(jvm_args) Test.java
 .PHONY: run-gen
+
+clean-gen:
+> rm -drf target
+> rm -drf src-gen/target

@@ -1,5 +1,3 @@
-package src;
-
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -82,7 +80,7 @@ public class Gen
             .returns(void.class)
             .addParameter(long.class, "value")
             .beginControlFlow("if (value == nanoTime())")
-            .addStatement("out.println(value)")
+            .addStatement("println(value)")
             .endControlFlow()
             .build();
 
@@ -116,11 +114,11 @@ public class Gen
             .addParameter(String[].class, "args")
             .addStatement("var array = new $T[$N]", long.class, size)
             .addStatement("$N(array)", init)
-            .addStatement("out.println($S)", "Warmup")
+            .addStatement("println($S)", "Warmup")
             .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
             .addStatement("$N(array)", test)
             .endControlFlow()
-            .addStatement("out.println($S)", "Running")
+            .addStatement("println($S)", "Running")
             .beginControlFlow("for (int run = 1; run <= $N; run++)", numRuns)
             .addStatement("$N(array)", init)
             .addStatement("$T expected = 0", long.class)
@@ -135,12 +133,12 @@ public class Gen
             .endControlFlow()
             .addStatement("var t1 = nanoTime()")
             .addStatement(
-                "out.printf($S, operations / $T.NANOSECONDS.toMillis(t1 - t0))"
-                , "Throughput: %d ops/ms%n"
+                "println($S.formatted(operations / $T.NANOSECONDS.toMillis(t1 - t0)))"
+                , "Throughput: %d ops/ms"
                 , TimeUnit.class
             )
             .beginControlFlow("if ($N == run)", numRuns)
-            .addStatement("out.println($S)", "Validate")
+            .addStatement("println($S)", "Validate")
             .addStatement("var value = $N(array)", test)
             .addStatement("$N(expected, value)", validate)
             .endControlFlow()
@@ -163,7 +161,7 @@ public class Gen
 
         var javaFile = JavaFile.builder("", type)
             .addStaticImport(System.class, "nanoTime")
-            .addStaticImport(System.class, "out")
+            .addStaticImport(IO.class, "*")
             .build();
 
         var target = Path
@@ -171,6 +169,14 @@ public class Gen
             .resolve("target")
             .resolve(args[0])
             .toFile();
+
+        if (!target.exists())
+        {
+            if (!target.mkdirs())
+            {
+                throw new IOException("Couldn't make target directory: " + target);
+            }
+        }
 
         javaFile.writeTo(target);
     }
