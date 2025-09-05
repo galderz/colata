@@ -1,6 +1,39 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 5.9.25
+max(a, x);
+
+max(b, max(a, x));
+-> max(x, max(a, b));
+
+max(c, max(b, max(a, x)));
+-> max(x, max(a, b));
+
+
+TraceIterativeGVN:
+#+begin_src bash
+< 		< 479  Phi  === _ 1 _  [[ ]]  #long
+> long		 216  MaxL  === _ 454 217  [[ 374 472 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+= long:minint..maxint-1, 0u..maxulong	 452  MaxL  === _ 501 398  [[ 453 ]]
+= long:minint-1..maxint-1, 0u..maxulong, widen: 3	 501  AddL  === _ 450 500  [[ 452 ]]  !orig=[451]
+= int:>=0, widen: 3	 447  MinI  === _ 408 160  [[ 388 ]]
+= int:-1..maxint-1, 0u..maxuint	 502  AddI  === _ 160 498  [[ 410 ]]  !orig=[449],[392]
+= long:>=0	 450  ConvI2L  === _ 160  [[ 501 ]]  #long:>=0
+#+end_src
+
+superword log:
+#+begin_src bash
+ Pair-chain 1:
+    0:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    1:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
 * 2.9.25
 ** exploring unroll pseudo code
 base:
