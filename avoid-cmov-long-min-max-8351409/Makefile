@@ -42,6 +42,11 @@ asm_jvm_args += -XX:+PrintNMethods
 loop_jvm_args += -XX:+TraceLoopOpts
 loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
 
+gvn_jvm_args += -XX:+TraceIterativeGVN
+#gvn_jvm_args += -XX:+Verbose
+
+super_jvm_args += -XX:+TraceSuperWord
+
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
 endif
@@ -56,6 +61,14 @@ endif
 
 ifdef LOOP_ARGS
   jvm_args += $(loop_jvm_args)
+endif
+
+ifdef GVN_ARGS
+  jvm_args += $(gvn_jvm_args)
+endif
+
+ifdef SUPER_ARGS
+  jvm_args += $(super_jvm_args)
 endif
 
 ifdef NO_SUPERWORD
