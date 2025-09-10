@@ -285,6 +285,11 @@ clean-csv:
 > rm -f $(java_images_test_dir)/*.csv
 .PHONY: clean-csv
 
+clean-jtreg:
+> cd $(JDK_HOME)
+> rm -drf JT*
+.PHONY: clean-jtreg
+
 define tools
 sudo dnf groupinstall -y "Development Tools"
 sudo dnf install -y \
