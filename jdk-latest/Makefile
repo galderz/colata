@@ -1,12 +1,13 @@
+CLASS ?= Test
+JDK_HOME ?= $(HOME)/src/jdk
+
+NO_WARNINGS_ERRORS := true
+
 TOPDIR = ..
-include $(TOPDIR)/make/MakeBase.gmk
+include $(TOPDIR)/nix-make/MakeBase.gmk
+include $(TOPDIR)/nix-make/OpenJDK.gmk
 
 default: run
-
-BOOT_JDK_VERSION ?= 23
-CLASS ?= Test
-JDK_HOME ?= $(HOME)/1/jdk
-include $(TOPDIR)/make/OpenJDK.gmk
 
 run: clear-logs $(java)
 > $(call_java) \
