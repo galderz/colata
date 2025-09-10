@@ -162,7 +162,7 @@ $(gen_file): $(java)
 gen: $(gen_file)
 .PHONY: gen
 
-run-gen:
+run-gen: $(java)
 > cd $(target)
 > $(java) \
 >   $(jvm_args) Test.java
