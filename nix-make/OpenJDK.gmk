@@ -25,6 +25,7 @@ java_libs_dir = $(java_home)/lib/server
 java_home = $(java_build_dir)/jdk
 jmh = $(JDK_HOME)/build/jmh/jars/.jmh
 jtreg_src = $(opt)/jtreg
+jtreg_readme = $(jtreg_src)/README.md
 jtreg_bin = $(jtreg_home)/bin/jtreg
 jtreg_home = $(jtreg_src)/build/images/jtreg
 lldbinit = $(TOPDIR)/make/.lldbinit
@@ -251,11 +252,12 @@ test-compiler: build-jdk
 > CONF=$(conf_name) TEST="hotspot_compiler" make test
 .PHONY: test-compiler
 
-$(jtreg_bin): $(jtreg_src)
-> cd $<
+$(jtreg_bin): $(shell find $(jtreg_src)/src -type f -name '*.java')
+$(jtreg_bin): $(jtreg_readme)
+> cd $(jtreg_src)
 > sh make/build.sh --jdk $(BOOT_JDK_HOME)
 
-$(jtreg_src):
+$(jtreg_readme):
 > cd $(opt)
 > git clone https://github.com/openjdk/jtreg
 
