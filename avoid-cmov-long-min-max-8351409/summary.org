@@ -1,6 +1,188 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 9.9.25
+** draw the chain
+#+begin_src bash
+ Pair-chain 1:
+    0:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    1:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+max(max(max(max(max(max(max(max(v629, v607), v604), v597), v594), v539), v536), v455), v217)
+=
+max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+max(8, max(7, max(6, max(5, max(4, max(3, max(2, 1)))))))
+->
+max(1, max(8, max(7, max(6, max(5, max(4, max(3, 2)))))))
+** filter for strip mined loops
+#+begin_src bash
+ 216  MaxL  === _ 251 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 464  CountedLoop  === 464 266 164  [[ 464 465 471 472 ]] stride: 1 main of N464 strip mined multiversion_fast !orig=267,[236],[214]
+ 472  Phi  === 464 347 216  [[ 454 484 ]]  #long !orig=251,[246]
+
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 553  CountedLoop  === 553 266 164  [[ 549 552 553 262 556 557 467 227 ]] inner stride: 4 main of N553 strip mined multiversion_fast !orig=[464],[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+ 556  Phi  === 553 347 216  [[ 538 ]]  #long !orig=[472],[251],[246]
+
+ 216  MaxL  === _ 454 217  [[ 635 629 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 627  CountedLoop  === 627 266 164  [[ 616 619 622 626 627 628 629 630 ]] inner stride: 4 main of N627 strip mined multiversion_fast !orig=553,[464],[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=556,[472],[251],[246]
+
+
+ 147  MaxL  === _ 119 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+ 392  Phi  === 389 301 147  [[ 384 ]]  #long !orig=119 !jvms: Test::test @ bci:12 (line 20)
+ 389  CountedLoop  === 389 176 160  [[ 389 391 392 393 ]] inner stride: 1 main of N389 strip mined !orig=177,[168],[116] !jvms: Test::test @ bci:12 (line 20)
+
+ 147  MaxL  === _ 384 215  [[ 667 680 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 664  CountedLoop  === 664 176 160  [[ 664 665 667 676 ]] inner stride: 8 main of N664 strip mined !orig=550,[460],[389],[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+#+end_src
+
+#+begin_src bash
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+** what makes ~216  MaxL~ different v1
+#+begin_src bash
+ 216  MaxL  === _ 454 217  [[ 561 556 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+                                   |
+                                   > 553  CountedLoop  === 553 266 164  [[ 549 552 553 554 556 557 ]] inner stride: 2 main of N553 strip mined multiversion_fast !orig=464,[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+                                     556  Phi  === 553 347 216  [[ 538 ]]  #long !orig=472,[251],[246]
+
+ 535  MaxL  === _ 538 536  [[ 472 561 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+                               |
+                               > 464  CountedLoop  === 464 555 1  [[ 464 467 471 472 227 262 ]] inner main of N464 multiversion_fast !orig=[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+                                 472  Phi  === 464 535 1  [[ 454 ]]  #long !orig=[251],[246]
+
+[avoid-cmov] max without max out but has max in
+ 535  MaxL  === _ 538 536  [[ 472 561 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+** understanding phi nodes
+#+begin_src cpp
+// PhiNodes merge values from different Control paths.  Slot 0 points to the
+// controlling RegionNode.  Other slots map 1-for-1 with incoming control flow
+// paths to the RegionNode.
+#+end_src
+
+So, for ~629  Phi~ the 0-slot is ~627  CountedLoop~, and that counted loop node is a region node.
+#+begin_src bash
+ 216  MaxL  === _ 454 217  [[ 635 629 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 627  CountedLoop  === 627 266 164  [[ 616 619 622 626 627 628 629 630 ]] inner stride: 4 main of N627 strip mined multiversion_fast !orig=553,[464],[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=556,[472],[251],[246]
+#+end_src
+** what makes ~216  MaxL~ different v0
+Looking at clues that differentiate 216 from the rest of the nodes.
+There's a Phi after 216 with the other node being a CountedLoop, as Roland suggested:
+
+#+begin_src bash
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 472 455  [[ 216 479 484 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 535  MaxL  === _ 538 536  [[ 472 561 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 556 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 593  MaxL  === _ 596 594  [[ 556 635 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 392 385  [[ 147 400 ]]  !orig=147 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 449  MaxL  === _ 450 453  [[ 392 470 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 463 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 524  MaxL  === _ 527 525  [[ 463 557 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+--
+ 216  MaxL  === _ 454 217  [[ 635 629 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 627  CountedLoop  === 627 266 164  [[ 616 619 622 626 627 628 629 630 ]] inner stride: 4 main of N627 strip mined multiversion_fast !orig=553,[464],[267],[236],[214] !jvms: Test::test @ bci:14 (line 20)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=556,[472],[251],[246]
+--
+
+[avoid-cmov] max without max out but has max in
+ 623  MaxL  === _ 624 635  [[ 551 680 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 639  [[ 623 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] max without max out but has max in
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
 * 5.9.25
 max(a, x);
 
