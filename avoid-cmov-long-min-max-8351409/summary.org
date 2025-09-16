@@ -1,6 +1,388 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* Next steps
+- [X] call igvn.replace_node on reassociated node
+- [X] check the assembly and make sure the differences in IR are reflected there
+- [ ] check the performance of manual unroll 16 and compare with prototype
+- [ ] remove striped counted loop check, not necessary
+- [ ] try to get it working with a manually unrolled loops where one of the intermediate values is somehow either inside or outside the loop
+- [ ]   e.g. if statement for an intermediate value, or just use it outside
+- [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
+- [ ] find a benchmark that would showcase this scenario
+- [ ] see if an IR test can be developed, though IR node shape is not a feature (according to roland)
+* 16.9.26
+** patch assembly
+x0 = max(x0, max(x16, ...max(x17, max(x16, max(x17, max(x16, x15))))
+
+#+begin_src asm
+  0x00000001382d27b4:   ldp		x15, x16, [x1, #0x10]
+  0x00000001382d27b8:   cmp		x15, x16
+  0x00000001382d27c0:   csel		x15, x16, x15, lt
+
+  0x00000001382d27bc:   ldr		x17, [x1, #0x20]
+  0x00000001382d27c4:   cmp		x15, x17
+  0x00000001382d27cc:   csel		x15, x17, x15, lt
+
+  0x00000001382d27c8:   ldr		x16, [x1, #0x28]
+  0x00000001382d27d0:   cmp		x15, x16
+  0x00000001382d27d8:   csel		x15, x16, x15, lt
+
+  0x00000001382d27d4:   ldr		x17, [x1, #0x30]
+  0x00000001382d27dc:   cmp		x15, x17
+  0x00000001382d27e4:   csel		x15, x17, x15, lt
+
+  0x00000001382d27e0:   ldr		x16, [x1, #0x38]
+  0x00000001382d27e8:   cmp		x15, x16
+  0x00000001382d27f0:   csel		x15, x16, x15, lt
+
+  0x00000001382d27ec:   ldr		x17, [x1, #0x40]
+  0x00000001382d27f4:   cmp		x15, x17
+  0x00000001382d27fc:   csel		x15, x17, x15, lt
+
+  0x00000001382d27f8:   ldr		x16, [x1, #0x48]
+  0x00000001382d2800:   cmp		x15, x16
+  0x00000001382d2808:   csel		x15, x16, x15, lt
+
+  0x00000001382d2804:   ldr		x17, [x1, #0x50]
+  0x00000001382d280c:   cmp		x15, x17
+  0x00000001382d2814:   csel		x15, x17, x15, lt
+
+  0x00000001382d2810:   ldr		x16, [x1, #0x58]
+  0x00000001382d2818:   cmp		x15, x16
+  0x00000001382d2820:   csel		x15, x16, x15, lt
+
+  0x00000001382d281c:   ldr		x17, [x1, #0x60]
+  0x00000001382d2824:   cmp		x15, x17
+  0x00000001382d282c:   csel		x15, x17, x15, lt
+
+  0x00000001382d2828:   ldr		x16, [x1, #0x68]
+  0x00000001382d2830:   cmp		x15, x16
+  0x00000001382d2838:   csel		x15, x16, x15, lt
+
+  0x00000001382d2834:   ldr		x17, [x1, #0x70]
+  0x00000001382d283c:   cmp		x15, x17
+  0x00000001382d2844:   csel		x15, x17, x15, lt
+
+  0x00000001382d2840:   ldr		x16, [x1, #0x78]
+  0x00000001382d2848:   cmp		x15, x16
+  0x00000001382d2850:   csel		x15, x16, x15, lt
+
+  0x00000001382d284c:   ldr		x17, [x1, #0x80]
+  0x00000001382d2854:   cmp		x15, x17
+  0x00000001382d285c:   csel		x15, x17, x15, lt
+
+  0x00000001382d2858:   ldr		x16, [x1, #0x88]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x00000001382d2860:   cmp		x15, x16
+  0x00000001382d2864:   csel		x15, x16, x15, lt
+
+  0x00000001382d2868:   cmp		x15, x0
+  0x00000001382d2870:   csel		x0, x0, x15, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+#+end_src
+** base assembly
+x0 = max(x16, ... max(x17, max(x16, max(x17, max(x16, max(x15, x0)))))
+
+#+begin_src asm
+  0x000000010cda27b4:   ldr		x15, [x2, #0x10]
+  0x000000010cda27b8:   cmp		x0, x15
+  0x000000010cda27c0:   csel		x15, x15, x0, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27bc:   ldr		x16, [x2, #0x18]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda27c4:   cmp		x15, x16
+  0x000000010cda27cc:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27c8:   ldr		x17, [x2, #0x20]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda27d0:   cmp		x15, x17
+  0x000000010cda27d8:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27d4:   ldr		x16, [x2, #0x28]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda27dc:   cmp		x15, x16
+  0x000000010cda27e4:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27e0:   ldr		x17, [x2, #0x30]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda27e8:   cmp		x15, x17
+  0x000000010cda27f0:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27ec:   ldr		x16, [x2, #0x38]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda27f4:   cmp		x15, x16
+  0x000000010cda27fc:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda27f8:   ldr		x17, [x2, #0x40]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2800:   cmp		x15, x17
+  0x000000010cda2808:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2804:   ldr		x16, [x2, #0x48]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda280c:   cmp		x15, x16
+  0x000000010cda2814:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2810:   ldr		x17, [x2, #0x50]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2818:   cmp		x15, x17
+  0x000000010cda2820:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda281c:   ldr		x16, [x2, #0x58]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2824:   cmp		x15, x16
+  0x000000010cda282c:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2828:   ldr		x17, [x2, #0x60]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2830:   cmp		x15, x17
+  0x000000010cda2838:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2834:   ldr		x16, [x2, #0x68]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda283c:   cmp		x15, x16
+  0x000000010cda2844:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2840:   ldr		x17, [x2, #0x70]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2848:   cmp		x15, x17
+  0x000000010cda2850:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda284c:   ldr		x16, [x2, #0x78]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2854:   cmp		x15, x16
+  0x000000010cda285c:   csel		x15, x16, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2858:   ldr		x17, [x2, #0x80]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda2860:   cmp		x15, x17
+  0x000000010cda2868:   csel		x15, x17, x15, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+
+  0x000000010cda2864:   ldr		x16, [x2, #0x88]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+  0x000000010cda286c:   cmp		x15, x16
+  0x000000010cda2874:   csel		x0, x16, x15, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+#+end_src
+* 15.9.26
+** early first draft
+From:
+#+begin_src bash
+    0:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+    1:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+
+v216 = max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+Running
+Throughput: 223 ops/ms
+Throughput: 222 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 221 ops/ms
+Throughput: 222 ops/ms
+Throughput: 221 ops/ms
+Validate
+#+end_src
+
+To:
+#+begin_src bash
+    0:  671  MaxL  === _ 670 629  [[ ]]
+    1:  670  MaxL  === _ 669 217  [[ 671 ]]
+    2:  669  MaxL  === _ 668 455  [[ 670 ]]
+    3:  668  MaxL  === _ 667 536  [[ 669 ]]
+    4:  667  MaxL  === _ 666 539  [[ 668 ]]
+    5:  666  MaxL  === _ 665 594  [[ 667 ]]
+    6:  665  MaxL  === _ 664 597  [[ 666 ]]
+    7:  664  MaxL  === _ 607 604  [[ 665 ]]
+
+v671 = max(v629, max(v217, max(v455, max(v536, max(v539, max(v594, max(v597, max(v604, v607))))))
+
+Running
+Throughput: 537 ops/ms
+Throughput: 549 ops/ms
+Throughput: 547 ops/ms
+Throughput: 546 ops/ms
+Throughput: 552 ops/ms
+Throughput: 550 ops/ms
+Throughput: 553 ops/ms
+Throughput: 548 ops/ms
+Throughput: 548 ops/ms
+Throughput: 549 ops/ms
+Validate
+#+end_src
+** prototypes
+#+begin_src bash
+[avoid-cmov] reassociate in loop; chain:
+    0:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+    1:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+x5 = x4 + (x3 + (x2 + (x1 + x))) ~= v216 = max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+we want to transform to:
+
+x5 = x + (x4 + (x3 + (x2 + x1))) ~= v216 = max(v629, max(v217, max(v455, max(vx1536, max(v539, max(v594, max(v597, max(v604, v607))))))))
+
+What is looking like:
+#+begin_src bash
+    0:  671  MaxL  === _ 670 629  [[ ]]
+    1:  670  MaxL  === _ 669 217  [[ 671 ]]
+    2:  669  MaxL  === _ 668 455  [[ 670 ]]
+    3:  668  MaxL  === _ 667 536  [[ 669 ]]
+    4:  667  MaxL  === _ 666 539  [[ 668 ]]
+    5:  666  MaxL  === _ 665 594  [[ 667 ]]
+    6:  665  MaxL  === _ 664 597  [[ 666 ]]
+    7:  664  MaxL  === _ 629 604  [[ 665 ]]
+
+v671 = max(v629, max(v217, max(v455, max(v536, max(v539, max(v594, max(v597, max(v604, v629))))))))
+#+end_src
+
+And now:
+#+begin_src bash
+    0:  671  MaxL  === _ 670 629  [[ ]]
+    1:  670  MaxL  === _ 669 217  [[ 671 ]]
+    2:  669  MaxL  === _ 668 455  [[ 670 ]]
+    3:  668  MaxL  === _ 667 536  [[ 669 ]]
+    4:  667  MaxL  === _ 666 539  [[ 668 ]]
+    5:  666  MaxL  === _ 665 594  [[ 667 ]]
+    6:  665  MaxL  === _ 664 597  [[ 666 ]]
+    7:  664  MaxL  === _ 607 604  [[ 665 ]]
+
+v671 = max(v629, max(v217, max(v455, max(v536, max(v539, max(v594, max(v597, max(v604, v607))))))
+#+end_src
+
+* 12.9.25
+#+begin_src bash
+ Pair-chain 1:
+    0:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    1:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+v216 = max(max(max(max(max(max(max(max(v629, v607), v604), v597), v594), v539), v536), v455), v217)
+=
+v216 = max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+After reassociation:
+#+begin_src bash
+[avoid-cmov] reassociate in loop; root:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; chain length: 8
+[avoid-cmov] reassociate in loop; last:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; reassociated:  664  MaxL  === _ 606 217  [[ ]]
+
+ 217  LoadL  === 385 7 218  [[ 664 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; #long !orig=190 !jvms: Test::test @ bci:14 (line 20)
+
+
+ 365  Phi  === 357 33 347  [[ 347 339 ]]  #long !orig=[251],[246]
+ 347  MaxL  === _ 365 348  [[ 365 374 629 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+
+ 629  Phi  === 627 347 664  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+ 606  MaxL  === _ 629 607  [[ 664 ]]  !orig=[538],[454],[216],191 !jvms: Test::test @ bci:20 (line 21)
+
+ 664  MaxL  === _ 606 217  [[ 268 629 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+v664 = ...
+
+continue trying to reassociate, got this far.
+need to see why the final value is wrong, maybe reassociated chain is not right, maybe values missing?
+#+begin_src bash
+Warmup
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; root:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; chain length: 8
+[avoid-cmov] reassociate in loop; last:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; reassociated:  664  MaxL  === _ 606 217  [[ ]]
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; root:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; chain length: 16
+[avoid-cmov] reassociate in loop; last:  632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; reassociated:  764  MaxL  === _ 632 215  [[ ]]
+Running
+Throughput: 1726 ops/ms
+Throughput: 1737 ops/ms
+Throughput: 1762 ops/ms
+Throughput: 1761 ops/ms
+Throughput: 1759 ops/ms
+Throughput: 1749 ops/ms
+Throughput: 1759 ops/ms
+Throughput: 1714 ops/ms
+Throughput: 1751 ops/ms
+Throughput: 1748 ops/ms
+Validate
+Exception in thread "main" java.lang.AssertionError: Failed: expected: 4294334221, actual: 4293477055
+	at Test.validate(Test.java:84)
+	at Test.main(Test.java:54)
+make: *** [Makefile:166: run-gen] Error 1
+#+end_src
+* 11.9.25
+next: do something akin to PhaseIterGVN::optimize in reassociation loop node.
+create new add nodes and then check what logging/verification needs doing.
+** finding last maxl node
+216-606 chain of 8 expected, that's what superword was showing.
+but what is the 147-632 chain of 16?
+#+begin_src bash
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop, root:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop, last: 8
+[avoid-cmov] reassociate in loop, last:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop, root:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop, last: 16
+[avoid-cmov] reassociate in loop, last:  632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+Seems like it unrolls up to 16:
+#+begin_src bash
+ Pair-chain 1:
+    0:  632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    1:  631  MaxL  === _ 632 657  [[ 630 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+    2:  630  MaxL  === _ 631 653  [[ 627 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    3:  627  MaxL  === _ 630 628  [[ 626 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+    4:  626  MaxL  === _ 627 647  [[ 625 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    5:  625  MaxL  === _ 626 643  [[ 624 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+    6:  624  MaxL  === _ 625 639  [[ 623 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    7:  623  MaxL  === _ 624 635  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+    8:  529  MaxL  === _ 623 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    9:  528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+   10:  527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+   11:  524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+   12:  450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+   13:  449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+   14:  384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+   15:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+Yes, it manages to unroll it for 16:
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N306/N311  limit_check short_running profile_predicated predicated counted [0,int),+1 (4 iters)  pre
+  Loop: N176/N175  limit_check sfpts={ 178 }
+    Loop: N550/N160  limit_check counted [int,int),+8 (10243 iters)  main has_sfpt strip_mined
+  Loop: N237/N242  limit_check counted [int,int),+1 (4 iters)  post
+Unroll 16         Loop: N550/N160  limit_check counted [int,int),+8 (10243 iters)  main has_sfpt strip_mined
+#+end_src
 * 9.9.25
 ** draw the chain
 #+begin_src bash
