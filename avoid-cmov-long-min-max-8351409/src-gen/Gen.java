@@ -1,3 +1,4 @@
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -71,6 +72,8 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
                 .addStatement("var t3 = Math.max(v3, t2)")
                 .addStatement("result = t3")
             ;
+        case Unroll16 ->
+            unroll(16, builder);
     }
 
     builder
@@ -80,6 +83,36 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
     return builder.build();
 }
 
+void unroll(int size, MethodSpec.Builder builder)
+{
+    builder
+        .beginControlFlow("for (int i = 0; i < array.length; i += $L)", 16);
+
+    int index = 0;
+    for (int i = 0; i < size; i++)
+    {
+        builder.addStatement("var v$L = array[i + $L]", index, index);
+        index++;
+    }
+
+    var comment = new ArrayDeque<String>();
+
+    builder.addStatement("var t0 = Math.max(v0, result)");
+    comment.addLast("max(v0, result)");
+
+    index = 1;
+    for (int i = index; i < size; i++)
+    {
+        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index, index - 1);
+        comment.addFirst("max(v%d, ".formatted(index));
+        comment.addLast(")");
+        index++;
+    }
+    comment.addFirst("result = ");
+    builder.addStatement("result = t$L", index - 1);
+    builder.addComment(String.join("", comment));
+}
+
 enum Option
 {
     Base
@@ -87,6 +120,7 @@ enum Option
     , Unroll2
     , Reassoc4
     , Unroll4
+    , Unroll16
 }
 
 void main(String[] args) throws IOException
