@@ -23,23 +23,54 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
             builder
                 .beginControlFlow("for (int i = 0; i < array.length; i++)")
                 .addStatement("var v = array[i]")
-                .addStatement("result = Math.max(v, result)");
+                .addStatement("result = Math.max(v, result)")
+            ;
         case Reassoc2 ->
             builder
                 .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
                 .addStatement("var v0 = array[i + 0]")
                 .addStatement("var v1 = array[i + 1]")
-                // result = Math.max(result, Math.max(v1, v0))
+                // result = max(result, max(v1, v0))
                 .addStatement("var t0 = Math.max(v1, v0)")
-                .addStatement("result = Math.max(result, t0)");
+                .addStatement("result = Math.max(result, t0)")
+            ;
         case Unroll2 ->
             builder
                 .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
                 .addStatement("var v0 = array[i + 0]")
                 .addStatement("var v1 = array[i + 1]")
-                // result = Math.max(v1, Math.max(v0, result))
+                // result = max(v1, max(v0, result))
                 .addStatement("var t0 = Math.max(v0, result)")
-                .addStatement("result = Math.max(v1, t0)");
+                .addStatement("result = Math.max(v1, t0)")
+            ;
+        case Reassoc4 ->
+            builder
+                .beginControlFlow("for (int i = 0; i < array.length; i += 4)")
+                .addStatement("var v0 = array[i + 0]")
+                .addStatement("var v1 = array[i + 1]")
+                .addStatement("var v2 = array[i + 2]")
+                .addStatement("var v3 = array[i + 3]")
+                // result = max(result, max(v3, max(v2, max(v1, v0))))
+                .addStatement("var t0 = Math.max(v1, v0)")
+                .addStatement("var t1 = Math.max(v2, t0)")
+                .addStatement("var t2 = Math.max(v3, t1)")
+                .addStatement("var t3 = Math.max(result, t2)")
+                .addStatement("result = t3")
+            ;
+        case Unroll4 ->
+            builder
+                .beginControlFlow("for (int i = 0; i < array.length; i += 4)")
+                .addStatement("var v0 = array[i + 0]")
+                .addStatement("var v1 = array[i + 1]")
+                .addStatement("var v2 = array[i + 2]")
+                .addStatement("var v3 = array[i + 3]")
+                // result = max(v3, max(v2, max(v1, max(v0, result))))
+                .addStatement("var t0 = Math.max(v0, result)")
+                .addStatement("var t1 = Math.max(v1, t0)")
+                .addStatement("var t2 = Math.max(v2, t1)")
+                .addStatement("var t3 = Math.max(v3, t2)")
+                .addStatement("result = t3")
+            ;
     }
 
     builder
@@ -54,6 +85,8 @@ enum Option
     Base
     , Reassoc2
     , Unroll2
+    , Reassoc4
+    , Unroll4
 }
 
 void main(String[] args) throws IOException
