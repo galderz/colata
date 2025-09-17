@@ -25,18 +25,10 @@ MethodSpec buildTest(Option option)
                 .addStatement("var v = array[i]")
                 .addStatement("result = Math.max(v, result)")
             ;
-        case Reassoc2 ->
-            builder.addCode(reassoc(2));
-        case Unroll2 ->
-            builder.addCode(unroll(2));
-        case Reassoc4 ->
-            builder.addCode(reassoc(4));
-        case Unroll4 ->
-            builder.addCode(unroll(4));
-        case Reassoc16 ->
-            builder.addCode(reassoc(16));
-        case Unroll16 ->
-            builder.addCode(unroll(16));
+        case Reassoc2, Reassoc4, Reassoc8, Reassoc16 ->
+            builder.addCode(reassoc(option.size));
+        case Unroll2, Unroll4, Unroll8, Unroll16 ->
+            builder.addCode(unroll(option.size));
     }
 
     return builder
@@ -142,13 +134,20 @@ CodeBlock unroll(int size)
 
 enum Option
 {
-    Base
-    , Reassoc2
-    , Unroll2
-    , Reassoc4
-    , Unroll4
-    , Reassoc16
-    , Unroll16
+    Base(0)
+    , Reassoc2(2)
+    , Unroll2(2)
+    , Reassoc4(4)
+    , Unroll4(4)
+    , Reassoc8(8)
+    , Unroll8(8)
+    , Reassoc16(16)
+    , Unroll16(16)
+    ;
+
+    final int size;
+
+    Option(int size) {this.size = size;}
 }
 
 void main(String[] args) throws IOException
