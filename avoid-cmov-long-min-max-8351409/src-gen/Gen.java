@@ -1,4 +1,3 @@
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -72,6 +71,8 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
                 .addStatement("var t3 = Math.max(v3, t2)")
                 .addStatement("result = t3")
             ;
+        case Reassoc16 ->
+            reassoc(16, builder);
         case Unroll16 ->
             unroll(16, builder);
     }
@@ -81,6 +82,54 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
         .addStatement("return result");
 
     return builder.build();
+}
+
+MethodSpec buildExpect(MethodSpec.Builder builder)
+{
+    return builder
+        .addModifiers(STATIC)
+        .returns(long.class)
+        .addParameter(long[].class, "array")
+        .addStatement("$T result = Integer.MIN_VALUE;", long.class)
+        .beginControlFlow("for (int i = 0; i < array.length; i++)")
+        .addStatement("var v = array[i]")
+        .addStatement("result = Math.max(v, result)")
+        .endControlFlow()
+        .addStatement("return result")
+        .build();
+}
+
+void reassoc(int size, MethodSpec.Builder builder)
+{
+    builder
+        .beginControlFlow("for (int i = 0; i < array.length; i += $L)", 16);
+
+    int index = 0;
+    for (int i = 0; i < size; i++)
+    {
+        builder.addStatement("var v$L = array[i + $L]", index, index);
+        index++;
+    }
+
+    var comment = new ArrayDeque<String>();
+
+    builder.addStatement("var t0 = Math.max(v1, v0)");
+    comment.addLast("max(v1, v0)");
+
+    index = 1;
+    for (int i = index; i < size - 1; i++)
+    {
+        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index + 1, index - 1);
+        comment.addFirst("max(v%d, ".formatted(index + 1));
+        comment.addLast(")");
+        index++;
+    }
+
+    builder.addStatement("result = Math.max(result, t$L)", index - 1);
+    comment.addFirst("result = max(result, ");
+    comment.addLast(")");
+
+    builder.addComment(String.join("", comment));
 }
 
 void unroll(int size, MethodSpec.Builder builder)
@@ -108,8 +157,10 @@ void unroll(int size, MethodSpec.Builder builder)
         comment.addLast(")");
         index++;
     }
-    comment.addFirst("result = ");
+
     builder.addStatement("result = t$L", index - 1);
+    comment.addFirst("result = ");
+
     builder.addComment(String.join("", comment));
 }
 
@@ -120,6 +171,7 @@ enum Option
     , Unroll2
     , Reassoc4
     , Unroll4
+    , Reassoc16
     , Unroll16
 }
 
@@ -144,7 +196,7 @@ void main(String[] args) throws IOException
         .build();
 
     final var test = buildTest(option, MethodSpec.methodBuilder("test"));
-    final var mirror = buildTest(option, MethodSpec.methodBuilder("mirror"));
+    final var expect = buildExpect(MethodSpec.methodBuilder("expect"));
 
     var blackhole = MethodSpec.methodBuilder("blackhole")
         .addModifiers(STATIC)
@@ -194,7 +246,7 @@ void main(String[] args) throws IOException
         .addStatement("$N(array)", init)
         .addStatement("$T expected = 0", long.class)
         .beginControlFlow("if ($N == run)", numRuns)
-        .addStatement("expected = $N(array)", mirror)
+        .addStatement("expected = $N(array)", expect)
         .endControlFlow()
         .addStatement("var t0 = nanoTime()")
         .addStatement("$T operations = 0", long.class)
@@ -227,7 +279,7 @@ void main(String[] args) throws IOException
         .addMethod(test)
         .addMethod(main)
         .addMethod(init)
-        .addMethod(mirror)
+        .addMethod(expect)
         .addMethod(blackhole)
         .addMethod(validate)
         .build();
