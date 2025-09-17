@@ -7,15 +7,14 @@ import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
-MethodSpec buildTest(Option option, MethodSpec.Builder builder)
+MethodSpec buildTest(Option option)
 {
-    builder
+    var builder = MethodSpec.methodBuilder("test")
         .addModifiers(STATIC)
         .returns(long.class)
-        .addParameter(long[].class, "array");
-
-    builder
-        .addStatement("$T result = Integer.MIN_VALUE;", long.class);
+        .addParameter(long[].class, "array")
+        .addStatement("$T result = Integer.MIN_VALUE;", long.class)
+    ;
 
     switch(option)
     {
@@ -84,9 +83,9 @@ MethodSpec buildTest(Option option, MethodSpec.Builder builder)
     return builder.build();
 }
 
-MethodSpec buildExpect(MethodSpec.Builder builder)
+MethodSpec buildExpect()
 {
-    return builder
+    return MethodSpec.methodBuilder("expect")
         .addModifiers(STATIC)
         .returns(long.class)
         .addParameter(long[].class, "array")
@@ -195,8 +194,8 @@ void main(String[] args) throws IOException
         .initializer("new $T(42)", Random.class)
         .build();
 
-    final var test = buildTest(option, MethodSpec.methodBuilder("test"));
-    final var expect = buildExpect(MethodSpec.methodBuilder("expect"));
+    final var test = buildTest(option);
+    final var expect = buildExpect();
 
     var blackhole = MethodSpec.methodBuilder("blackhole")
         .addModifiers(STATIC)
