@@ -4,6 +4,7 @@
 # IDEA.gitignore
 .idea
 *.iml
+out
 # Maven.gitignore
 target/
 # Emacs.gitignore
