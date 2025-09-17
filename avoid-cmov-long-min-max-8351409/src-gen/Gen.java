@@ -1,3 +1,4 @@
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
@@ -25,62 +26,22 @@ MethodSpec buildTest(Option option)
                 .addStatement("result = Math.max(v, result)")
             ;
         case Reassoc2 ->
-            builder
-                .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
-                .addStatement("var v0 = array[i + 0]")
-                .addStatement("var v1 = array[i + 1]")
-                // result = max(result, max(v1, v0))
-                .addStatement("var t0 = Math.max(v1, v0)")
-                .addStatement("result = Math.max(result, t0)")
-            ;
+            builder.addCode(reassoc(2));
         case Unroll2 ->
-            builder
-                .beginControlFlow("for (int i = 0; i < array.length; i += 2)")
-                .addStatement("var v0 = array[i + 0]")
-                .addStatement("var v1 = array[i + 1]")
-                // result = max(v1, max(v0, result))
-                .addStatement("var t0 = Math.max(v0, result)")
-                .addStatement("result = Math.max(v1, t0)")
-            ;
+            builder.addCode(unroll(2));
         case Reassoc4 ->
-            builder
-                .beginControlFlow("for (int i = 0; i < array.length; i += 4)")
-                .addStatement("var v0 = array[i + 0]")
-                .addStatement("var v1 = array[i + 1]")
-                .addStatement("var v2 = array[i + 2]")
-                .addStatement("var v3 = array[i + 3]")
-                // result = max(result, max(v3, max(v2, max(v1, v0))))
-                .addStatement("var t0 = Math.max(v1, v0)")
-                .addStatement("var t1 = Math.max(v2, t0)")
-                .addStatement("var t2 = Math.max(v3, t1)")
-                .addStatement("var t3 = Math.max(result, t2)")
-                .addStatement("result = t3")
-            ;
+            builder.addCode(reassoc(4));
         case Unroll4 ->
-            builder
-                .beginControlFlow("for (int i = 0; i < array.length; i += 4)")
-                .addStatement("var v0 = array[i + 0]")
-                .addStatement("var v1 = array[i + 1]")
-                .addStatement("var v2 = array[i + 2]")
-                .addStatement("var v3 = array[i + 3]")
-                // result = max(v3, max(v2, max(v1, max(v0, result))))
-                .addStatement("var t0 = Math.max(v0, result)")
-                .addStatement("var t1 = Math.max(v1, t0)")
-                .addStatement("var t2 = Math.max(v2, t1)")
-                .addStatement("var t3 = Math.max(v3, t2)")
-                .addStatement("result = t3")
-            ;
+            builder.addCode(unroll(4));
         case Reassoc16 ->
-            reassoc(16, builder);
+            builder.addCode(reassoc(16));
         case Unroll16 ->
-            unroll(16, builder);
+            builder.addCode(unroll(16));
     }
 
-    builder
-        .endControlFlow()
-        .addStatement("return result");
-
-    return builder.build();
+    return builder
+        .addStatement("return result")
+        .build();
 }
 
 MethodSpec buildExpect()
@@ -98,10 +59,14 @@ MethodSpec buildExpect()
         .build();
 }
 
-void reassoc(int size, MethodSpec.Builder builder)
+CodeBlock reassoc(int size)
 {
+    var builder = CodeBlock.builder();
     builder
-        .beginControlFlow("for (int i = 0; i < array.length; i += $L)", 16);
+        .beginControlFlow(
+            "for (int i = 0; i < array.length; i += $L)"
+            , size
+        );
 
     int index = 0;
     for (int i = 0; i < size; i++)
@@ -112,29 +77,37 @@ void reassoc(int size, MethodSpec.Builder builder)
 
     var comment = new ArrayDeque<String>();
 
-    builder.addStatement("var t0 = Math.max(v1, v0)");
     comment.addLast("max(v1, v0)");
+    builder.addStatement("var t0 = Math.max(v1, v0)");
 
     index = 1;
     for (int i = index; i < size - 1; i++)
     {
-        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index + 1, index - 1);
         comment.addFirst("max(v%d, ".formatted(index + 1));
         comment.addLast(")");
+
+        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index + 1, index - 1);
         index++;
     }
 
-    builder.addStatement("result = Math.max(result, t$L)", index - 1);
     comment.addFirst("result = max(result, ");
     comment.addLast(")");
 
-    builder.addComment(String.join("", comment));
+    return builder
+        .add("// %s%n".formatted(String.join("", comment)))
+        .addStatement("result = Math.max(result, t$L)", index - 1)
+        .endControlFlow()
+        .build();
 }
 
-void unroll(int size, MethodSpec.Builder builder)
+CodeBlock unroll(int size)
 {
+    var builder = CodeBlock.builder();
     builder
-        .beginControlFlow("for (int i = 0; i < array.length; i += $L)", 16);
+        .beginControlFlow(
+            "for (int i = 0; i < array.length; i += $L)"
+            , size
+        );
 
     int index = 0;
     for (int i = 0; i < size; i++)
@@ -145,22 +118,26 @@ void unroll(int size, MethodSpec.Builder builder)
 
     var comment = new ArrayDeque<String>();
 
-    builder.addStatement("var t0 = Math.max(v0, result)");
     comment.addLast("max(v0, result)");
+    builder.addStatement("var t0 = Math.max(v0, result)");
 
     index = 1;
     for (int i = index; i < size; i++)
     {
-        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index, index - 1);
         comment.addFirst("max(v%d, ".formatted(index));
         comment.addLast(")");
+
+        builder.addStatement("var t$L = Math.max(v$L, t$L)", index, index, index - 1);
         index++;
     }
 
-    builder.addStatement("result = t$L", index - 1);
     comment.addFirst("result = ");
 
-    builder.addComment(String.join("", comment));
+    return builder
+        .add("// %s%n".formatted(String.join("", comment)))
+        .addStatement("result = t$L", index - 1)
+        .endControlFlow()
+        .build();
 }
 
 enum Option
