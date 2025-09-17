@@ -24,6 +24,7 @@ MethodSpec buildTest(Option option)
                 .beginControlFlow("for (int i = 0; i < array.length; i++)")
                 .addStatement("var v = array[i]")
                 .addStatement("result = Math.max(v, result)")
+                .endControlFlow()
             ;
         case Reassoc2, Reassoc4, Reassoc8, Reassoc16 ->
             builder.addCode(reassoc(option.size));
