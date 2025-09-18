@@ -39,9 +39,9 @@ ideal_jvm_args += -XX:+PrintIdeal
 asm_jvm_args += -XX:+PrintNMethods
 #asm_jvm_args += -XX:+PrintAssembly
 
-#loop_jvm_args += -XX:+TraceLoopOpts
+loop_jvm_args += -XX:+TraceLoopOpts
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
-loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN
 #gvn_jvm_args += -XX:+Verbose
@@ -88,6 +88,10 @@ endif
 IGV ?=
 ifdef IGV
   jvm_args += -XX:PrintIdealGraphLevel=$(IGV)
+endif
+
+ifdef NO_UNROLL
+  jvm_args += -XX:LoopMaxUnroll=0
 endif
 
 jvm_args += $(base_jvm_args)
