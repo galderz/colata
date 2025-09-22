@@ -178,6 +178,10 @@ run-gen: $(java)
 >   $(jvm_args) Test.java
 .PHONY: run-gen
 
+uica:
+> ../$(TOPDIR)/nix-make/uica.sh $(DIR) $(opt)
+.PHONY: uica
+
 clean-gen:
 > rm -drf target
 > rm -drf src-gen/target
