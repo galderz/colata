@@ -94,6 +94,11 @@ ifdef NO_UNROLL
   jvm_args += -XX:LoopMaxUnroll=0
 endif
 
+AVX ?=
+ifdef AVX
+  jvm_args += -XX:UseAVX=$(AVX)
+endif
+
 jvm_args += $(base_jvm_args)
 
 compile: $(java)
