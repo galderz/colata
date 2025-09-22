@@ -32,6 +32,8 @@ MethodSpec buildTest(Option option)
             builder.addCode(unroll(option.size));
         case Reassoc4x4 ->
             builder.addCode(reassocBy(option.size, option.size));
+        case Reassoc2x8 ->
+            builder.addCode(reassocBy(option.size, option.size / 4));
     }
 
     return builder
@@ -65,7 +67,7 @@ CodeBlock reassocBy(int outer, int inner)
 
     for (int i = 0; i < outer; i++)
     {
-        final int index = i * outer;
+        final int index = i * inner;
 
         for (int j = 0; j < inner; j++)
         {
@@ -79,7 +81,7 @@ CodeBlock reassocBy(int outer, int inner)
             builder.addStatement("var t$L = Math.max(v$L, t$L)", index + j, index + j + 1, index + j - 1);
         }
 
-        builder.addStatement("result = Math.max(result, t$L)", index + 2);
+        builder.addStatement("result = Math.max(result, t$L)", index + inner - 2);
     }
 
     return builder
@@ -180,6 +182,7 @@ enum Option
     , Reassoc16(16)
     , Unroll16(16)
     , Reassoc4x4(4)
+    , Reassoc2x8(8)
     ;
 
     final int size;
