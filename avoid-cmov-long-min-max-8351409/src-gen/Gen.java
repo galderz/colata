@@ -40,6 +40,8 @@ MethodSpec buildTest(Option option)
             builder.addCode(reTree(option.size, option.size));
         case ReTree8x2 ->
             builder.addCode(reTree(option.size, option.size * 4));
+        case ReTree16x1 ->
+            builder.addCode(reTree(option.size, option.size * 16));
     }
 
     return builder
@@ -234,6 +236,7 @@ enum Option
     , Reassoc8x2(2)
     , ReTree4x4(4)
     , ReTree8x2(2)
+    , ReTree16x1(1)
     ;
 
     final int size;
