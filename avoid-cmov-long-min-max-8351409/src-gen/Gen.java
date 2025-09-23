@@ -36,6 +36,8 @@ MethodSpec buildTest(Option option)
             builder.addCode(reassocBy(option.size, option.size / 4));
         case Reassoc8x2 ->
             builder.addCode(reassocBy(option.size, option.size * 4));
+        case ReTree4x4 ->
+            builder.addCode(reTree(option.size, option.size));
     }
 
     return builder
@@ -55,6 +57,48 @@ MethodSpec buildExpect()
         .addStatement("result = Math.max(v, result)")
         .endControlFlow()
         .addStatement("return result")
+        .build();
+}
+
+CodeBlock reTree(int outer, int inner)
+{
+    var builder = CodeBlock.builder();
+    builder
+        .beginControlFlow(
+            "for (int i = 0; i < array.length; i += $L)"
+            , outer * inner
+        );
+
+
+    int nameIndex = 0;
+    for (int i = 0; i < outer; i++)
+    {
+        final int index = i * inner;
+
+        final Deque<String> names = new ArrayDeque<>();
+        for (int j = 0; j < inner; j++)
+        {
+            var name = "v" + (index + j);
+            builder.addStatement("var $L = array[i + $L]", name, index + j);
+            names.push(name);
+        }
+
+        while (names.size() > 1)
+        {
+            var name = "t" + nameIndex;
+            nameIndex++;
+
+            final String left = names.removeLast();
+            final String right = names.removeLast();
+            builder.addStatement("var $L = Math.max($L, $L)", name, left, right);
+            names.push(name);
+        }
+
+        builder.addStatement("result = Math.max(result, t$L)", nameIndex - 1);
+    }
+
+    return builder
+        .endControlFlow()
         .build();
 }
 
@@ -186,6 +230,7 @@ enum Option
     , Reassoc4x4(4)
     , Reassoc2x8(8)
     , Reassoc8x2(2)
+    , ReTree4x4(4)
     ;
 
     final int size;
