@@ -79,12 +79,12 @@ CodeBlock reTree(int outer, int inner)
     {
         final int index = i * inner;
 
-        final Deque<String> names = new ArrayDeque<>();
+        final Queue<String> names = new LinkedList<>();
         for (int j = 0; j < inner; j++)
         {
             var name = "v" + (index + j);
             builder.addStatement("var $L = array[i + $L]", name, index + j);
-            names.push(name);
+            names.offer(name);
         }
 
         while (names.size() > 1)
@@ -92,10 +92,10 @@ CodeBlock reTree(int outer, int inner)
             var name = "t" + nameIndex;
             nameIndex++;
 
-            final String left = names.removeLast();
-            final String right = names.removeLast();
+            final String left = names.poll();
+            final String right = names.poll();
             builder.addStatement("var $L = Math.max($L, $L)", name, left, right);
-            names.push(name);
+            names.offer(name);
         }
 
         builder.addStatement("result = Math.max(result, t$L)", nameIndex - 1);
