@@ -14,10 +14,16 @@ benchmark()
 BRANCH=topic.avoid-cmov-long-min-max.base make checkout
 
 benchmark Unroll16
-benchmark Reassoc16
-benchmark Reassoc8x2
 benchmark Reassoc4x4
-benchmark Reassoc2x8
+benchmark ReTree4x4
+benchmark ReTree8x2
+benchmark ReTree16x1
+
+#benchmark Unroll16
+#benchmark Reassoc16
+#benchmark Reassoc8x2
+#benchmark Reassoc4x4
+#benchmark Reassoc2x8
 
 #benchmark Unroll2
 #benchmark Reassoc2
