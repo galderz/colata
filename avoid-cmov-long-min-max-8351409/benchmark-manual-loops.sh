@@ -8,7 +8,7 @@ benchmark()
 
     GEN=${gen} make gen
     GEN=${gen} NO_UNROLL=true make run-gen
-    GEN=${gen} NO_UNROLL=true ASM_ARGS=true make run-gen
+    GEN=${gen} NO_UNROLL=true ASM_ARGS=true make run-gen > ${gen}.dis
 }
 
 BRANCH=topic.avoid-cmov-long-min-max.base make checkout
