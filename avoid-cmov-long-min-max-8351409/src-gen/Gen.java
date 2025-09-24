@@ -359,20 +359,20 @@ void main(String[] args) throws IOException
         .addStaticImport(TimeUnit.class, "*")
         .build();
 
-    var target = Path
+    var src = Path
         .of(System.getProperty("user.dir"))
-        .resolve("target")
+        .resolve("src")
         .resolve(args[0])
         .toFile();
 
-    if (!target.exists())
+    if (!src.exists())
     {
-        if (!target.mkdirs())
+        if (!src.mkdirs())
         {
-            throw new IOException("Couldn't make target directory: " + target);
+            throw new IOException("Couldn't make src directory: " + src);
         }
     }
 
-    javaFile.writeTo(target);
+    javaFile.writeTo(src);
 }
 
