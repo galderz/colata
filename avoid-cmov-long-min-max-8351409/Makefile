@@ -153,10 +153,10 @@ debug-benchmarks: $(benchmarks_jar)
 >   $(debug_jmh_args)
 .PHONY: debug-benchmarks
 
-gen_file = $(target)/Test.java
+gen_file = $(src)/Test.java
 gen_lib_dir = src-gen/target/lib
 gen_lib = $(gen_lib_dir)/.touch
-target = $(shell pwd)/target/$(GEN)
+src = $(shell pwd)/src/$(GEN)
 
 $(gen_lib):
 > pushd src-gen
@@ -173,11 +173,10 @@ gen: $(gen_file)
 .PHONY: gen
 
 run-gen: $(java)
-> cd $(target)
+> cd $(src)
 > $(java) \
 >   $(jvm_args) Test.java
 .PHONY: run-gen
 
 clean-gen:
-> rm -drf target
 > rm -drf src-gen/target
