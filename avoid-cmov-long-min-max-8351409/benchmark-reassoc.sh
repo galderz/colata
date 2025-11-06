@@ -20,9 +20,9 @@ fi
 benchmark_branch()
 {
     local branch=$1
-    local extra_args=$2
+    local rff_suffix=$2
     local prefix="micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.longReduction"
-    local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord"
+    local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv"
 
     pushd $HOME/src/jdk-avoid-cmov-long-min-max
     git checkout ${branch}
@@ -34,9 +34,15 @@ benchmark_branch()
     fi
 
     # log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args} ${extra_args} -prof $ASM_PROFILER;FORK=1\" CONF=release LOG=warn make test
-    log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args} ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"${prefix}\\\(?:Simple\\\|Multiply\\\)Max\" MICRO=\"${micro_args}\" CONF=release LOG=warn make test
 }
 
-benchmark_branch "topic.avoid-cmov-long-min-max.base" ""
-benchmark_branch "topic.avoid-cmov-long-min-max.reassoc-simple" ""
-benchmark_branch "topic.avoid-cmov-long-min-max" ""
+log()
+{
+    echo "$*"
+    eval "$*"
+}
+
+benchmark_branch "topic.avoid-cmov-long-min-max.base" "base"
+benchmark_branch "topic.avoid-cmov-long-min-max.reassoc-simple" "reassoc-simple"
+benchmark_branch "topic.avoid-cmov-long-min-max" "reassoc-tree"
