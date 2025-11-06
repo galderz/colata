@@ -43,6 +43,9 @@ log()
     eval "$*"
 }
 
+# Clean .csv files from previous runs
+CONF=release make clean-csv
+
 benchmark_branch "topic.avoid-cmov-long-min-max.base" "base"
 benchmark_branch "topic.avoid-cmov-long-min-max.reassoc-simple" "reassoc-simple"
 benchmark_branch "topic.avoid-cmov-long-min-max" "reassoc-tree"
