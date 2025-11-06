@@ -1,6 +1,9 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
+  unstable = import (builtins.fetchTarball
+    "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {};
+
   gdbInit = pkgs.writeText ".gdbinit" ''
     set auto-load safe-path /local
     add-auto-load-safe-path /
@@ -27,7 +30,6 @@ pkgs.mkShell {
     fontconfig
     freetype
     gdb
-    temurin-bin-24
     unzip
     xorg.libXtst
     xorg.libXt
@@ -35,10 +37,12 @@ pkgs.mkShell {
     xorg.libXi
     xorg.libXrandr
     zip
+  ] ++ [
+    unstable.temurin-bin-25
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  BOOT_JDK_HOME="${pkgs.temurin-bin-24}";
+  BOOT_JDK_HOME="${unstable.temurin-bin-25}";
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
