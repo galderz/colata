@@ -20,7 +20,7 @@ fi
 benchmark_branch()
 {
     local branch=$1
-    local rff_suffix=$2
+    local rff_prefix=$2
     local prefix="micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.longReduction"
     local micro_args="OPTIONS=-jvmArgs -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv"
 
