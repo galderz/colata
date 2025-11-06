@@ -15,7 +15,7 @@ final class Test {
   static final Random RND = new Random(42);
 
   static long test(long[] array) {
-    long result = Integer.MIN_VALUE;;
+    long result = Integer.MIN_VALUE;
     for (int i = 0; i < array.length; i += 2) {
       var v0 = array[i + 0];
       var v1 = array[i + 1];

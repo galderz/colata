@@ -14,7 +14,7 @@ MethodSpec buildTest(Option option)
         .addModifiers(STATIC)
         .returns(long.class)
         .addParameter(long[].class, "array")
-        .addStatement("$T result = Integer.MIN_VALUE;", long.class)
+        .addStatement("$T result = Integer.MIN_VALUE", long.class)
     ;
 
     switch(option)
