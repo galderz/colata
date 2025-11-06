@@ -63,7 +63,7 @@ final class Test {
   }
 
   static long expect(long[] array) {
-    long result = Integer.MIN_VALUE;;
+    long result = Integer.MIN_VALUE;
     for (int i = 0; i < array.length; i++) {
       var v = array[i];
       result = Math.max(v, result);
