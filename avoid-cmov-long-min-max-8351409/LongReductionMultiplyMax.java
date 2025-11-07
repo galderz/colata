@@ -20,7 +20,7 @@ final class LongReductionMultiplyMax
         long result = Integer.MIN_VALUE;
         for (int i = 0; i < array.length; i++)
         {
-            var v = array[i];
+            var v = 11 * array[i];
             result = Math.max(v, result);
         }
         return result;
@@ -78,7 +78,7 @@ final class LongReductionMultiplyMax
         long result = Integer.MIN_VALUE;
         for (int i = 0; i < array.length; i++)
         {
-            var v = array[i];
+            var v = 11 * array[i];
             result = Math.max(v, result);
         }
         return result;
