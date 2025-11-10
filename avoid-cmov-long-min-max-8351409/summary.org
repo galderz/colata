@@ -4,14 +4,1726 @@
 * Next steps
 - [X] call igvn.replace_node on reassociated node
 - [X] check the assembly and make sure the differences in IR are reflected there
-- [ ] check the performance of manual unroll 16 and compare with prototype
+- [X] check the performance of manual unroll 16 and compare with prototype
+- [X] try to understand why manual reassoc4 is faster than manual reassoc16 (investigate unrolling in reassoc4, disable loop unrolling)
+- [X] generate reassoc2x8
+- [X] generate reassoc8x2
+- [ ] generate binary tree reassoc
 - [ ] remove striped counted loop check, not necessary
 - [ ] try to get it working with a manually unrolled loops where one of the intermediate values is somehow either inside or outside the loop
 - [ ]   e.g. if statement for an intermediate value, or just use it outside
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
-- [ ] see if an IR test can be developed, though IR node shape is not a feature (according to roland)
-* 16.9.26
+- [ ] see if an IR test can be developed, though IR node shape is not a feature
+* 10.11.25
+** Long reduction multiply max
+*** macos M4
+2nd compilation:
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 149  MaxL  === _ 388 148  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 313 305  [[ 313 326 470 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 388  MaxL  === _ 454 389  [[ 149 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 454  MaxL  === _ 456 455  [[ 388 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 456  MaxL  === _ 470 457  [[ 454 ]]  !orig=388,149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 456 = max(148, max(389, max(455, max(470, 457))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 304  MaxL  === _ 305 22  [[ 470 326 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 523  MaxL  === _ 148 389  [[ 525 ]]
+ 524  MaxL  === _ 455 457  [[ 525 ]]
+ 525  MaxL  === _ 523 524  [[ 526 ]]
+ 526  MaxL  === _ 470 525  [[ 180 326 470 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 526 = max(470, max(max(148, 389), max(455, 457)))
+
+ ;; B8: #	out( B9 ) <- in( B7 B10 ) Loop( B8-B10 ) Freq: 10241.4
+  0x000000010feb3190:   sub		w13, w15, w10
+  0x000000010feb3194:   cmp		w12, w10
+  0x000000010feb3198:   sub		w11, w13, #3
+  0x000000010feb319c:   csel		w11, wzr, w11, lt
+  0x000000010feb31a0:   cmp		w11, #0xfa0
+  0x000000010feb31a4:   csel		w11, w17, w11, hi
+  0x000000010feb31a8:   add		w3, w11, w10
+  0x000000010feb31ac:   nop		                    ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@12 (line 23)
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N53 strip mined) Freq: 1.04898e+08
+  0x000000010feb31b0:   add		x11, x1, w10, sxtw #3;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@17 (line 23)
+ ;; merged ldr pair
+  0x000000010feb31b4:   ldp		x16, x13, [x11, #0x20]
+ ;; merged ldr pair
+  0x000000010feb31b8:   ldp		x14, x11, [x11, #0x10]
+  0x000000010feb31bc:   mul		x16, x16, x2
+  0x000000010feb31c0:   mul		x13, x13, x2
+  0x000000010feb31c4:   mul		x14, x14, x2
+  0x000000010feb31c8:   mul		x11, x11, x2        ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@18 (line 23)
+  0x000000010feb31cc:   cmp		x13, x16
+  0x000000010feb31d0:   csel		x13, x16, x13, lt
+  0x000000010feb31d4:   cmp		x11, x14
+  0x000000010feb31d8:   csel		x11, x14, x11, lt
+  0x000000010feb31dc:   cmp		x13, x11
+  0x000000010feb31e0:   csel		x11, x11, x13, lt
+  0x000000010feb31e4:   cmp		x0, x11
+  0x000000010feb31e8:   add		w10, w10, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@28 (line 21)
+  0x000000010feb31ec:   csel		x0, x11, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@24 (line 24)
+
+  x0 = csel(x0, csel(csel(x11, x14), csel(x13, x16)))
+
+  0x000000010feb31f0:   cmp		w10, w3
+  0x000000010feb31f4:   b.lt		#0x10feb31b0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@9 (line 21)
+ ;; B10: #	out( B8 B11 ) <- in( B9 )  Freq: 10241.4
+  0x000000010feb31f8:   ldr		x13, [x28, #0x30]   ; ImmutableOopMap {c_rarg1=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) LongReductionMultiplyMax::test@31 (line 21)
+  0x000000010feb31fc:   ldr		wzr, [x13]          ;   {poll}
+  0x000000010feb3200:   ldrb		w8, [x28, #0x510]
+  0x000000010feb3204:   cbz		x8, #0x10feb321c
+ ;; 0x105F6F0D4
+  0x000000010feb3208:   mov		x8, #0xf0d4         ;   {runtime_call JavaThread::verify_cross_modify_fence_failure(JavaThread*)}
+  0x000000010feb320c:   movk		x8, #0x5f6, lsl #16
+  0x000000010feb3210:   movk		x8, #1, lsl #32
+  0x000000010feb3214:   mov		x0, x28
+  0x000000010feb3218:   blr		x8                  ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@31 (line 21)
+  0x000000010feb321c:   cmp		w10, w12
+  0x000000010feb3220:   b.lt		#0x10feb3190
+#+end_src
+
+1st compilation:
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS (round 2)
+ 218  MaxL  === _ 219 460  [[ 565 271 380 ]]  !orig=193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 277  MaxL  === _ 296 278  [[ 296 301 310 ]]  !orig=218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 314  MaxL  === _ 333 315  [[ 333 342 ]]  !orig=218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 352  MaxL  === _ 371 353  [[ 371 380 565 ]]  !orig=218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 413  MaxL  === _ 408 395  [[ 414 ]]
+ 460  MaxL  === _ 461 542  [[ 218 ]]  !orig=218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 542  MaxL  === _ 543 546  [[ 460 ]]  !orig=218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 546  MaxL  === _ 547 565  [[ 542 ]]  !orig=460,218,193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 546 = mmax(219, max(461, max(543, max(547, 565))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 314  MaxL  === _ 333 315  [[ 333 342 ]]  !orig=[218],193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 352  MaxL  === _ 371 353  [[ 371 380 565 ]]  !orig=[218],193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 413  MaxL  === _ 408 395  [[ 414 ]]
+ 597  MaxL  === _ 219 461  [[ 599 ]]
+ 598  MaxL  === _ 543 547  [[ 599 ]]
+ 599  MaxL  === _ 597 598  [[ 600 ]]
+ 600  MaxL  === _ 565 599  [[ 380 271 565 ]]  !orig=[218],193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 600 = max(565, max(max(219, 461), max(543, 547)))
+#+end_src
+* 7.11.25
+** Long reduction multiply max
+Next: validate that the reassociation happens on mac and linux
+
+In macos, before:
+#+begin_src bash
+Before:
+Running
+Throughput: 217 ops/ms
+Throughput: 222 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 221 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Validate
+
+After:
+Running
+Throughput: 641 ops/ms
+Throughput: 641 ops/ms
+Throughput: 643 ops/ms
+Throughput: 641 ops/ms
+Throughput: 640 ops/ms
+Throughput: 640 ops/ms
+Throughput: 641 ops/ms
+Throughput: 642 ops/ms
+Throughput: 640 ops/ms
+Throughput: 640 ops/ms
+Validate
+#+end_src
+
+On xeon:
+#+begin_src bash
+Before:
+Warmup
+Running
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 194 ops/ms
+Throughput: 194 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Validate
+
+After:
+Warmup
+Running
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 194 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 195 ops/ms
+Throughput: 193 ops/ms
+Validate
+#+end_src
+** Fix attempts
+Second attempt:
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+ 607  LoadL  === 385 7 608  [[ 606 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; #long !orig=539,455,217,190 !jvms: Test::test @ bci:14 (line 20)
+
+216 = max(217, max(455, max(536, max(539, max(594, max(597, max(604, max(607, 629)))))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 664  MaxL  === _ 217 455  [[ 666 ]]
+ 665  MaxL  === _ 536 539  [[ 666 ]]
+ 666  MaxL  === _ 664 665  [[ 670 ]]
+ 667  MaxL  === _ 594 597  [[ 669 ]]
+ 668  MaxL  === _ 604 607  [[ 669 ]]
+ 669  MaxL  === _ 667 668  [[ 670 ]]
+ 670  MaxL  === _ 666 669  [[ 671 ]]
+ 671  MaxL  === _ 629 670  [[ 268 629 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+
+671 = max(629, max(max(max(217, 455), max(536, 539)), max(max(594, 597), max(604, 607))))
+#+end_src
+
+First attempt not complete:
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+ 607  LoadL  === 385 7 608  [[ 606 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=6; #long !orig=539,455,217,190 !jvms: Test::test @ bci:14 (line 20)
+
+216 = max(217, max(455, max(536, max(539, max(594, max(597, max(604, max(607, 629)))))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 664  MaxL  === _ 217 455  [[ 666 ]]
+ 665  MaxL  === _ 536 539  [[ 666 ]]
+ 666  MaxL  === _ 664 665  [[ 670 ]]
+ 667  MaxL  === _ 594 597  [[ 669 ]]
+ 668  MaxL  === _ 604 607  [[ 669 ]]
+ 669  MaxL  === _ 667 668  [[ 670 ]]
+ 670  MaxL  === _ 666 669  [[ 671 ]]
+ 671  MaxL  === _ 347 670  [[ 268 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+
+671 = max(347, ...)
+^ 347 is wrong, should be 217
+#+end_src
+** TestIfMinMax debug analysis
+Debugging:
+n        557  MaxL  === _ 929 558  [[ 639 1058 794 ]]  !orig=552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+current 1033  MaxL  === _ 1058 1034  [[ 1032 ]]  !orig=929,557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+last    1058  Phi  === 1055 753 557  [[ 1033 ]]  #long !orig=[958],[618],[603] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+
+What does TestIfMinMax show in *reassoc-tree* picking the same logging as below?
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+  557  MaxL  === _ 558 929  [[ 639 1058 794 ]]  !orig=552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  929  MaxL  === _ 930 1032  [[ 557 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1032  MaxL  === _ 1033 1042  [[ 929 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1033  MaxL  === _ 1034 1058  [[ 1032 ]]  !orig=929,557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1034  MulL  === _ 1035 1038  [[ 1033 ]]  !orig=930,558,247 !jvms: TestIfMinMax::test @ bci:20 (line 24)
+ 1058  Phi  === 1055 753 557  [[ 1033 ]]  #long !orig=[958],[618],[603] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+
+v557 = max(v558, max(v930, max(v1042, max(v1034, v1058)))
+
+AFTER: BEFORE_MACRO_EXPANSION
+  699  MaxL  === _ 728 700  [[ 728 740 ]]  !orig=[557],552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  753  MaxL  === _ 782 754  [[ 782 794 1058 ]]  !orig=[557],552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  830  MaxL  === _ 825 812  [[ 883 ]]  !orig=[878] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1101  MaxL  === _ 930 1042  [[ 1102 ]]  !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1102  MaxL  === _ 558 1101  [[ 1103 ]]  !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1103  MaxL  === _ 1058 1102  [[ 794 1058 639 ]]  !orig=[557],552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+
+v1103 = max(v1058, max(v558, max(v930, v1042)))
+v1034 MulL is missing...?
+#+end_src
+
+What does TestIfMinMax show in *base* picking the same logging as below?
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+  557  MaxL  === _ 558 929  [[ 639 1058 794 ]]  !orig=552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  645  MaxL  === _ 674 646  [[ 674 679 691 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  699  MaxL  === _ 728 700  [[ 728 740 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  753  MaxL  === _ 782 754  [[ 782 794 1058 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  830  MaxL  === _ 825 812  [[ 883 ]]  !orig=[878] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  929  MaxL  === _ 930 1032  [[ 557 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1032  MaxL  === _ 1033 1042  [[ 929 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1033  MaxL  === _ 1034 1058  [[ 1032 ]]  !orig=929,557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+
+AFTER: BEFORE_MACRO_EXPANSION
+  557  MaxL  === _ 929 558  [[ 639 1058 794 ]]  !orig=552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  699  MaxL  === _ 728 700  [[ 728 740 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  753  MaxL  === _ 782 754  [[ 782 794 1058 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  830  MaxL  === _ 825 812  [[ 883 ]]  !orig=[878] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+  929  MaxL  === _ 1032 930  [[ 557 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1032  MaxL  === _ 1033 1042  [[ 929 ]]  !orig=557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+ 1033  MaxL  === _ 1058 1034  [[ 1032 ]]  !orig=929,557,552,[541],[258] !jvms: TestIfMinMax::test @ bci:58 (line 29)
+#+end_src
+** Base debug log analysis
+Some errors observed.
+How can you obtain same kind of logging without custom logging?
+
+With ~-XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"~ we see this.
+We are seeing the reassociated chain.
+How can we then see the chain before reassociating?
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 216  MaxL  === _ 454 217  [[ 374 472 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 472 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+...
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 556 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+...
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+...
+AFTER: BEFORE_MACRO_EXPANSION
+ 664  MaxL  === _ 455 536  [[ 665 ]]
+ 665  MaxL  === _ 217 664  [[ 669 ]]
+ 666  MaxL  === _ 539 594  [[ 668 ]]
+ 667  MaxL  === _ 597 604  [[ 668 ]]
+ 668  MaxL  === _ 666 667  [[ 669 ]]
+ 669  MaxL  === _ 665 668  [[ 670 ]]
+ 670  MaxL  === _ 629 669  [[ 268 629 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+How does the Base debug logging looked like?
+#+begin_src bash
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 479 472 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 268 556 374 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; chain:
+    0:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+    1:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+
+216 = max(217, max(455, max(536, max(539, max(594, max(597, max(604, max(607, 629)))))))
+
+[avoid-cmov] reassociate in loop; last:  629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+[avoid-cmov] reassociate in loop; reassociated chain:
+    0:  670  MaxL  === _ 629 669  [[ 268 629 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+    1:  669  MaxL  === _ 665 668  [[ 670 ]]
+    2:  665  MaxL  === _ 217 664  [[ 669 ]]
+    3:  664  MaxL  === _ 455 536  [[ 665 ]]
+    2:  668  MaxL  === _ 666 667  [[ 669 ]]
+    3:  666  MaxL  === _ 539 594  [[ 668 ]]
+    3:  667  MaxL  === _ 597 604  [[ 668 ]]
+
+670 = max(629, max(max(217, max(455, 536)), max(max(539, 594), max(597, 604))))
+where is 607??
+
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 392 400 ]]  !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 463 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 551 178 322 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] add max node for post-loop opts:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; chain:
+    0:  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+    1:  384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+    2:  449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+    3:  450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    4:  524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+    5:  527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    6:  528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+    7:  529  MaxL  === _ 623 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+    8:  623  MaxL  === _ 624 635  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+    9:  624  MaxL  === _ 625 639  [[ 623 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+   10:  625  MaxL  === _ 626 643  [[ 624 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+   11:  626  MaxL  === _ 627 647  [[ 625 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+   12:  627  MaxL  === _ 630 628  [[ 626 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+   13:  630  MaxL  === _ 631 653  [[ 627 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+   14:  631  MaxL  === _ 632 657  [[ 630 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+   15:  632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] reassociate in loop; last:  667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+[avoid-cmov] reassociate in loop; reassociated chain:
+    0:  778  MaxL  === _ 667 777  [[ 178 322 667 ]]  !orig=[147],400 !jvms: Test::test @ bci:20 (line 21)
+    1:  777  MaxL  === _ 769 776  [[ 778 ]]
+    2:  769  MaxL  === _ 765 768  [[ 777 ]]
+    3:  765  MaxL  === _ 215 764  [[ 769 ]]
+    4:  764  MaxL  === _ 385 453  [[ 765 ]]
+    3:  768  MaxL  === _ 766 767  [[ 769 ]]
+    4:  766  MaxL  === _ 451 525  [[ 768 ]]
+    4:  767  MaxL  === _ 534 538  [[ 768 ]]
+    2:  776  MaxL  === _ 772 775  [[ 777 ]]
+    3:  772  MaxL  === _ 770 771  [[ 776 ]]
+    4:  770  MaxL  === _ 530 635  [[ 772 ]]
+    4:  771  MaxL  === _ 639 643  [[ 772 ]]
+    3:  775  MaxL  === _ 773 774  [[ 776 ]]
+    4:  773  MaxL  === _ 647 628  [[ 775 ]]
+    4:  774  MaxL  === _ 653 657  [[ 775 ]]
+Running
+Throughput: 850 ops/ms
+Throughput: 854 ops/ms
+Throughput: 850 ops/ms
+Throughput: 850 ops/ms
+Throughput: 853 ops/ms
+Throughput: 852 ops/ms
+Throughput: 851 ops/ms
+Throughput: 848 ops/ms
+Throughput: 853 ops/ms
+Throughput: 847 ops/ms
+Validate
+#+end_src
+* 6.11.25
+Tier 1 test failures:
+#+begin_src bash
+compiler/c2/irTests/TestIfMinMax.java: Test that if expressions are properly folded into min/max nodes
+compiler/loopopts/superword/ReductionPerf.java: Test SuperWord Reduction Perf.
+#+end_src
+* 5.11.25
+#+begin_src bash
+[avoid-cmov] reassociate in loop; chain:
+    0:  216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+    1:  454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    2:  535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    3:  538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    4:  593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+    5:  596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+    6:  603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+    7:  606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+v216 = max(v217, max(v455, max(536, max(v539, max(v594, max(v597, max(v604, max(v607, v629))))))))
+
+#+begin_src bash
+[avoid-cmov] reassociate in loop; reassociated chain:
+    0:  670  MaxL  === _ 666 669  [[ 268 374 ]]  !orig=[216],191 !jvms: Test::test @ bci:20 (line 21)
+    1:  666  MaxL  === _ 664 665  [[ 670 ]]
+    2:  664  MaxL  === _ 217 455  [[ 666 ]]
+    2:  665  MaxL  === _ 536 539  [[ 666 ]]
+    1:  669  MaxL  === _ 667 668  [[ 670 ]]
+    2:  667  MaxL  === _ 594 597  [[ 669 ]]
+    2:  668  MaxL  === _ 604 607  [[ 669 ]]
+#+end_src
+
+v670 = max(max(max(217, 455), max(536, 539)), max(max(594, 597), max(604, 607)))
+* 24.9.25
+** unroll 16 vs reassoc 4x4 vs retree 8x2/16
+*** mac
+#+begin_src bash
+Unroll16
+Throughput: 219 ops/ms
+
+Reassoc4x4
+Throughput: 753 ops/ms
+
+ReTree4x4
+Throughput: 764 ops/ms
+
+ReTree8x2
+Throughput: 794 ops/ms
+
+ReTree16x1
+Throughput: 793 ops/ms
+#+end_src
+*** xeon
+**** benchmark
+#+begin_src bash
+Unroll16
+Throughput: 93 ops/ms
+
+Reassoc4x4
+Throughput: 217 ops/ms
+
+ReTree4x4
+Throughput: 209 ops/ms
+
+ReTree8x2
+Throughput: 208 ops/ms
+
+ReTree16x1
+Throughput: 203 ops/ms
+#+end_src
+**** uica
+#+begin_src bash
+Unroll16
+Throughput (in cycles per iteration): 32.33
+
+Reassoc4x4
+Throughput (in cycles per iteration): 13.31
+
+ReTree4x4
+Throughput (in cycles per iteration): 13.00
+
+ReTree8x2
+Throughput (in cycles per iteration): 12.88
+
+ReTree16x1
+Throughput (in cycles per iteration): 13.00
+#+end_src
+* 22.9.25
+** darwin: unroll 16 vs reassoc 16/4x4/8x2/8x2
+#+begin_src bash
+Unroll16:
+Throughput: 222 ops/ms
+
+Reassoc16:
+Throughput: 556 ops/ms
+
+Reassoc8x2
+Throughput: 663 ops/ms
+
+Reassoc4x4:
+Throughput: 722 ops/ms
+
+Reassoc2x8:
+Throughput: 432 ops/ms
+#+end_src
+** xeon: unroll 16 vs reassoc 16/4x4/8x2/8x2
+*** uica
+#+begin_src bash
+Unroll16:
+Throughput (in cycles per iteration): 32.33
+
+Reassoc16:
+Throughput (in cycles per iteration): 13.67
+
+Reassoc8x2
+Throughput (in cycles per iteration): 13.24
+
+Reassoc4x4:
+Throughput (in cycles per iteration): 13.31
+
+Reassoc2x8:
+Throughput (in cycles per iteration): 16.00
+#+end_src
+*** benchmark
+#+begin_src bash
+Unroll16:
+Throughput: 93 ops/ms
+
+Reassoc16:
+Throughput: 166 ops/ms
+
+Reassoc8x2
+Throughput: 204 ops/ms
+
+Reassoc4x4:
+Throughput: 209 ops/ms
+
+Reassoc2x8:
+Throughput: 184 ops/ms
+#+end_src
+* 19.9.25
+** xeon reassoc4x4 asm
+#+begin_src asm
+ ;; B13: #	out( B13 B14 ) <- in( B12 B13 ) Loop( B13-B13 inner  strip mined) Freq: 6.55618e+06
+  0x00007f3a94adcd60:   movq		0x28(%rsi, %r8, 8), %rcx;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x00007f3a94adcd65:   movq		0x20(%rsi, %r8, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x00007f3a94adcd6a:   movq		0x10(%rsi, %r8, 8), %rdx;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x00007f3a94adcd6f:   movq		0x18(%rsi, %r8, 8), %rbp;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@23 (line 21)
+  0x00007f3a94adcd74:   cmpq		%rbp, %rdx
+  0x00007f3a94adcd77:   cmovlq		%rbp, %rdx          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x00007f3a94adcd7b:   cmpq		%rdi, %rdx
+  0x00007f3a94adcd7e:   cmovlq		%rdi, %rdx          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@53 (line 25)
+                                                            ;   {other}
+  0x00007f3a94adcd82:   cmpq		%rcx, %rdx
+  0x00007f3a94adcd85:   cmovlq		%rcx, %rdx          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@62 (line 26)
+  0x00007f3a94adcd89:   cmpq		%rdx, %rax
+  0x00007f3a94adcd8c:   cmovlq		%rdx, %rax          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@70 (line 28)
+  0x00007f3a94adcd90:   addl		$4, %r8d            ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@74 (line 19)
+  0x00007f3a94adcd94:   cmpl		%ebx, %r8d
+  0x00007f3a94adcd97:   jl		0x7f3a94adcd60      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+#+end_src
+** xeon reassoc4x4
+#+begin_src bash
+cd /home/g/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4
+/home/g/src/jdk-avoid-cmov-long-min-max/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 189 ops/ms
+Throughput: 189 ops/ms
+Throughput: 190 ops/ms
+Throughput: 189 ops/ms
+Throughput: 190 ops/ms
+Throughput: 189 ops/ms
+Throughput: 189 ops/ms
+Throughput: 189 ops/ms
+Throughput: 190 ops/ms
+Throughput: 189 ops/ms
+Validate
+
+cd /home/g/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc16
+/home/g/src/jdk-avoid-cmov-long-min-max/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 168 ops/ms
+Throughput: 168 ops/ms
+Throughput: 169 ops/ms
+Throughput: 169 ops/ms
+Throughput: 168 ops/ms
+Throughput: 168 ops/ms
+Throughput: 169 ops/ms
+Throughput: 169 ops/ms
+Throughput: 168 ops/ms
+Throughput: 169 ops/ms
+Validate
+
+cd /home/g/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4x4
+/home/g/src/jdk-avoid-cmov-long-min-max/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Throughput: 216 ops/ms
+Throughput: 217 ops/ms
+Throughput: 217 ops/ms
+Validate
+#+end_src
+** reassoc4x4 with no hotspot loop unrolling
+#+begin_src bash
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 691 ops/ms
+Throughput: 683 ops/ms
+Throughput: 685 ops/ms
+Throughput: 686 ops/ms
+Throughput: 695 ops/ms
+Throughput: 692 ops/ms
+Throughput: 688 ops/ms
+Throughput: 691 ops/ms
+Throughput: 695 ops/ms
+Throughput: 691 ops/ms
+Validate
+
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc16
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 558 ops/ms
+Throughput: 564 ops/ms
+Throughput: 563 ops/ms
+Throughput: 564 ops/ms
+Throughput: 563 ops/ms
+Throughput: 479 ops/ms
+Throughput: 493 ops/ms
+Throughput: 463 ops/ms
+Throughput: 460 ops/ms
+Throughput: 451 ops/ms
+Validate
+
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4x4
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -XX:LoopMaxUnroll=0 -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 755 ops/ms
+Throughput: 756 ops/ms
+Throughput: 756 ops/ms
+Throughput: 751 ops/ms
+Throughput: 757 ops/ms
+Throughput: 750 ops/ms
+Throughput: 752 ops/ms
+Throughput: 757 ops/ms
+Throughput: 759 ops/ms
+Throughput: 750 ops/ms
+Validate
+#+end_src
+** reassoc4x4 with hotspot loop unrolling
+#+begin_src bash
+[nix-shell:~/src/colata/avoid-cmov-long-min-max-8351409]$ GEN=Reassoc4x4 make gen run-gen
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java -cp src-gen/target/lib/* src-gen/Gen.java Reassoc4x4
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4x4
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 747 ops/ms
+Throughput: 743 ops/ms
+Throughput: 749 ops/ms
+Throughput: 752 ops/ms
+Throughput: 749 ops/ms
+Throughput: 751 ops/ms
+Throughput: 750 ops/ms
+Throughput: 738 ops/ms
+Throughput: 759 ops/ms
+Throughput: 756 ops/ms
+Validate
+
+[nix-shell:~/src/colata/avoid-cmov-long-min-max-8351409]$ GEN=Reassoc4 make gen run-gen
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java -cp src-gen/target/lib/* src-gen/Gen.java Reassoc4
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc4
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 717 ops/ms
+Throughput: 718 ops/ms
+Throughput: 723 ops/ms
+Throughput: 724 ops/ms
+Throughput: 720 ops/ms
+Throughput: 728 ops/ms
+Throughput: 718 ops/ms
+Throughput: 725 ops/ms
+Throughput: 729 ops/ms
+Throughput: 725 ops/ms
+Validate
+
+[nix-shell:~/src/colata/avoid-cmov-long-min-max-8351409]$ GEN=Reassoc16 make gen run-gen
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java -cp src-gen/target/lib/* src-gen/Gen.java Reassoc16
+cd /Users/galder/src/colata/avoid-cmov-long-min-max-8351409/target/Reassoc16
+/Users/galder/src/jdk-avoid-cmov-long-min-max/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,Test::test Test.java
+Warmup
+Running
+Throughput: 561 ops/ms
+Throughput: 558 ops/ms
+Throughput: 561 ops/ms
+Throughput: 557 ops/ms
+Throughput: 559 ops/ms
+Throughput: 558 ops/ms
+Throughput: 562 ops/ms
+Throughput: 558 ops/ms
+Throughput: 557 ops/ms
+Throughput: 558 ops/ms
+Validate
+#+end_src
+* 18.9.25
+** manual loops no hotspot unroll
+*** reassoc 16 trace partial peeling
+#+begin_src bash
+[OSR]101  Test::test @ 6 (284 bytes)
+Loop: N0/N0  has_sfpt
+  Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+Predicate IC   Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+Loop: N0/N0  has_sfpt
+  Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+PartialPeel    Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+before partial peel one iteration
+ 567  Loop  === 567 135 554  [[ 567 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+ 163  If  === 567 162  [[ 164 165 ]] P=0.998391, C=101322.000000 !jvms: Test::test @ bci:9 (line 19)
+ 164  IfTrue  === 163  [[ 173 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+-- cut --
+ 173  RangeCheck  === 164 172  [[ 174 177 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:16 (line 20)
+ 174  IfTrue  === 173  [[ 198 186 192 ]] #1 !jvms: Test::test @ bci:16 (line 20)
+ 198  RangeCheck  === 174 197  [[ 199 202 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:23 (line 21)
+ 199  IfTrue  === 198  [[ 221 209 214 ]] #1 !jvms: Test::test @ bci:23 (line 21)
+ 221  RangeCheck  === 199 220  [[ 222 225 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:30 (line 22)
+ 222  IfTrue  === 221  [[ 243 232 237 ]] #1 !jvms: Test::test @ bci:30 (line 22)
+ 243  RangeCheck  === 222 242  [[ 244 247 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:37 (line 23)
+ 244  IfTrue  === 243  [[ 266 254 259 ]] #1 !jvms: Test::test @ bci:37 (line 23)
+ 266  RangeCheck  === 244 265  [[ 267 270 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:44 (line 24)
+ 267  IfTrue  === 266  [[ 289 277 282 ]] #1 !jvms: Test::test @ bci:44 (line 24)
+ 289  RangeCheck  === 267 288  [[ 290 293 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:51 (line 25)
+ 290  IfTrue  === 289  [[ 312 300 305 ]] #1 !jvms: Test::test @ bci:51 (line 25)
+ 312  RangeCheck  === 290 311  [[ 313 316 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:59 (line 26)
+ 313  IfTrue  === 312  [[ 335 323 328 ]] #1 !jvms: Test::test @ bci:59 (line 26)
+ 335  RangeCheck  === 313 334  [[ 336 339 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:67 (line 27)
+ 336  IfTrue  === 335  [[ 358 346 351 ]] #1 !jvms: Test::test @ bci:67 (line 27)
+ 358  RangeCheck  === 336 357  [[ 359 362 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:75 (line 28)
+ 359  IfTrue  === 358  [[ 381 369 374 ]] #1 !jvms: Test::test @ bci:75 (line 28)
+ 381  RangeCheck  === 359 380  [[ 382 385 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:83 (line 29)
+ 382  IfTrue  === 381  [[ 404 392 397 ]] #1 !jvms: Test::test @ bci:83 (line 29)
+ 404  RangeCheck  === 382 403  [[ 405 408 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:91 (line 30)
+ 405  IfTrue  === 404  [[ 427 415 420 ]] #1 !jvms: Test::test @ bci:91 (line 30)
+ 427  RangeCheck  === 405 426  [[ 428 431 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:99 (line 31)
+ 428  IfTrue  === 427  [[ 450 438 443 ]] #1 !jvms: Test::test @ bci:99 (line 31)
+ 450  RangeCheck  === 428 449  [[ 451 454 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:107 (line 32)
+ 451  IfTrue  === 450  [[ 473 461 466 ]] #1 !jvms: Test::test @ bci:107 (line 32)
+ 473  RangeCheck  === 451 472  [[ 474 477 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:115 (line 33)
+ 474  IfTrue  === 473  [[ 496 484 489 ]] #1 !jvms: Test::test @ bci:115 (line 33)
+ 496  RangeCheck  === 474 495  [[ 497 500 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:123 (line 34)
+ 497  IfTrue  === 496  [[ 519 507 512 ]] #1 !jvms: Test::test @ bci:123 (line 34)
+ 519  RangeCheck  === 497 518  [[ 520 523 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:131 (line 35)
+ 520  IfTrue  === 519  [[ 559 530 535 554 ]] #1 !jvms: Test::test @ bci:131 (line 35)
+ 554  SafePoint  === 520 1 555 1 1 559 157 551 1 553 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  [[ 567 ]]  SafePoint  !jvms: Test::test @ bci:279 (line 19)
+
+peeled list
+ 164  IfTrue  === 163  [[ 173 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+ 163  If  === 567 162  [[ 164 165 ]] P=0.998391, C=101322.000000 !jvms: Test::test @ bci:9 (line 19)
+ 162  Bool  === _ 161  [[ 163 ]] [lt] !jvms: Test::test @ bci:9 (line 19)
+ 161  CmpI  === _ 141 160  [[ 162 ]]  !jvms: Test::test @ bci:9 (line 19)
+ 172  Bool  === _ 171  [[ 173 ]] [lt] !jvms: Test::test @ bci:16 (line 20)
+sink to not_peeled region: 172 newbb: 164
+ 171  CmpU  === _ 141 160  [[ 172 ]]  !jvms: Test::test @ bci:16 (line 20)
+sink to not_peeled region: 171 newbb: 164
+ 141  Phi  === 567 37 553  [[ 524 553 514 161 501 186 171 179 179 193 203 216 226 238 248 261 271 284 294 307 317 330 340 353 363 376 386 399 409 422 432 445 455 468 478 491 ]]  #int !jvms: Test::test @ bci:6 (line 19)
+ 140  Phi  === 567 33 551  [[ 524 551 561 179 203 226 248 271 294 317 340 363 386 409 432 455 478 501 ]]  #long !jvms: Test::test @ bci:6 (line 19)
+ 567  Loop  === 567 135 554  [[ 567 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+
+after partial peel one iteration
+clone head
+  748  Loop  === 748 135 1  [[ 748 749 775 776 ]] inner  !orig=567,[136] !jvms: Test::test @ bci:6 (line 19)
+  749  If  === 748 639  [[ 750 793 ]] P=0.998391, C=101322.000000 !orig=163 !jvms: Test::test @ bci:9 (line 19)
+  750  IfTrue  === 749  [[ 777 ]] #1 !orig=164 !jvms: Test::test @ bci:9 (line 19)
+new head
+  777  Loop  === 777 750 164  [[ 751 777 998 1032 ]] partial_peel  !orig=575
+  751  RangeCheck  === 777 641  [[ 754 796 ]] P=0.999999, C=-1.000000 !orig=173 !jvms: Test::test @ bci:16 (line 20)
+  754  IfTrue  === 751  [[ 663 753 755 ]] #1 !orig=174 !jvms: Test::test @ bci:16 (line 20)
+v  755  RangeCheck  === 754 636  [[ 756 799 ]] P=0.999999, C=-1.000000 !orig=198 !jvms: Test::test @ bci:23 (line 21)
+  756  IfTrue  === 755  [[ 630 635 757 ]] #1 !orig=199 !jvms: Test::test @ bci:23 (line 21)
+  757  RangeCheck  === 756 643  [[ 758 802 ]] P=0.999999, C=-1.000000 !orig=221 !jvms: Test::test @ bci:30 (line 22)
+  758  IfTrue  === 757  [[ 665 711 759 ]] #1 !orig=222 !jvms: Test::test @ bci:30 (line 22)
+  759  RangeCheck  === 758 645  [[ 760 805 ]] P=0.999999, C=-1.000000 !orig=243 !jvms: Test::test @ bci:37 (line 23)
+  760  IfTrue  === 759  [[ 667 692 761 ]] #1 !orig=244 !jvms: Test::test @ bci:37 (line 23)
+  761  RangeCheck  === 760 647  [[ 762 808 ]] P=0.999999, C=-1.000000 !orig=266 !jvms: Test::test @ bci:44 (line 24)
+  762  IfTrue  === 761  [[ 671 714 763 ]] #1 !orig=267 !jvms: Test::test @ bci:44 (line 24)
+  763  RangeCheck  === 762 649  [[ 764 811 ]] P=0.999999, C=-1.000000 !orig=289 !jvms: Test::test @ bci:51 (line 25)
+  764  IfTrue  === 763  [[ 675 717 765 ]] #1 !orig=290 !jvms: Test::test @ bci:51 (line 25)
+  765  RangeCheck  === 764 651  [[ 766 814 ]] P=0.999999, C=-1.000000 !orig=312 !jvms: Test::test @ bci:59 (line 26)
+  766  IfTrue  === 765  [[ 679 720 767 ]] #1 !orig=313 !jvms: Test::test @ bci:59 (line 26)
+  767  RangeCheck  === 766 653  [[ 768 817 ]] P=0.999999, C=-1.000000 !orig=335 !jvms: Test::test @ bci:67 (line 27)
+  768  IfTrue  === 767  [[ 683 723 769 ]] #1 !orig=336 !jvms: Test::test @ bci:67 (line 27)
+  769  RangeCheck  === 768 655  [[ 770 820 ]] P=0.999999, C=-1.000000 !orig=358 !jvms: Test::test @ bci:75 (line 28)
+  770  IfTrue  === 769  [[ 681 726 771 ]] #1 !orig=359 !jvms: Test::test @ bci:75 (line 28)
+  771  RangeCheck  === 770 657  [[ 772 823 ]] P=0.999999, C=-1.000000 !orig=381 !jvms: Test::test @ bci:83 (line 29)
+  772  IfTrue  === 771  [[ 677 729 773 ]] #1 !orig=382 !jvms: Test::test @ bci:83 (line 29)
+  773  RangeCheck  === 772 659  [[ 774 826 ]] P=0.999999, C=-1.000000 !orig=404 !jvms: Test::test @ bci:91 (line 30)
+  774  IfTrue  === 773  [[ 673 732 737 ]] #1 !orig=405 !jvms: Test::test @ bci:91 (line 30)
+  737  RangeCheck  === 774 661  [[ 738 778 ]] P=0.999999, C=-1.000000 !orig=427 !jvms: Test::test @ bci:99 (line 31)
+  738  IfTrue  === 737  [[ 669 735 739 ]] #1 !orig=428 !jvms: Test::test @ bci:99 (line 31)
+  739  RangeCheck  === 738 616  [[ 740 781 ]] P=0.999999, C=-1.000000 !orig=450 !jvms: Test::test @ bci:107 (line 32)
+  740  IfTrue  === 739  [[ 610 615 741 ]] #1 !orig=451 !jvms: Test::test @ bci:107 (line 32)
+  741  RangeCheck  === 740 606  [[ 742 784 ]] P=0.999999, C=-1.000000 !orig=473 !jvms: Test::test @ bci:115 (line 33)
+  742  IfTrue  === 741  [[ 600 605 743 ]] #1 !orig=474 !jvms: Test::test @ bci:115 (line 33)
+  743  RangeCheck  === 742 596  [[ 744 787 ]] P=0.999999, C=-1.000000 !orig=496 !jvms: Test::test @ bci:123 (line 34)
+  744  IfTrue  === 743  [[ 590 595 745 ]] #1 !orig=497 !jvms: Test::test @ bci:123 (line 34)
+  745  RangeCheck  === 744 586  [[ 746 790 ]] P=0.999999, C=-1.000000 !orig=519 !jvms: Test::test @ bci:131 (line 35)
+  746  IfTrue  === 745  [[ 576 580 585 747 ]] #1 !orig=520 !jvms: Test::test @ bci:131 (line 35)
+  747  SafePoint  === 746 1 555 1 1 576 157 578 1 577 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  [[ 567 ]]  SafePoint  !orig=554 !jvms: Test::test @ bci:279 (line 19)
+orig head
+  567  Loop  === 567 747 1  [[ 567 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+  163  If  === 567 162  [[ 164 795 ]] P=0.998391, C=101322.000000 !jvms: Test::test @ bci:9 (line 19)
+  164  IfTrue  === 163  [[ 777 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+Exceeding node budget: 336 < 407
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+Split 144 CmpP through 1051 Phi in 46 RegionSplit 145 Bool through 1055 Phi in 46 RegionSplit-If
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+102  Test::test (284 bytes)
+Counted          Loop: N545/N520  counted [0,int),+16 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (-1 iters)  has_sfpt strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+PredicatesOff
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+#+end_src
+*** reassoc 4 trace partial peeling
+#+begin_src bash
+[OSR]101  Test::test @ 6 (82 bytes)
+Loop: N0/N0  has_sfpt
+  Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+Predicate IC   Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+Loop: N0/N0  has_sfpt
+  Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+PartialPeel    Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+before partial peel one iteration
+ 279  Loop  === 279 135 266  [[ 279 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+ 163  If  === 279 162  [[ 164 165 ]] P=0.999610, C=105001.000000 !jvms: Test::test @ bci:9 (line 19)
+ 164  IfTrue  === 163  [[ 173 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+-- cut --
+ 173  RangeCheck  === 164 172  [[ 174 177 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:16 (line 20)
+ 174  IfTrue  === 173  [[ 198 186 192 ]] #1 !jvms: Test::test @ bci:16 (line 20)
+ 198  RangeCheck  === 174 197  [[ 199 202 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:23 (line 21)
+ 199  IfTrue  === 198  [[ 221 209 214 ]] #1 !jvms: Test::test @ bci:23 (line 21)
+ 221  RangeCheck  === 199 220  [[ 222 225 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:30 (line 22)
+ 222  IfTrue  === 221  [[ 243 232 237 ]] #1 !jvms: Test::test @ bci:30 (line 22)
+ 243  RangeCheck  === 222 242  [[ 244 247 ]] P=0.999999, C=-1.000000 !jvms: Test::test @ bci:37 (line 23)
+ 244  IfTrue  === 243  [[ 271 254 259 266 ]] #1 !jvms: Test::test @ bci:37 (line 23)
+ 266  SafePoint  === 244 1 267 1 1 271 157 263 1 265 1 1 1 1 1 1 1 1 1 1 1 1 1 1  [[ 279 ]]  SafePoint  !jvms: Test::test @ bci:77 (line 19)
+
+peeled list
+ 164  IfTrue  === 163  [[ 173 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+ 163  If  === 279 162  [[ 164 165 ]] P=0.999610, C=105001.000000 !jvms: Test::test @ bci:9 (line 19)
+ 162  Bool  === _ 161  [[ 163 ]] [lt] !jvms: Test::test @ bci:9 (line 19)
+ 161  CmpI  === _ 141 160  [[ 162 ]]  !jvms: Test::test @ bci:9 (line 19)
+ 172  Bool  === _ 171  [[ 173 ]] [lt] !jvms: Test::test @ bci:16 (line 20)
+sink to not_peeled region: 172 newbb: 164
+ 171  CmpU  === _ 141 160  [[ 172 ]]  !jvms: Test::test @ bci:16 (line 20)
+sink to not_peeled region: 171 newbb: 164
+ 141  Phi  === 279 37 265  [[ 248 265 238 161 226 186 171 179 179 193 203 216 ]]  #int !jvms: Test::test @ bci:6 (line 19)
+ 140  Phi  === 279 33 263  [[ 248 263 273 179 203 226 ]]  #long !jvms: Test::test @ bci:6 (line 19)
+ 279  Loop  === 279 135 266  [[ 279 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+
+after partial peel one iteration
+clone head
+ 340  Loop  === 340 135 1  [[ 340 341 343 344 ]] inner  !orig=279,[136] !jvms: Test::test @ bci:6 (line 19)
+ 341  If  === 340 325  [[ 342 358 ]] P=0.999610, C=105001.000000 !orig=163 !jvms: Test::test @ bci:9 (line 19)
+ 342  IfTrue  === 341  [[ 345 ]] #1 !orig=164 !jvms: Test::test @ bci:9 (line 19)
+new head
+ 345  Loop  === 345 342 164  [[ 329 345 380 390 ]] partial_peel  !orig=287
+ 329  RangeCheck  === 345 327  [[ 332 346 ]] P=0.999999, C=-1.000000 !orig=173 !jvms: Test::test @ bci:16 (line 20)
+ 332  IfTrue  === 329  [[ 303 331 333 ]] #1 !orig=174 !jvms: Test::test @ bci:16 (line 20)
+ 333  RangeCheck  === 332 322  [[ 334 349 ]] P=0.999999, C=-1.000000 !orig=198 !jvms: Test::test @ bci:23 (line 21)
+ 334  IfTrue  === 333  [[ 307 321 335 ]] #1 !orig=199 !jvms: Test::test @ bci:23 (line 21)
+ 335  RangeCheck  === 334 299  [[ 336 352 ]] P=0.999999, C=-1.000000 !orig=221 !jvms: Test::test @ bci:30 (line 22)
+ 336  IfTrue  === 335  [[ 293 298 337 ]] #1 !orig=222 !jvms: Test::test @ bci:30 (line 22)
+ 337  RangeCheck  === 336 317  [[ 338 355 ]] P=0.999999, C=-1.000000 !orig=243 !jvms: Test::test @ bci:37 (line 23)
+ 338  IfTrue  === 337  [[ 288 311 316 339 ]] #1 !orig=244 !jvms: Test::test @ bci:37 (line 23)
+ 339  SafePoint  === 338 1 267 1 1 288 157 290 1 289 1 1 1 1 1 1 1 1 1 1 1 1 1 1  [[ 279 ]]  SafePoint  !orig=266 !jvms: Test::test @ bci:77 (line 19)
+orig head
+ 279  Loop  === 279 339 1  [[ 279 141 140 163 ]] inner  !orig=[136] !jvms: Test::test @ bci:6 (line 19)
+ 163  If  === 279 162  [[ 164 360 ]] P=0.999610, C=105001.000000 !jvms: Test::test @ bci:9 (line 19)
+ 164  IfTrue  === 163  [[ 345 ]] #1 !jvms: Test::test @ bci:9 (line 19)
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+Split 144 CmpP through 397 Phi in 46 RegionSplit 145 Bool through 401 Phi in 46 RegionSplit-If
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+102  Test::test (82 bytes)
+Counted          Loop: N257/N232  counted [0,int),+4 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (-1 iters)  has_sfpt strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+PredicatesOff
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+#+end_src
+*** reassoc16 trace loops
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+Predicate IC   Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+Loop: N0/N0  has_sfpt
+  Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+PartialPeel    Loop: N567/N554  limit_check short_running profile_predicated predicated sfpts={ 554 }
+Exceeding node budget: 336 < 407
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+Split 144 CmpP through 1051 Phi in 46 RegionSplit 145 Bool through 1055 Phi in 46 RegionSplit-If
+Loop: N0/N0  has_sfpt
+  Loop: N777/N164  sfpts={ 747 }
+Counted          Loop: N545/N520  counted [0,int),+16 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (-1 iters)  has_sfpt strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt rce strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check short_running profile_predicated predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check short_running profile_predicated predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+PredicatesOff
+Loop: N0/N0  has_sfpt
+  Loop: N544/N543  limit_check predicated sfpts={ 546 }
+    Loop: N545/N520  limit_check predicated counted [0,int),+16 (622 iters)  has_sfpt strip_mined
+#+end_src
+*** reassoc8 trace loops
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N375/N362  limit_check short_running profile_predicated predicated sfpts={ 362 }
+Predicate IC   Loop: N375/N362  limit_check short_running profile_predicated predicated sfpts={ 362 }
+Loop: N0/N0  has_sfpt
+  Loop: N375/N362  limit_check short_running profile_predicated predicated sfpts={ 362 }
+PartialPeel    Loop: N375/N362  limit_check short_running profile_predicated predicated sfpts={ 362 }
+Loop: N0/N0  has_sfpt
+  Loop: N489/N164  sfpts={ 475 }
+Loop: N0/N0  has_sfpt
+  Loop: N489/N164  sfpts={ 475 }
+Split 144 CmpP through 599 Phi in 46 RegionSplit 145 Bool through 603 Phi in 46 RegionSplit-If
+Loop: N0/N0  has_sfpt
+  Loop: N489/N164  sfpts={ 475 }
+Counted          Loop: N353/N328  counted [0,int),+8 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check short_running profile_predicated predicated
+    Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (-1 iters)  has_sfpt strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt rce strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check short_running profile_predicated predicated sfpts={ 354 }
+    Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check short_running profile_predicated predicated sfpts={ 354 }
+    Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check short_running profile_predicated predicated sfpts={ 354 }
+    Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check short_running profile_predicated predicated sfpts={ 354 }
+    Loop: N353/N328  limit_check short_running profile_predicated predicated counted [0,int),+8 (1242 iters)  has_sfpt strip_mined
+PredicatesOff
+Loop: N0/N0  has_sfpt
+  Loop: N352/N351  limit_check predicated sfpts={ 354 }
+    Loop: N353/N328  limit_check predicated counted [0,int),+8 (1242 iters)  has_sfpt strip_mined
+#+end_src
+*** reassoc4 trace loops
+#+begin_src bash
+Loop: N0/N0  has_sfpt
+  Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+Predicate IC   Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+Loop: N0/N0  has_sfpt
+  Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+PartialPeel    Loop: N279/N266  limit_check short_running profile_predicated predicated sfpts={ 266 }
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+Split 144 CmpP through 397 Phi in 46 RegionSplit 145 Bool through 401 Phi in 46 RegionSplit-If
+Loop: N0/N0  has_sfpt
+  Loop: N345/N164  sfpts={ 339 }
+Counted          Loop: N257/N232  counted [0,int),+4 (-1 iters)
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (-1 iters)  has_sfpt strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Predicate RC     Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt rce strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check short_running profile_predicated predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check short_running profile_predicated predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+PredicatesOff
+Loop: N0/N0  has_sfpt
+  Loop: N256/N255  limit_check predicated sfpts={ 258 }
+    Loop: N257/N232  limit_check predicated counted [0,int),+4 (2561 iters)  has_sfpt strip_mined
+#+end_src
+*** reassoc16 asm
+#+begin_src asm
+ ;; B36: #	out( B37 ) <- in( B35 B38 ) Loop( B36-B38 ) Freq: 620.588
+  0x00000001382d2828:   cmp		w10, w16
+  0x00000001382d282c:   sub		w12, w10, w16
+  0x00000001382d2830:   csel		w12, wzr, w12, lt
+ ;; 0x3E80
+  0x00000001382d2834:   mov		w8, #0x3e80
+  0x00000001382d2838:   cmp		w12, w8
+  0x00000001382d283c:   csel		w12, w1, w12, hi
+  0x00000001382d2840:   add		w12, w12, w16
+  0x00000001382d2844:   nop
+  0x00000001382d2848:   nop
+  0x00000001382d284c:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@12 (line 20)
+ ;; B37: #	out( B37 B38 ) <- in( B36 B37 ) Loop( B37-B37 inner  strip mined) Freq: 385763
+  0x00000001382d2850:   add		x17, x11, w16, sxtw #3
+ ;; merged ldr pair
+  0x00000001382d2854:   ldp		x13, x14, [x17, #0x10];*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x00000001382d2858:   cmp		x13, x14
+  0x00000001382d285c:   ldr		x15, [x17, #0x20]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x00000001382d2860:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@138 (line 36)
+  0x00000001382d2864:   cmp		x13, x15
+  0x00000001382d2868:   ldr		x14, [x17, #0x28]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x00000001382d286c:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@147 (line 37)
+  0x00000001382d2870:   cmp		x13, x14
+  0x00000001382d2874:   ldr		x15, [x17, #0x30]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x00000001382d2878:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@156 (line 38)
+  0x00000001382d287c:   cmp		x13, x15
+  0x00000001382d2880:   ldr		x14, [x17, #0x38]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@51 (line 25)
+  0x00000001382d2884:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@165 (line 39)
+  0x00000001382d2888:   cmp		x13, x14
+  0x00000001382d288c:   ldr		x15, [x17, #0x40]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@59 (line 26)
+  0x00000001382d2890:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@174 (line 40)
+  0x00000001382d2894:   cmp		x13, x15
+  0x00000001382d2898:   ldr		x14, [x17, #0x48]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@67 (line 27)
+  0x00000001382d289c:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@183 (line 41)
+  0x00000001382d28a0:   cmp		x13, x14
+  0x00000001382d28a4:   ldr		x15, [x17, #0x50]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@75 (line 28)
+  0x00000001382d28a8:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@192 (line 42)
+  0x00000001382d28ac:   cmp		x13, x15
+  0x00000001382d28b0:   ldr		x14, [x17, #0x58]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@83 (line 29)
+  0x00000001382d28b4:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@201 (line 43)
+  0x00000001382d28b8:   cmp		x13, x14
+  0x00000001382d28bc:   ldr		x15, [x17, #0x60]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@91 (line 30)
+  0x00000001382d28c0:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@210 (line 44)
+  0x00000001382d28c4:   cmp		x13, x15
+  0x00000001382d28c8:   ldr		x14, [x17, #0x68]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@99 (line 31)
+  0x00000001382d28cc:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@219 (line 45)
+  0x00000001382d28d0:   cmp		x13, x14
+  0x00000001382d28d4:   ldr		x15, [x17, #0x70]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@107 (line 32)
+  0x00000001382d28d8:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@228 (line 46)
+  0x00000001382d28dc:   cmp		x13, x15
+  0x00000001382d28e0:   ldr		x14, [x17, #0x78]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@115 (line 33)
+  0x00000001382d28e4:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@237 (line 47)
+  0x00000001382d28e8:   cmp		x13, x14
+  0x00000001382d28ec:   ldr		x15, [x17, #0x80]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@123 (line 34)
+  0x00000001382d28f0:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@246 (line 48)
+  0x00000001382d28f4:   cmp		x13, x15
+  0x00000001382d28f8:   ldr		x14, [x17, #0x88]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@131 (line 35)
+  0x00000001382d28fc:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@255 (line 49)
+  0x00000001382d2900:   cmp		x13, x14
+  0x00000001382d2904:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@264 (line 50)
+  0x00000001382d2908:   cmp		x0, x13
+  0x00000001382d290c:   add		w16, w16, #0x10     ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@276 (line 19)
+  0x00000001382d2910:   csel		x0, x13, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@272 (line 52)
+  0x00000001382d2914:   cmp		w16, w12
+  0x00000001382d2918:   b.lt		#0x1382d2850        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+ ;; B38: #	out( B36 B39 ) <- in( B37 )  Freq: 620.588
+  0x00000001382d291c:   ldr		x12, [x28, #0x30]   ; ImmutableOopMap {r11=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) Test::test@279 (line 19)
+  0x00000001382d2920:   ldr		wzr, [x12]          ;   {poll}
+  0x00000001382d2924:   ldrb		w8, [x28, #0x540]
+  0x00000001382d2928:   cbz		x8, #0x1382d2940
+ ;; 0x103B2094C
+  0x00000001382d292c:   mov		x8, #0x94c          ;   {runtime_call JavaThread::verify_cross_modify_fence_failure(JavaThread*)}
+  0x00000001382d2930:   movk		x8, #0x3b2, lsl #16
+  0x00000001382d2934:   movk		x8, #1, lsl #32
+  0x00000001382d2938:   mov		x0, x28
+  0x00000001382d293c:   blr		x8                  ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@279 (line 19)
+  0x00000001382d2940:   cmp		w16, w10
+  0x00000001382d2944:   b.lt		#0x1382d2828
+#+end_src
+*** reassoc8 asm
+#+begin_src asm
+ ;; B20: #	out( B21 ) <- in( B19 B22 ) Loop( B20-B22 ) Freq: 1241.18
+  0x000000010e836748:   cmp		w10, w1
+  0x000000010e83674c:   sub		w12, w10, w1
+  0x000000010e836750:   csel		w12, wzr, w12, lt
+ ;; 0x1F40
+  0x000000010e836754:   mov		w8, #0x1f40
+  0x000000010e836758:   cmp		w12, w8
+  0x000000010e83675c:   csel		w12, w17, w12, hi
+  0x000000010e836760:   add		w12, w12, w1
+  0x000000010e836764:   nop
+  0x000000010e836768:   nop
+  0x000000010e83676c:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@12 (line 20)
+ ;; B21: #	out( B21 B22 ) <- in( B20 B21 ) Loop( B21-B21 inner  strip mined) Freq: 1.5418e+06
+  0x000000010e836770:   add		x13, x11, w1, sxtw #3
+ ;; merged ldr pair
+  0x000000010e836774:   ldp		x14, x15, [x13, #0x10];*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x000000010e836778:   cmp		x14, x15
+  0x000000010e83677c:   ldr		x16, [x13, #0x20]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x000000010e836780:   csel		x14, x15, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@74 (line 28)
+  0x000000010e836784:   cmp		x14, x16
+  0x000000010e836788:   ldr		x15, [x13, #0x28]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x000000010e83678c:   csel		x14, x16, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@83 (line 29)
+  0x000000010e836790:   cmp		x14, x15
+  0x000000010e836794:   ldr		x16, [x13, #0x30]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x000000010e836798:   csel		x14, x15, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@92 (line 30)
+  0x000000010e83679c:   cmp		x14, x16
+  0x000000010e8367a0:   ldr		x15, [x13, #0x38]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@51 (line 25)
+  0x000000010e8367a4:   csel		x14, x16, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@101 (line 31)
+  0x000000010e8367a8:   cmp		x14, x15
+  0x000000010e8367ac:   ldr		x16, [x13, #0x40]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@59 (line 26)
+  0x000000010e8367b0:   csel		x14, x15, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@110 (line 32)
+  0x000000010e8367b4:   cmp		x14, x16
+  0x000000010e8367b8:   ldr		x13, [x13, #0x48]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@67 (line 27)
+  0x000000010e8367bc:   csel		x14, x16, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@119 (line 33)
+  0x000000010e8367c0:   cmp		x14, x13
+  0x000000010e8367c4:   csel		x13, x13, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@128 (line 34)
+  0x000000010e8367c8:   cmp		x0, x13
+  0x000000010e8367cc:   add		w1, w1, #8          ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@140 (line 19)
+  0x000000010e8367d0:   csel		x0, x13, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@136 (line 36)
+  0x000000010e8367d4:   cmp		w1, w12
+  0x000000010e8367d8:   b.lt		#0x10e836770        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+ ;; B22: #	out( B20 B23 ) <- in( B21 )  Freq: 1241.18
+  0x000000010e8367dc:   ldr		x12, [x28, #0x30]   ; ImmutableOopMap {r11=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) Test::test@143 (line 19)
+  0x000000010e8367e0:   ldr		wzr, [x12]          ;   {poll}
+  0x000000010e8367e4:   ldrb		w8, [x28, #0x540]
+  0x000000010e8367e8:   cbz		x8, #0x10e836800
+ ;; 0x10522C94C
+  0x000000010e8367ec:   mov		x8, #0xc94c         ;   {runtime_call JavaThread::verify_cross_modify_fence_failure(JavaThread*)}
+  0x000000010e8367f0:   movk		x8, #0x522, lsl #16
+  0x000000010e8367f4:   movk		x8, #1, lsl #32
+  0x000000010e8367f8:   mov		x0, x28
+  0x000000010e8367fc:   blr		x8                  ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@143 (line 19)
+  0x000000010e836800:   cmp		w1, w10
+  0x000000010e836804:   b.lt		#0x10e836748
+#+end_src
+*** reassoc4 asm
+#+begin_src asm
+ ;; B12: #	out( B13 ) <- in( B11 B14 ) Loop( B12-B14 ) Freq: 2559.99
+  0x000000010d6126b4:   cmp		w15, w16
+  0x000000010d6126b8:   sub		w11, w15, w16
+  0x000000010d6126bc:   csel		w11, wzr, w11, lt
+  0x000000010d6126c0:   cmp		w11, #0xfa0
+  0x000000010d6126c4:   csel		w11, w2, w11, hi
+  0x000000010d6126c8:   add		w10, w11, w16
+  0x000000010d6126cc:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@12 (line 20)
+ ;; B13: #	out( B13 B14 ) <- in( B12 B13 ) Loop( B13-B13 inner  strip mined) Freq: 6.55618e+06
+  0x000000010d6126d0:   add		x11, x1, w16, sxtw #3
+ ;; merged ldr pair
+  0x000000010d6126d4:   ldp		x12, x13, [x11, #0x10];*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x000000010d6126d8:   cmp		x12, x13
+  0x000000010d6126dc:   ldr		x14, [x11, #0x20]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x000000010d6126e0:   csel		x12, x13, x12, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x000000010d6126e4:   cmp		x12, x14
+  0x000000010d6126e8:   ldr		x11, [x11, #0x28]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x000000010d6126ec:   csel		x12, x14, x12, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@53 (line 25)
+  0x000000010d6126f0:   cmp		x12, x11
+  0x000000010d6126f4:   csel		x11, x11, x12, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@62 (line 26)
+  0x000000010d6126f8:   cmp		x0, x11
+  0x000000010d6126fc:   add		w16, w16, #4        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@74 (line 19)
+  0x000000010d612700:   csel		x0, x11, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@70 (line 28)
+  0x000000010d612704:   cmp		w16, w10
+  0x000000010d612708:   b.lt		#0x10d6126d0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+ ;; B14: #	out( B12 B15 ) <- in( B13 )  Freq: 2559.99
+  0x000000010d61270c:   ldr		x10, [x28, #0x30]   ; ImmutableOopMap {c_rarg1=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) Test::test@77 (line 19)
+  0x000000010d612710:   ldr		wzr, [x10]          ;   {poll}
+  0x000000010d612714:   ldrb		w8, [x28, #0x540]
+  0x000000010d612718:   cbz		x8, #0x10d612730
+ ;; 0x10400894C
+  0x000000010d61271c:   mov		x8, #0x894c         ;   {runtime_call JavaThread::verify_cross_modify_fence_failure(JavaThread*)}
+  0x000000010d612720:   movk		x8, #0x400, lsl #16
+  0x000000010d612724:   movk		x8, #1, lsl #32
+  0x000000010d612728:   mov		x0, x28
+  0x000000010d61272c:   blr		x8                  ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@77 (line 19)
+  0x000000010d612730:   cmp		w16, w15
+  0x000000010d612734:   b.lt		#0x10d6126b4
+#+end_src
+*** performance numbers
+#+begin_src bash
+Base
+Throughput: 219 ops/ms
+
+Unroll2
+Throughput: 219 ops/ms
+
+Reassoc2
+Throughput: 405 ops/ms
+
+Unroll4
+Throughput: 222 ops/ms
+
+Reassoc4
+Throughput: 624 ops/ms
+
+Unroll8
+Throughput: 209 ops/ms
+
+Reassoc8
+Throughput: 632 ops/ms
+
+Unroll16
+Throughput: 221 ops/ms
+
+Reassoc16
+Throughput: 501 ops/ms
+#+end_src
+* 17.9.25
+** xeon performance
+#+begin_src bash
+Base
+Throughput: 93 ops/ms
+
+Unroll2
+Throughput: 93 ops/ms
+
+Reassoc2
+Throughput: 184 ops/ms
+
+Unroll4
+Throughput: 93 ops/ms
+
+Reassoc4
+Throughput: 211 ops/ms
+
+Unroll8
+Throughput: 93 ops/ms
+
+Reassoc8
+Throughput: 194 ops/ms
+
+Unroll16
+Throughput: 93 ops/ms
+
+Reassoc16
+Throughput: 166 ops/ms
+#+end_src
+** manual reassoc 4 asm
+#+begin_src asm
+ ;; B22: #	out( B22 B23 ) <- in( B21 B22 ) Loop( B22-B22 inner main of N142 strip mined) Freq: 6.55612e+06
+  0x000000011144e760:   add		x11, x12, w1, sxtw #3
+ ;; merged ldr pair
+  0x000000011144e764:   ldp		x14, x13, [x11, #0x10];*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@23 (line 21)
+  0x000000011144e768:   ldr		x3, [x11, #0x30]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x000000011144e76c:   cmp		x13, x14
+  0x000000011144e770:   ldr		x2, [x11, #0x38]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@23 (line 21)
+  0x000000011144e774:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x000000011144e778:   ldr		x14, [x11, #0x20]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x000000011144e77c:   cmp		x2, x3
+  0x000000011144e780:   csel		x2, x3, x2, lt      ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x000000011144e784:   cmp		x14, x13
+  0x000000011144e788:   csel		x13, x13, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@53 (line 25)
+  0x000000011144e78c:   ldr		x14, [x11, #0x28]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x000000011144e790:   cmp		x14, x13
+  0x000000011144e794:   ldr		x4, [x11, #0x40]    ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x000000011144e798:   csel		x13, x13, x14, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@62 (line 26)
+  0x000000011144e79c:   cmp		x4, x2
+  0x000000011144e7a0:   ldr		x11, [x11, #0x48]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x000000011144e7a4:   csel		x14, x2, x4, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@53 (line 25)
+  0x000000011144e7a8:   cmp		x13, x0
+  0x000000011144e7ac:   csel		x13, x0, x13, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@70 (line 28)
+  0x000000011144e7b0:   cmp		x11, x14
+  0x000000011144e7b4:   csel		x11, x14, x11, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@62 (line 26)
+  0x000000011144e7b8:   cmp		x11, x13
+  0x000000011144e7bc:   add		w1, w1, #8          ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@74 (line 19)
+  0x000000011144e7c0:   csel		x0, x13, x11, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@70 (line 28)
+  0x000000011144e7c4:   cmp		w1, w5
+  0x000000011144e7c8:   b.lt		#0x11144e760        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+ ;; B23: #	out( B21 B24 ) <- in( B22 )  Freq: 2559.97
+#+end_src
+** manual reassoc 16 asm
+#+begin_src asm
+ ;; B37: #	out( B37 B38 ) <- in( B36 B37 ) Loop( B37-B37 inner  strip mined) Freq: 385763
+  0x000000010e92e850:   add		x17, x11, w16, sxtw #3
+ ;; merged ldr pair
+  0x000000010e92e854:   ldp		x13, x14, [x17, #0x10];*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@16 (line 20)
+  0x000000010e92e858:   cmp		x13, x14
+  0x000000010e92e85c:   ldr		x15, [x17, #0x20]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@30 (line 22)
+  0x000000010e92e860:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@138 (line 36)
+  0x000000010e92e864:   cmp		x13, x15
+  0x000000010e92e868:   ldr		x14, [x17, #0x28]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@37 (line 23)
+  0x000000010e92e86c:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@147 (line 37)
+  0x000000010e92e870:   cmp		x13, x14
+  0x000000010e92e874:   ldr		x15, [x17, #0x30]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@44 (line 24)
+  0x000000010e92e878:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@156 (line 38)
+  0x000000010e92e87c:   cmp		x13, x15
+  0x000000010e92e880:   ldr		x14, [x17, #0x38]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@51 (line 25)
+  0x000000010e92e884:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@165 (line 39)
+  0x000000010e92e888:   cmp		x13, x14
+  0x000000010e92e88c:   ldr		x15, [x17, #0x40]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@59 (line 26)
+  0x000000010e92e890:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@174 (line 40)
+  0x000000010e92e894:   cmp		x13, x15
+  0x000000010e92e898:   ldr		x14, [x17, #0x48]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@67 (line 27)
+  0x000000010e92e89c:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@183 (line 41)
+  0x000000010e92e8a0:   cmp		x13, x14
+  0x000000010e92e8a4:   ldr		x15, [x17, #0x50]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@75 (line 28)
+  0x000000010e92e8a8:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@192 (line 42)
+  0x000000010e92e8ac:   cmp		x13, x15
+  0x000000010e92e8b0:   ldr		x14, [x17, #0x58]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@83 (line 29)
+  0x000000010e92e8b4:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@201 (line 43)
+  0x000000010e92e8b8:   cmp		x13, x14
+  0x000000010e92e8bc:   ldr		x15, [x17, #0x60]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@91 (line 30)
+  0x000000010e92e8c0:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@210 (line 44)
+  0x000000010e92e8c4:   cmp		x13, x15
+  0x000000010e92e8c8:   ldr		x14, [x17, #0x68]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@99 (line 31)
+  0x000000010e92e8cc:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@219 (line 45)
+  0x000000010e92e8d0:   cmp		x13, x14
+  0x000000010e92e8d4:   ldr		x15, [x17, #0x70]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@107 (line 32)
+  0x000000010e92e8d8:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@228 (line 46)
+  0x000000010e92e8dc:   cmp		x13, x15
+  0x000000010e92e8e0:   ldr		x14, [x17, #0x78]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@115 (line 33)
+  0x000000010e92e8e4:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@237 (line 47)
+  0x000000010e92e8e8:   cmp		x13, x14
+  0x000000010e92e8ec:   ldr		x15, [x17, #0x80]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@123 (line 34)
+  0x000000010e92e8f0:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@246 (line 48)
+  0x000000010e92e8f4:   cmp		x13, x15
+  0x000000010e92e8f8:   ldr		x14, [x17, #0x88]   ;*laload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@131 (line 35)
+  0x000000010e92e8fc:   csel		x13, x15, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@255 (line 49)
+  0x000000010e92e900:   cmp		x13, x14
+  0x000000010e92e904:   csel		x13, x14, x13, lt   ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@264 (line 50)
+  0x000000010e92e908:   cmp		x0, x13
+  0x000000010e92e90c:   add		w16, w16, #0x10     ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@276 (line 19)
+  0x000000010e92e910:   csel		x0, x13, x0, lt     ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@272 (line 52)
+  0x000000010e92e914:   cmp		w16, w12
+  0x000000010e92e918:   b.lt		#0x10e92e850        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - Test::test@9 (line 19)
+
+#+end_src
+** manual loops
+#+begin_src bash
+Base
+Throughput: 222 ops/ms
+
+Unroll2
+Throughput: 222 ops/ms
+
+Reassoc2
+Throughput: 439 ops/ms
+
+Unroll4
+Throughput: 222 ops/ms
+
+Reassoc4
+Throughput: 701 ops/ms
+
+Unroll8
+Throughput: 221 ops/ms
+
+Reassoc8
+Throughput: 653 ops/ms
+
+Unroll16
+Throughput: 222 ops/ms
+
+Reassoc16
+Throughput: 515 ops/ms
+#+end_src
+* 16.9.25
+** manual unroll vs reassoc performance
+*** manual reassoc 16
+#+begin_src bash
+Running
+Throughput: 67136 ops/ms
+Throughput: 62828 ops/ms
+Throughput: 63302 ops/ms
+Throughput: 66511 ops/ms
+Throughput: 64355 ops/ms
+Throughput: 67115 ops/ms
+Throughput: 66019 ops/ms
+Throughput: 66945 ops/ms
+Throughput: 66042 ops/ms
+Throughput: 62530 ops/ms
+Validate
+#+end_src
+*** manual unroll 16
+#+begin_src bash
+Running
+Throughput: 213 ops/ms
+Throughput: 222 ops/ms
+Throughput: 217 ops/ms
+Throughput: 183 ops/ms
+Throughput: 213 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 221 ops/ms
+Throughput: 222 ops/ms
+Validate
+#+end_src
+*** manual reassoc 4
+#+begin_src bash
+Running
+Throughput: 721 ops/ms
+Throughput: 716 ops/ms
+Throughput: 710 ops/ms
+Throughput: 711 ops/ms
+Throughput: 714 ops/ms
+Throughput: 721 ops/ms
+Throughput: 716 ops/ms
+Throughput: 718 ops/ms
+Throughput: 716 ops/ms
+Throughput: 713 ops/ms
+Validate
+#+end_src
+*** manual unroll 4
+#+begin_src bash
+Running
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Validate
+#+end_src
+*** manual reassoc 2
+#+begin_src bash
+Running
+Throughput: 439 ops/ms
+Throughput: 437 ops/ms
+Throughput: 438 ops/ms
+Throughput: 438 ops/ms
+Throughput: 437 ops/ms
+Throughput: 437 ops/ms
+Throughput: 437 ops/ms
+Throughput: 438 ops/ms
+Throughput: 438 ops/ms
+Throughput: 438 ops/ms
+Validate
+#+end_src
+*** manual unroll 2
+#+begin_src bash
+Running
+Throughput: 221 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 222 ops/ms
+Throughput: 218 ops/ms
+Throughput: 213 ops/ms
+Throughput: 218 ops/ms
+Throughput: 222 ops/ms
+Throughput: 221 ops/ms
+Validate
+#+end_src
+*** no unroll
+#+begin_src bash
+Running
+Throughput: 213 ops/ms
+Throughput: 213 ops/ms
+Throughput: 207 ops/ms
+Throughput: 197 ops/ms
+Throughput: 211 ops/ms
+Throughput: 216 ops/ms
+Throughput: 204 ops/ms
+Throughput: 194 ops/ms
+Throughput: 193 ops/ms
+Throughput: 204 ops/ms
+Validate
+#+end_src
 ** patch assembly
 x0 = max(x0, max(x16, ...max(x17, max(x16, max(x17, max(x16, x15))))
 
@@ -147,7 +1859,7 @@ x0 = max(x16, ... max(x17, max(x16, max(x17, max(x16, max(x15, x0)))))
   0x000000010cda286c:   cmp		x15, x16
   0x000000010cda2874:   csel		x0, x16, x15, lt    ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
 #+end_src
-* 15.9.26
+* 15.9.25
 ** early first draft
 From:
 #+begin_src bash
