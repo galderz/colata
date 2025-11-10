@@ -50,11 +50,7 @@ public class UopsLoop
 
     public static void main(String[] args) throws IOException
     {
-        final Path path = Path.of(
-            System.getProperty("user.home")
-            , "tmp/avoid-cmov-long-min-max/2209/xeon"
-        );
-
+        final Path path = Path.of(args[0]);
         try(Stream<Path> file = Files.list(path))
         {
             file.filter(p -> p.toString().endsWith("dis"))
