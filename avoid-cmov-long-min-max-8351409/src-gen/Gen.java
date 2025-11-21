@@ -58,7 +58,8 @@ MethodSpec buildExpect()
         .addStatement("$T result = Integer.MIN_VALUE", long.class)
         .beginControlFlow("for (int i = 0; i < array.length; i++)")
         .addStatement("var v = array[i]")
-        .addStatement("result = Math.max(v, result)")
+        .addStatement("var t = Math.max(v, result)")
+        .addStatement("result = t")
         .endControlFlow()
         .addStatement("return result")
         .build();
@@ -244,10 +245,8 @@ enum Option
     Option(int size) {this.size = size;}
 }
 
-void main(String[] args) throws IOException
+void gen(Option option) throws IOException
 {
-    var option = Option.valueOf(args[0]);
-
     var iter = FieldSpec.builder(int.class, "ITER", STATIC, FINAL)
         .initializer("100_000")
         .build();
@@ -276,7 +275,7 @@ void main(String[] args) throws IOException
         .endControlFlow()
         .build();
 
-    var validate = MethodSpec.methodBuilder("validate")
+    var assertEquals = MethodSpec.methodBuilder("assertEquals")
         .addModifiers(STATIC)
         .returns(void.class)
         .addParameter(long.class, "expected")
@@ -289,6 +288,16 @@ void main(String[] args) throws IOException
             , "Failed: expected: %d, actual: %d"
         )
         .endControlFlow()
+        .build();
+
+    var validate = MethodSpec.methodBuilder("validate")
+        .addModifiers(STATIC)
+        .returns(void.class)
+        .addParameter(long.class, "expected")
+        .addParameter(long[].class, "array")
+        .addStatement("println($S)", "Validate")
+        .addStatement("var value = $N(array)", test)
+        .addStatement("$N(expected, value)", assertEquals)
         .build();
 
     var init = MethodSpec.methodBuilder("init")
@@ -306,17 +315,14 @@ void main(String[] args) throws IOException
         .addParameter(String[].class, "args")
         .addStatement("var array = new $T[$N]", long.class, size)
         .addStatement("$N(array)", init)
+        .addStatement("var expected = $N(array)", expect)
+        .addStatement("$N(expected, array)", validate)
         .addStatement("println($S)", "Warmup")
         .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
         .addStatement("$N(array)", test)
         .endControlFlow()
         .addStatement("println($S)", "Running")
         .beginControlFlow("for (int run = 1; run <= $N; run++)", numRuns)
-        .addStatement("$N(array)", init)
-        .addStatement("$T expected = 0", long.class)
-        .beginControlFlow("if ($N == run)", numRuns)
-        .addStatement("expected = $N(array)", expect)
-        .endControlFlow()
         .addStatement("var t0 = nanoTime()")
         .addStatement("$T operations = 0", long.class)
         .beginControlFlow("for (int i = 0; i < $N; i++)", iter)
@@ -332,9 +338,7 @@ void main(String[] args) throws IOException
             , "Throughput: %d ops/ms"
         )
         .beginControlFlow("if ($N == run)", numRuns)
-        .addStatement("println($S)", "Validate")
-        .addStatement("var value = $N(array)", test)
-        .addStatement("$N(expected, value)", validate)
+        .addStatement("$N(expected, array)", validate)
         .endControlFlow()
         .endControlFlow()
         .build();
@@ -351,6 +355,7 @@ void main(String[] args) throws IOException
         .addMethod(expect)
         .addMethod(blackhole)
         .addMethod(validate)
+        .addMethod(assertEquals)
         .build();
 
     var javaFile = JavaFile.builder("", type)
@@ -362,7 +367,7 @@ void main(String[] args) throws IOException
     var src = Path
         .of(System.getProperty("user.dir"))
         .resolve("src")
-        .resolve(args[0])
+        .resolve(option.toString())
         .toFile();
 
     if (!src.exists())
@@ -376,3 +381,10 @@ void main(String[] args) throws IOException
     javaFile.writeTo(src);
 }
 
+void main(String[] args) throws IOException
+{
+    for (String arg : args)
+    {
+        gen(Option.valueOf(arg));
+    }
+}

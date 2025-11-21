@@ -34,17 +34,14 @@ final class Test {
   public static void main(String[] args) {
     var array = new long[SIZE];
     init(array);
+    var expected = expect(array);
+    validate(expected, array);
     println("Warmup");
     for (int i = 0; i < ITER; i++) {
       test(array);
     }
     println("Running");
     for (int run = 1; run <= NUM_RUNS; run++) {
-      init(array);
-      long expected = 0;
-      if (NUM_RUNS == run) {
-        expected = expect(array);
-      }
       var t0 = nanoTime();
       long operations = 0;
       for (int i = 0; i < ITER; i++) {
@@ -57,9 +54,7 @@ final class Test {
       var throughput = operations * NANOSECONDS.convert(1, outputTimeUnit) / durationNs;
       println("Throughput: %d ops/ms".formatted(throughput));
       if (NUM_RUNS == run) {
-        println("Validate");
-        var value = test(array);
-        validate(expected, value);
+        validate(expected, array);
       }
     }
   }
@@ -74,7 +69,8 @@ final class Test {
     long result = Integer.MIN_VALUE;
     for (int i = 0; i < array.length; i++) {
       var v = array[i];
-      result = Math.max(v, result);
+      var t = Math.max(v, result);
+      result = t;
     }
     return result;
   }
@@ -85,7 +81,13 @@ final class Test {
     }
   }
 
-  static void validate(long expected, long actual) {
+  static void validate(long expected, long[] array) {
+    println("Validate");
+    var value = test(array);
+    assertEquals(expected, value);
+  }
+
+  static void assertEquals(long expected, long actual) {
     if(expected == actual) {
       blackhole(actual);
     } else {
