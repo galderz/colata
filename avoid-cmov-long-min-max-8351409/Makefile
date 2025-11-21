@@ -22,6 +22,7 @@ include $(TOPDIR)/nix-make/OpenJDK.gmk
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
+base_jvm_args += -XX:-UseSuperWord
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 
 ifdef NO_LOOP_UNROLL
@@ -71,10 +72,6 @@ endif
 
 ifdef SUPER_ARGS
   jvm_args += $(super_jvm_args)
-endif
-
-ifdef NO_SUPERWORD
-  jvm_args += -XX:-UseSuperWord
 endif
 
 ifdef BRANCH_NEVER_MAX
@@ -154,7 +151,6 @@ debug-benchmarks: $(benchmarks_jar)
 >   $(debug_jmh_args)
 .PHONY: debug-benchmarks
 
-gen_file = $(src)/Test.java
 gen_lib_dir = src-gen/target/lib
 gen_lib = $(gen_lib_dir)/.touch
 src = $(shell pwd)/src/$(GEN)
@@ -165,12 +161,9 @@ $(gen_lib):
 > popd
 > touch $@
 
-$(gen_file): $(shell find src-gen -type f -name '*.java' | sed 's: :\\ :g')
-$(gen_file): $(gen_lib)
-$(gen_file): $(java)
+gen: $(gen_lib)
+gen: $(java)
 > $(java) -cp $(gen_lib_dir)/* src-gen/Gen.java $(GEN)
-
-gen: $(gen_file)
 .PHONY: gen
 
 run-gen: $(java)
