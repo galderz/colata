@@ -149,7 +149,7 @@ test: clear-logs build-jdk
 
 jtreg: clear-logs test-image
 > cd $(JDK_HOME)
-> JAVA_HOME=$(java_home) $(jtreg_bin) -verbose:all $(TEST)
+> JAVA_HOME=$(java_home) $(jtreg_bin) -verbose:all -DVerbose=true -J-Djavatest.maxOutputSize=2000000 $(TEST)
 > cat JTreport/text/summary.txt
 .PHONY: jtreg
 
