@@ -153,6 +153,10 @@ jtreg: clear-logs test-image
 > cat JTreport/text/summary.txt
 .PHONY: jtreg
 
+jtreg-format:
+> $(TOPDIR)/nix-make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch
+.PHONY: jtreg-format
+
 $(benchmarks_jar): test-image
 
 debug-jmh: $(java) $(benchmarks_jar)
