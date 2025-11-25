@@ -15,3 +15,24 @@ Then execute:
 ```bash
 set -o allexport && source .env && set +o allexport
 ```
+
+# Update devkit to new XCode version
+
+Enter a Nix shell with `make`:
+
+```shell
+> nix-shell -p gnumake
+[nix-shell:...]$
+```
+
+Create devkit
+
+```shell
+$ make devkit
+```
+
+Add devkit to Nix store:
+
+```shell
+$ make store-devkit
+```
