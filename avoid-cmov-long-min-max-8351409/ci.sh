@@ -7,12 +7,8 @@ if [[ "$1" == "--clean=true" ]]; then
 fi
 
 tests=(
-    # "test/hotspot/jtreg/compiler/loopopts/superword/ReductionPerf.java"
-    # "test/hotspot/jtreg/compiler/c2/irTests/TestIfMinMax.java"
-    # "test/hotspot/jtreg/compiler/c2/irTests/TestReductionReassociation.java"
-    # "test/hotspot/jtreg/compiler/c2/irTests/TestReductionReassociationManual.java"
     "test/hotspot/jtreg/compiler/loopopts/TestReductionReassociationFuzzer.java"
     "test/hotspot/jtreg/compiler/loopopts/TestReductionReassociation.java"
 )
 
-TEST="${tests[*]}" make jtreg
+TEST="${tests[*]}" make jtreg jtreg-format
