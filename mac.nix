@@ -4,7 +4,7 @@ let
   unstable = import (builtins.fetchTarball
     "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {};
 
-  devkit = "/nix/store/ddwccf951n51ng61zql8y6wcvs65vzli-Xcode16.3-MacOSX15";
+  devkit = "/nix/store/dqxywksq5xmmpmrr0bybkjpszj08ysjq-Xcode26.1.1-MacOSX26";
   devdir="${devkit}/Xcode/Contents/Developer";
 in
 pkgs.mkShell {
