@@ -43,7 +43,7 @@ XCODE_APP="$1"
 XCODE_APP_DIR_NAME="${XCODE_APP##*/}"
 
 SCRIPT_DIR="$(cd "$(dirname $0)" > /dev/null && pwd)"
-BUILD_DIR="${SCRIPT_DIR}/../../build/devkit"
+BUILD_DIR="$2"
 
 # Find the version of Xcode
 XCODE_VERSION="$($XCODE_APP/Contents/Developer/usr/bin/xcodebuild -version \
@@ -119,7 +119,7 @@ echo "Generating devkit.info..."
 rm -f $DEVKIT_ROOT/devkit.info
 echo-info "# This file describes to configure how to interpret the contents of this devkit"
 echo-info "DEVKIT_NAME=\"Xcode $XCODE_VERSION (devkit)\""
-echo-info "DEVKIT_TOOLCHAIN_PATH=\"\$DEVKIT_ROOT/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:\$DEVKIT_ROOT/Xcode/Contents/Developer/usr/bin\""
+echo-info "DEVKIT_TOOLCHAIN_PATH=\"\$DEVKIT_ROOT/Xcode/Contents/Developer/Toolchains/Metal.xctoolchain/usr/bin:\$DEVKIT_ROOT/Xcode/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:\$DEVKIT_ROOT/Xcode/Contents/Developer/usr/bin\""
 echo-info "DEVKIT_SYSROOT=\"\$DEVKIT_ROOT/Xcode/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/$SDK_VERSION.sdk\""
 echo-info "DEVKIT_EXTRA_PATH=\"\$DEVKIT_TOOLCHAIN_PATH\""
 

@@ -199,10 +199,10 @@ idea:
 .PHONY: idea
 
 devkit:
-> cd $(JDK_HOME)/make/devkit
 > mkdir -p /tmp/usr-bin-tar
 > ln -sf /usr/bin/tar /tmp/usr-bin-tar/
-> PATH=/tmp/usr-bin-tar:$$PATH bash ./createMacosxDevkit.sh /Applications/XCode.app
+> mkdir -p $(JDK_HOME)/build/devkit
+> PATH=/tmp/usr-bin-tar:$$PATH bash $(TOPDIR)/nix-make/createMacosxDevkit.sh /Applications/XCode.app $(JDK_HOME)/build/devkit
 .PHONY: devkit
 
 store-devkit:
