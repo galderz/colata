@@ -15,8 +15,482 @@
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [ ] see if an IR test can be developed, though IR node shape is not a feature
+* 26.11.25
+unroll5:
+#+begin_src bash
+ 238  MaxL  === _ 119 323  [[ 239 ]]  !jvms: Unroll5::test @ bci:50 (line 25)
+ 239  MaxL  === _ 238 368  [[ 240 ]]  !jvms: Unroll5::test @ bci:59 (line 26)
+ 240  MaxL  === _ 239 416  [[ 241 ]]  !jvms: Unroll5::test @ bci:68 (line 27)
+ 241  MaxL  === _ 240 464  [[ 242 ]]  !jvms: Unroll5::test @ bci:77 (line 28)
+ 242  MaxL  === _ 241 512  [[ 262 282 119 ]]  !jvms: Unroll5::test @ bci:86 (line 29)
+ 119  Phi  === 281 22 242  [[ 238 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: Unroll5::test @ bci:12 (line 20)
+
+ max(max(max(max(max(323, 119), 368), 416), 464), 512)
+
+ 568  MaxL  === _ 464 512  [[ 571 ]]
+ 569  MaxL  === _ 323 368  [[ 570 ]]
+ 570  MaxL  === _ 569 416  [[ 571 ]]
+ 571  MaxL  === _ 568 570  [[ 572 ]]
+ 572  MaxL  === _ 119 571  [[ 119 282 262 ]]  !orig=[242] !jvms: Unroll5::test @ bci:86 (line 29)
+
+ max(119, max(max(464, 512), max(max(323, 368), 416)))
+#+end_src
+
+reassoc2 unroll crash
+#+begin_src bash
+ 170  MaxL  === _ 252 297  [[ 171 ]]  !jvms: Test::test @ bci:34 (line 23)
+ 171  MaxL  === _ 170 591  [[ 705 472 211 ]]  !orig=614 !jvms: Test::test @ bci:42 (line 25)
+ 322  MaxL  === _ 339 323  [[ 339 346 ]]  !orig=171,614 !jvms: Test::test @ bci:42 (line 25)
+ 323  MaxL  === _ 324 331  [[ 322 ]]  !orig=170 !jvms: Test::test @ bci:34 (line 23)
+ 448  MaxL  === _ 465 449  [[ 465 472 705 ]]  !orig=171,614 !jvms: Test::test @ bci:42 (line 25)
+ 449  MaxL  === _ 450 457  [[ 448 ]]  !orig=170 !jvms: Test::test @ bci:34 (line 23)
+ 591  MaxL  === _ 592 675  [[ 171 ]]  !orig=171,614 !jvms: Test::test @ bci:42 (line 25)
+ 592  MaxL  === _ 593 600  [[ 591 ]]  !orig=170 !jvms: Test::test @ bci:34 (line 23)
+ 675  MaxL  === _ 676 685  [[ 591 ]]  !orig=171,614 !jvms: Test::test @ bci:42 (line 25)
+ 676  MaxL  === _ 677 705  [[ 675 ]]  !orig=591,171,614 !jvms: Test::test @ bci:42 (line 25)
+ 677  MaxL  === _ 678 688  [[ 676 ]]  !orig=592,170 !jvms: Test::test @ bci:34 (line 23)
+ 685  MaxL  === _ 686 690  [[ 675 ]]  !orig=170 !jvms: Test::test @ bci:34 (line 23)
+ 705  Phi  === 702 448 171  [[ 676 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=608,119 !jvms: Test::test @ bci:12 (line 20)
+
+ 171 = max(max(252, 297), max(max(593, 600), max(max(677, 705), max(686, 690))))
+#+end_src
+* 20.11.25
+Tests:
+- IR tests: disable superword, disable loop unrolling, test different unroll/reassoc-basic/reassoc-tree structures
+- Non-IR tests: +- superword, +- loop unrolling, different sizes
+
+TestAliasingFuzzer example:
+#+begin_src bash
+// --- test_751 start ---
+// invarRest fields:
+private static int invar0_751 = 0;
+// Containers fields:
+private static MemorySegment original_container0_751  = MemorySegment.ofArray(new short[37266]);
+private static MemorySegment test_container0_751      = MemorySegment.ofArray(new short[37266]);
+private static MemorySegment reference_container0_751 = MemorySegment.ofArray(new short[37266]);
+private static MemorySegment original_container1_751  = MemorySegment.ofArray(new short[37266]);
+private static MemorySegment test_container1_751      = MemorySegment.ofArray(new short[37266]);
+private static MemorySegment reference_container1_751 = MemorySegment.ofArray(new short[37266]);
+// Index forms for the accesses:
+private static IndexForm index0_751 = new IndexForm(-5541, -4, -4, new int[] {0}, 4);
+private static IndexForm index1_751 = new IndexForm(-28322, -2, 2, new int[] {-1}, 2);
+// Count the run invocations.
+private static int iterations_751 = 0;
+
+@Run(test = "test_751")
+@Warmup(100)
+public static void run_751(RunInfo info) {
+
+    // Once warmup is over (100x), repeat 10x to get reasonable coverage of the
+    // randomness in the tests.
+    int reps = info.isWarmUp() ? 10 : 1;
+    for (int r = 0; r < reps; r++) {
+
+        iterations_751++;
+// Init containers from original data:
+test_container0_751.copyFrom(original_container0_751);
+reference_container0_751.copyFrom(original_container0_751);
+test_container1_751.copyFrom(original_container1_751);
+reference_container1_751.copyFrom(original_container1_751);
+// Container aliasing:
+var test_0      = (iterations_751 % 2 == 0) ? test_container0_751      : test_container0_751;
+var reference_0 = (iterations_751 % 2 == 0) ? reference_container0_751 : reference_container0_751;
+var test_1      = (iterations_751 % 2 == 0) ? test_container0_751      : test_container0_751;
+var reference_1 = (iterations_751 % 2 == 0) ? reference_container0_751 : reference_container0_751;
+// Generate ranges:
+int rnd = Math.min(256, 74532 / 10);
+int middle = 74532 / 2 + RANDOM.nextInt(-rnd, rnd);
+int range = 74532 / 3 - RANDOM.nextInt(rnd);
+int overlap = RANDOM.nextInt(-rnd, rnd);
+var r0 = new IndexForm.Range(middle - range + overlap, middle + overlap);
+var r1 = new IndexForm.Range(middle, middle + range);
+if (RANDOM.nextBoolean()) {
+    var tmp = r0;
+    r0 = r1;
+    r1 = tmp;
+}
+// Compute loop bounds and loop invariants.
+int ivLo = RANDOM.nextInt(-1000, 1000);
+int ivHi = ivLo + 74532;
+int invar0_0 = index0_751.invar0ForIvLo(r0, ivLo);
+ivHi = Math.min(ivHi, index0_751.ivHiForInvar0(r0, invar0_0));
+int invar0_1 = index1_751.invar0ForIvLo(r1, ivLo);
+ivHi = Math.min(ivHi, index1_751.ivHiForInvar0(r1, invar0_1));
+// Let's check that the range is large enough, so that the vectorized
+// main loop can even be entered.
+if (ivLo + 1000 > ivHi) { throw new RuntimeException("iv range too small: " + ivLo + " " + ivHi); }
+invar0_751 = RANDOM.nextInt(-1, 2);
+// Verify the bounds we just created, just to be sure there is no unexpected aliasing!
+int i = ivLo;
+int lo_0 = (int)(-5541 + -4 * i + -4 * invar0_0 + 0 * invar0_751);
+int lo_1 = (int)(-28322 + -2 * i + 2 * invar0_1 + -1 * invar0_751);
+i = ivHi;
+int hi_0 =  (int)(-5541 + -4 * i + -4 * invar0_0 + 0 * invar0_751);
+int hi_1 =  (int)(-28322 + -2 * i + 2 * invar0_1 + -1 * invar0_751);
+// Aliasing unknown, cannot verify bounds.
+        // Run test and compare with interpreter results.
+var result = test_751(test_0, invar0_0, test_1, invar0_1, ivLo, ivHi);
+var expected = reference_751(reference_0, invar0_0, reference_1, invar0_1, ivLo, ivHi);
+        Verify.checkEQ(result, expected);
+    } // end reps
+} // end run_751
+#+end_src
+
+Reassoc2 test failure:
+#+begin_src bash
+ 170  MaxL  === _ 252 297  [[ 171 ]]  !jvms: Test::test @ bci:30 (line 22)
+ 171  MaxL  === _ 170 591  [[ 705 472 211 ]]  !orig=614 !jvms: Test::test @ bci:38 (line 24)
+ 322  MaxL  === _ 339 323  [[ 339 346 ]]  !orig=171,614 !jvms: Test::test @ bci:38 (line 24)
+ 323  MaxL  === _ 324 331  [[ 322 ]]  !orig=170 !jvms: Test::test @ bci:30 (line 22)
+ 448  MaxL  === _ 465 449  [[ 465 472 705 ]]  !orig=171,614 !jvms: Test::test @ bci:38 (line 24)
+ 449  MaxL  === _ 450 457  [[ 448 ]]  !orig=170 !jvms: Test::test @ bci:30 (line 22)
+ 591  MaxL  === _ 592 675  [[ 171 ]]  !orig=171,614 !jvms: Test::test @ bci:38 (line 24)
+ 592  MaxL  === _ 593 600  [[ 591 ]]  !orig=170 !jvms: Test::test @ bci:30 (line 22)
+ 675  MaxL  === _ 676 685  [[ 591 ]]  !orig=171,614 !jvms: Test::test @ bci:38 (line 24)
+ 676  MaxL  === _ 677 705  [[ 675 ]]  !orig=591,171,614 !jvms: Test::test @ bci:38 (line 24)
+ 677  MaxL  === _ 678 688  [[ 676 ]]  !orig=592,170 !jvms: Test::test @ bci:30 (line 22)
+ 685  MaxL  === _ 686 690  [[ 675 ]]  !orig=170 !jvms: Test::test @ bci:30 (line 22)
+ 686  LoadL  === 503 7 687  [[ 685 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=297,[169] !jvms: Test::test @ bci:23 (line 21)
+ 690  LoadL  === 551 7 691  [[ 685 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=252,[147] !jvms: Test::test @ bci:16 (line 20)
+ 705  Phi  === 702 448 171  [[ 676 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=608,119 !jvms: Test::test @ bci:12 (line 20)
+g#+end_src
+
+Test failure:
+#+begin_src bash
+[avoid-cmov] try reassociate; chain head:
+  219  MaxL  === _ 218 1257  [[ 1290 511 1027 ]]  !orig=1296 !jvms: TestReductionReassociationManual::testMaxLongManualUnroll4 @ bci:74 (line 69)
+#+end_src
+
+Base output:
+#+begin_src bash
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 232  MaxL  === _ 240 233  [[ 240 247 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 301  MaxL  === _ 309 302  [[ 309 322 667 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 529  MaxL  === _ 623 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 623  MaxL  === _ 624 635  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 639  [[ 623 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 625  MaxL  === _ 626 643  [[ 624 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 626  MaxL  === _ 627 647  [[ 625 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 627  MaxL  === _ 630 628  [[ 626 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 630  MaxL  === _ 631 653  [[ 627 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 631  MaxL  === _ 632 657  [[ 630 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 633  LoadL  === 342 7 634  [[ 632 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=530,451,385,215,[146] !jvms: Test::test @ bci:14 (line 20)
+ 667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+
+ 147 = max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(667, 633), 657), 653), 628), 647), 643), 639), 635), 530), 538), 534), 525), 451), 453), 385), 215)
+ to:
+ 147 = max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(633, 657), 653), 628), 647), 643), 639), 635), 530), 538), 534), 525), 451), 453), 385), 215), 667)
+#+end_src
+* 19.11.25
+Phi and input:
+#+begin_src bash
+[avoid-cmov] loop head: 306  CountedLoop  === 306 191 311  [[ 306 308 309 310 ]] inner stride: 1 pre of N177 !orig=[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+[avoid-cmov] try reassociate:
+  309  Phi  === 306 22 301  [[ 301 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=119 !jvms: Test::test @ bci:12 (line 20)
+  301  MaxL  === _ 309 302  [[ 309 322 667 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] loop head: 664  CountedLoop  === 664 176 160  [[ 664 172 667 676 ]] inner stride: 16 main of N664 strip mined !orig=[550],[460],[389],[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+[avoid-cmov] try reassociate:
+  667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+  301  MaxL  === _ 309 302  [[ 309 322 667 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+[avoid-cmov] try reassociate:
+  667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+  147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+
+[avoid-cmov] loop head: 237  CountedLoop  === 237 278 242  [[ 237 239 240 241 ]] inner stride: 1 post of N177 !orig=[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+[avoid-cmov] try reassociate:
+  240  Phi  === 237 322 232  [[ 232 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=119 !jvms: Test::test @ bci:12 (line 20)
+  232  MaxL  === _ 240 233  [[ 240 247 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+#+end_src
+
+Loop head:
+#+begin_src bash
+ 147  MaxL  === _ 384 215  [[ 667 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 232  MaxL  === _ 240 233  [[ 240 247 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 301  MaxL  === _ 309 302  [[ 309 322 667 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 529  MaxL  === _ 623 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 623  MaxL  === _ 624 635  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 639  [[ 623 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 625  MaxL  === _ 626 643  [[ 624 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 626  MaxL  === _ 627 647  [[ 625 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 627  MaxL  === _ 630 628  [[ 626 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 630  MaxL  === _ 631 653  [[ 627 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 631  MaxL  === _ 632 657  [[ 630 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 632  MaxL  === _ 667 633  [[ 631 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 633  LoadL  === 342 7 634  [[ 632 ]]  @long[int:>=0] (java/lang/Cloneable,java/io/Serializable):exact+any *, idx=5; #long (does not depend only on test, unknown control) !orig=530,451,385,215,[146] !jvms: Test::test @ bci:14 (line 20)
+ 664  CountedLoop  === 664 176 160  [[ 664 172 667 676 ]] inner stride: 16 main of N664 strip mined !orig=[550],[460],[389],[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 301  MaxL  === _ 302 22  [[ 667 322 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+
+ 147 = max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(max(667, 633), 657), 653), 628), 647), 643), 639), 635), 530), 538), 534), 525), 451), 453), 385), 215)
+
+[avoid-cmov] loop head: 306  CountedLoop  === 306 191 311  [[ 306 308 309 310 ]] inner stride: 1 pre of N177 !orig=[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 308  Phi  === 306 23 300  [[ 300 307 431 745 ]]  #int:0..maxint-1, widen: 3 #tripcount !orig=120,[214],[140] !jvms: Test::test @ bci:12 (line 20)
+ 309  Phi  === 306 22 301  [[ 301 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=119 !jvms: Test::test @ bci:12 (line 20)
+ 310  CountedLoopEnd  === 306 298  [[ 311 324 ]] [lt] P=0.500000, C=112637.000000 !orig=172,[159] !jvms: Test::test @ bci:9 (line 19)
+
+[avoid-cmov] loop head: 664  CountedLoop  === 664 176 160  [[ 664 172 667 676 ]] inner stride: 16 main of N664 strip mined !orig=[550],[460],[389],[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 172  CountedLoopEnd  === 664 171  [[ 679 160 ]] [lt] P=0.999902, C=112637.000000 !orig=[159] !jvms: Test::test @ bci:9 (line 19)
+ 667  Phi  === 664 301 147  [[ 632 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+ 676  Phi  === 664 433 148  [[ 743 668 669 670 671 672 673 674 675 707 710 712 714 716 718 148 740 ]]  #int:1..maxint-1, widen: 3 #tripcount !orig=549,[466],391,120,[214],[140] !jvms: Test::test @ bci:12 (line 20)
+
+[avoid-cmov] loop head: 237  CountedLoop  === 237 278 242  [[ 237 239 240 241 ]] inner stride: 1 post of N177 !orig=[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 239  Phi  === 237 297 231  [[ 231 238 ]]  #int:0..maxint-1, widen: 3 #tripcount !orig=120,[214],[140] !jvms: Test::test @ bci:12 (line 20)
+ 240  Phi  === 237 322 232  [[ 232 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=119 !jvms: Test::test @ bci:12 (line 20)
+ 241  CountedLoopEnd  === 237 229  [[ 242 243 ]] [lt] P=0.500000, C=112637.000000 !orig=172,[159] !jvms: Test::test @ bci:9 (line 19)
+#+end_src
+* 13.11.25
+** chat
+testMaxLAndBarrierInLoop/testMinLAndBarrierInLoop don't fit in TestIfMinMax
+  "Test that if expressions are properly folded into min/max nodes"
+MinMaxVector.java does not have copyright header, what do we do?
+
+Restrict shapes more
+Superword maybe better than igvn (don't know what's inside the loop)
+Once block nodes schedule as alternative way? Everything would be ordered, we would know if they're part of a loop...etc
+  Platform dependant part ^
+  After scheduling
+  Compile::optimize -> Code_Gen() -> global_code_motion -> maybe part of peephole or part of it
+
+reassociate_in_loop_rebuild(int depth, Node*& queue_head, PhaseGVN* phase) {
+
+reassociate_in_loop_rebuild(int depth, Node** queue_head, PhaseGVN* phase) {
+
+for (DUIterator_Fast imax, i = fast_outs(imax); i < imax; i++) {
+tmp = fast_out(i);
+if (tmp->Opcode() == Op_MaxL) {   // Check for MaxL users
+has_max_out = true;
+break;
+}
+      }|
+->
+find_out_with(Op_MaxL)
+** crash
+Reassoc4 crashes with the way the code is now:
+#+begin_src bash
+#  Internal Error (/Users/galder/src/jdk-avoid-cmov-long-min-max/src/hotspot/share/opto/node.hpp:418), pid=77714, tid=26371
+#  assert(i < _max) failed: oob: i=2, _max=2
+
+ 5 Node::in(unsigned int) const + 128 in libjvm.dylib at /Users/galder/src/jdk-avoid-cmov-long-min-max/src/hotspot/share/opto/node.hpp:418:28
+
+   416│
+   417│   // Reference to the i'th input Node.  Error if out of bounds.
+   418│   Node* in(uint i) const { assert(i < _max, "oob: i=%d, _max=%d", i, _max); return _in[i]; }
+      │                            ▲
+   419│   // Reference to the i'th input Node.  null if out of bounds.
+   420│   Node* lookup(uint i) const { return ((i < _max) ? _in[i] : nullptr); }
+
+ 6 PhaseIterGVN::reassociate_in_loop(Node*) + 88 in libjvm.dylib at /Users/galder/src/jdk-avoid-cmov-long-min-max/src/hotspot/share/opto/phaseX.cpp:2780:28
+
+  2778│   do {
+  2779│     Node* left = current->in(1);
+  2780│     Node* right = current->in(2);
+      │                            ▲
+  2781│     if (left->Opcode() == Op_MaxL || left->is_Phi()) {
+  2782│       current = left;
+#+end_src
+* 11.11.25
+** Reassoc Simple Reworked
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 149  MaxL  === _ 388 148  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 313 305  [[ 313 326 470 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 388  MaxL  === _ 454 389  [[ 149 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 454  MaxL  === _ 456 455  [[ 388 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 456  MaxL  === _ 470 457  [[ 454 ]]  !orig=388,149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 149 = max(148, max(389, max(455, max(457, 470))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 305 22  [[ 470 326 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 523  MaxL  === _ 457 455  [[ 524 ]]
+ 524  MaxL  === _ 523 389  [[ 525 ]]
+ 525  MaxL  === _ 524 148  [[ 526 ]]
+ 526  MaxL  === _ 525 470  [[ 180 326 470 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 526 = max(470, max(148, max(389, max(455, 457)))
+#+end_src
+
+Invalid:
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 149  MaxL  === _ 388 148  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 313 305  [[ 313 326 470 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 388  MaxL  === _ 454 389  [[ 149 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 454  MaxL  === _ 456 455  [[ 388 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 456  MaxL  === _ 470 457  [[ 454 ]]  !orig=388,149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 470  Phi  === 467 304 149  [[ 456 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=397,119 !jvms: LongReductionMultiplyMax::test @ bci:12 (line 23)
+
+ 149 = max(148, max(389, max(455, max(457, 470))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 305 22  [[ 470 326 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 523  MaxL  === _ 470 457  [[ 180 326 470 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+#+end_src
+** Debugging
+xeon:
+PhaseIterGVN::reassociate_in_loop(n)
+ 218  MaxL  === _ 219 460  [[ 565 271 380 ]]  !orig=193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+PhaseIterGVN::reassociate_in_loop(n)
+ 149  MaxL  === _ 148 388  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)            |
+
+macos:
+PhaseIterGVN::reassociate_in_loop(n)
+n= 218  MaxL  === _ 460 219  [[ 565 271 380 ]]  !orig=193 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+PhaseIterGVN::reassociate_in_loop(n)
+n= 149  MaxL  === _ 388 148  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+** Long reduction multiply max no superword
+*** xeon
+#+begin_src bash
+AFTER: PHASEIDEALLOOP_ITERATIONS
+ 149  MaxL  === _ 148 388  [[ 470 326 180 ]]  !orig=405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 313 305  [[ 313 326 470 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 388  MaxL  === _ 389 454  [[ 149 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 454  MaxL  === _ 455 456  [[ 388 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 456  MaxL  === _ 457 470  [[ 454 ]]  !orig=388,149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 149 = max(148, max(389, max(455, max(457, 470))))
+
+AFTER: BEFORE_MACRO_EXPANSION
+ 234  MaxL  === _ 243 235  [[ 243 250 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 304  MaxL  === _ 305 22  [[ 470 326 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 388  MaxL  === _ 389 454  [[ 523 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 454  MaxL  === _ 455 456  [[ 388 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 456  MaxL  === _ 457 470  [[ 454 ]]  !orig=388,[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+ 523  MaxL  === _ 148 388  [[ 180 326 470 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
+
+ 532 = max(148, max(389, max(455, max(457, 470))))
+
+ ;; B8: #	out( B9 ) <- in( B9 ) top-of-loop Freq: 1.04888e+08
+  0x00007f0940addc10:   movq		%rax, %r10          ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@12 (line 23)
+ ;; B9: #	out( B8 B10 ) <- in( B12 B8 ) Loop( B9-B8 inner main of N58 strip mined) Freq: 1.04898e+08
+  0x00007f0940addc13:   imulq		$0xb, 0x10(%rsi, %rcx, 8), %r11
+  0x00007f0940addc19:   imulq		$0xb, 0x18(%rsi, %rcx, 8), %rbp
+  0x00007f0940addc1f:   imulq		$0xb, 0x20(%rsi, %rcx, 8), %r13
+  0x00007f0940addc25:   imulq		$0xb, 0x28(%rsi, %rcx, 8), %rax
+                                                            ;*lmul {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@18 (line 23)
+  0x00007f0940addc2b:   cmpq		%r10, %r11
+  0x00007f0940addc2e:   cmovlq		%r10, %r11
+  0x00007f0940addc32:   cmpq		%r11, %rbp
+  0x00007f0940addc35:   cmovlq		%r11, %rbp
+  0x00007f0940addc39:   cmpq		%rbp, %r13
+  0x00007f0940addc3c:   cmovlq		%rbp, %r13
+  0x00007f0940addc40:   cmpq		%r13, %rax
+  0x00007f0940addc43:   cmovlq		%r13, %rax          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@24 (line 24)
+  (r10 is the carrier)
+  rax = cmovlq(rax, cmovlq(r13, cmovlq(rbp, cmovlq(r11, r10))))
+
+  0x00007f0940addc47:   addl		$4, %ecx            ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@28 (line 21)
+  0x00007f0940addc4a:   cmpl		%edi, %ecx
+  0x00007f0940addc4c:   jl		0x7f0940addc10      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@9 (line 21)
+ ;; B10: #	out( B14 B11 ) <- in( B9 )  Freq: 10241.4
+  0x00007f0940addc4e:   movq		0x30(%r15), %r10    ; ImmutableOopMap {rsi=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) LongReductionMultiplyMax::test@31 (line 21)
+  0x00007f0940addc52:   testl		%eax, (%r10)        ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@31 (line 21)
+                                                            ;   {poll}
+  0x00007f0940addc55:   cmpl		%ebx, %ecx
+  0x00007f0940addc57:   jge		0x7f0940addc7a
+ ;; B11: #	out( B12 ) <- in( B10 )  Freq: 10240.4
+  0x00007f0940addc59:   movq		%rax, %r10
+ ;; B12: #	out( B9 ) <- in( B7 B11 ) Loop( B12-B11 ) Freq: 10241.4
+  0x00007f0940addc5c:   movl		%r9d, %edi
+  0x00007f0940addc5f:   subl		%ecx, %edi
+  0x00007f0940addc61:   addl		$-3, %edi
+  0x00007f0940addc64:   cmpl		%ecx, %ebx
+  0x00007f0940addc66:   cmovll		%r8d, %edi
+  0x00007f0940addc6a:   cmpl		$0xfa0, %edi
+  0x00007f0940addc70:   cmoval		%edx, %edi
+  0x00007f0940addc73:   addl		%ecx, %edi
+  0x00007f0940addc75:   jmp		0x7f0940addc13
+#+end_src
+
 * 10.11.25
 ** Long reduction multiply max
+*** xeon
+vectorization kicks in, run without superword
+#+begin_src bash
+ ;; B11: #	out( B12 ) <- in( B12 ) top-of-loop Freq: 1.04888e+08
+  0x00007f0250adddf0:   movl		%r8d, %edi          ;*ldc2_w {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@12 (line 23)
+ ;; B12: #	out( B11 B13 ) <- in( B15 B11 ) Loop( B12-B11 inner main of N41 strip mined) Freq: 1.04898e+08
+  0x00007f0250adddf3:   vpmullq		0x10(%rsi, %rdi, 8), %ymm0, %ymm2
+  0x00007f0250adddfe:   vpmullq		0x30(%rsi, %rdi, 8), %ymm0, %ymm3
+  0x00007f0250adde09:   vpmullq		0x50(%rsi, %rdi, 8), %ymm0, %ymm4
+  0x00007f0250adde14:   vpmullq		0xf0(%rsi, %rdi, 8), %ymm0, %ymm5
+  0x00007f0250adde1f:   vpmullq		0xd0(%rsi, %rdi, 8), %ymm0, %ymm6
+  0x00007f0250adde2a:   vpmullq		0xb0(%rsi, %rdi, 8), %ymm0, %ymm7
+  0x00007f0250adde35:   vpmullq		0x90(%rsi, %rdi, 8), %ymm0, %ymm8
+  0x00007f0250adde40:   vpmullq		0x70(%rsi, %rdi, 8), %ymm0, %ymm9
+  0x00007f0250adde4b:   vpmaxsq		%ymm1, %ymm2, %ymm1
+  0x00007f0250adde51:   vpmaxsq		%ymm1, %ymm3, %ymm1
+  0x00007f0250adde57:   vpmaxsq		%ymm1, %ymm4, %ymm1
+  0x00007f0250adde5d:   vpmaxsq		%ymm1, %ymm9, %ymm1
+  0x00007f0250adde63:   vpmaxsq		%ymm1, %ymm8, %ymm1
+  0x00007f0250adde69:   vpmaxsq		%ymm1, %ymm7, %ymm1
+  0x00007f0250adde6f:   vpmaxsq		%ymm1, %ymm6, %ymm1
+  0x00007f0250adde75:   vpmaxsq		%ymm1, %ymm5, %ymm1
+  0x00007f0250adde7b:   leal		0x20(%rdi), %r8d
+  0x00007f0250adde7f:   nop
+  0x00007f0250adde80:   cmpl		%r11d, %r8d
+  0x00007f0250adde83:   jl		0x7f0250adddf0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@9 (line 21)
+ ;; B13: #	out( B16 B14 ) <- in( B12 )  Freq: 10241.4
+  0x00007f0250adde89:   movq		0x30(%r15), %r11
+  0x00007f0250adde8d:   vextracti128		$1, %ymm1, %xmm2
+  0x00007f0250adde93:   vpmaxsq		%xmm1, %xmm2, %xmm2
+  0x00007f0250adde99:   vpshufd		$0xe, %xmm2, %xmm3
+  0x00007f0250adde9e:   vpmaxsq		%xmm2, %xmm3, %xmm3
+  0x00007f0250addea4:   vmovq		%rbx, %xmm2
+  0x00007f0250addea9:   vpmaxsq		%xmm3, %xmm2, %xmm2
+  0x00007f0250addeaf:   vmovq		%xmm2, %rax         ; ImmutableOopMap {rsi=Oop }
+                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                            ; - (reexecute) LongReductionMultiplyMax::test@31 (line 21)
+  0x00007f0250addeb4:   testl		%eax, (%r11)        ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - LongReductionMultiplyMax::test@31 (line 21)
+                                                            ;   {poll}
+  0x00007f0250addeb7:   cmpl		%ebp, %r8d
+  0x00007f0250addeba:   jge		0x7f0250addee5
+ ;; B14: #	out( B15 ) <- in( B13 )  Freq: 10240.4
+  0x00007f0250addebc:   movl		%r8d, %edi
+ ;; B15: #	out( B12 ) <- in( B10 B14 ) Loop( B15-B14 ) Freq: 10241.4
+  0x00007f0250addebf:   movl		%ecx, %r11d
+  0x00007f0250addec2:   subl		%edi, %r11d
+  0x00007f0250addec5:   addl		$-0x1f, %r11d
+  0x00007f0250addec9:   cmpl		%edi, %ebp
+  0x00007f0250addecb:   cmovll		%r9d, %r11d
+  0x00007f0250addecf:   cmpl		$0x7d00, %r11d
+  0x00007f0250added6:   cmoval		%r10d, %r11d
+  0x00007f0250addeda:   addl		%edi, %r11d
+  0x00007f0250addedd:   nop
+  0x00007f0250addede:   nop
+  0x00007f0250addedf:   nop
+  0x00007f0250addee0:   jmp		0x7f0250adddf3
+#+end_src
 *** macos M4
 2nd compilation:
 #+begin_src bash
@@ -28,7 +502,8 @@ AFTER: PHASEIDEALLOOP_ITERATIONS
  454  MaxL  === _ 456 455  [[ 388 ]]  !orig=149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
  456  MaxL  === _ 470 457  [[ 454 ]]  !orig=388,149,405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
 
- 456 = max(148, max(389, max(455, max(470, 457))))
+ 149 = max(148, max(389, max(455, max(457, 470)))
+ // 456 = max(148, max(389, max(455, max(470, 457))))
 
 AFTER: BEFORE_MACRO_EXPANSION
  304  MaxL  === _ 305 22  [[ 470 326 ]]  !orig=[149],405 !jvms: LongReductionMultiplyMax::test @ bci:24 (line 24)
