@@ -43,7 +43,8 @@ asm_jvm_args += -XX:+PrintNMethods
 #loop_jvm_args += -XX:+TraceLoopOpts
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
-loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,BEFORE_MACRO_EXPANSION"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,BEFORE_MACRO_EXPANSION"
+loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,ITER_GVN2,AFTER_LOOP_OPTS"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN
 #gvn_jvm_args += -XX:+Verbose
@@ -171,6 +172,3 @@ run-gen: $(java)
 > $(java) \
 >   $(jvm_args) Test.java
 .PHONY: run-gen
-
-clean-gen:
-> rm -drf src-gen/target
