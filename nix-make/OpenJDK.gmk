@@ -330,3 +330,8 @@ print-jdk-home:
 print-jtreg-bin:
 > $(info $(jtreg_bin))
 .PHONY: print-jtreg-bin
+
+update-build-docs:
+> cd $(JDK_HOME)
+> CONF=$(conf_name) make update-build-docs
+.PHONY: update-build-docs
