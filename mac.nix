@@ -13,6 +13,7 @@ pkgs.mkShell {
     pkgs.autoconf
     pkgs.capstone
     pkgs.maven
+    pkgs.pandoc
     pkgs.pigz
     pkgs.temurin-bin-21
     unstable.temurin-bin-25
