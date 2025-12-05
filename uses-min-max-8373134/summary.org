@@ -1,0 +1,44 @@
+* 5.12.25
+i = min(min(i, b), b)
+i' = min(i, b)
+
+to:
+
+i = min(i, b)
+i' = min(i, b)
+
+i = min(i, b)
+i' = i
+
+
+i = max(a, max(b, max(c, max(d, i)))
+i' = max(i, max(max(a, b), max(c, d)))
+there are 8 max nodes
+Now transformed to:
+i = max(i, max(max(a, b), max(c, d)))
+i' = max(i, max(max(a, b), max(c, d)))
+C2 should notice there are 2 max(c, d), 2 max(a, b) etc. and that i = i' so final code will have:
+i = max(i, max(max(a, b), max(c, d)))
+i' = i
+and there are only 4 max nodes.
+
+
+MinL(MinL(520, 737), 737)
+-> MinL(520, 737)
+
+#+begin_src bash
+$  make
+Missed Identity optimization:
+Old node:
+dist dump
+---------------------------------------------
+   1  737  AddL  === _ 721 736  [[ 579 526 ]]  !orig=[576]
+   1  526  MinL  === _ 520 737  [[ 579 ]]  !orig=[575]
+   0  579  MinL  === _ 526 737  [[ 580 590 ]]  !orig=[742]
+New node:
+dist dump
+---------------------------------------------
+   1  737  AddL  === _ 721 736  [[ 579 526 ]]  !orig=[576]
+   1  520  ConvI2L  === _ 220  [[ 526 ]]  #long:>=0 !orig=[724],[522]
+   0  526  MinL  === _ 520 737  [[ 579 ]]  !orig=[575]
+#+end_src

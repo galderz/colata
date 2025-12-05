@@ -30,7 +30,8 @@ ideal_jvm_args += -XX:+PrintIdeal
 
 asm_jvm_args += -XX:+PrintNMethods
 
-loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS"
+loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN
 
