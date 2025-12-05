@@ -271,7 +271,7 @@ $(gtest_src):
 
 igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
-> JAVA_HOME=$(IGV_JDK_HOME) mvn install -DskipTests
+> JAVA_HOME=$(IGV_JDK_HOME) mvn clean install -DskipTests
 > popd
 > $(TOPDIR)/nix-make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(IGV_JDK_HOME)
 .PHONY: igv
