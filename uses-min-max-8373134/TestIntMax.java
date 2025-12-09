@@ -23,7 +23,7 @@
  *    1   11  Parm  === 3  [[ 124 60 82 71 38 49 ]] Parm1: int !jvms: TestMaxI::test @ bci:-1 (line 17)
  *    0  124  MaxI  === _ 11 10  [[ 136 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestMaxI::test @ bci:21 (line 21)
  */
-public class TestMaxI
+public class TestIntMax
 {
     private static int test(int a, int b)
     {
