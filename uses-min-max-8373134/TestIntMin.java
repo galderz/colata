@@ -23,7 +23,7 @@
  *    1   11  Parm  === 3  [[ 124 60 82 71 38 49 ]] Parm1: int !jvms: TestMinI::test @ bci:-1 (line 17)
  *    0  124  MinI  === _ 11 10  [[ 136 ]]  !jvms: Integer::min @ bci:2 (line 1948) TestMinI::test @ bci:21 (line 21)
  */
-public class TestMinI
+public class TestIntMin
 {
     private static int test(int a, int b)
     {
