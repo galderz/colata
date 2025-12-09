@@ -6,8 +6,8 @@
  * One way to get that is with an empty counted loop.
  * On the first pass of loop opts, the loop goes away,
  * i is replaced by 1 and a*i is enqueued for igvn,
- * which causes c = a, which causes max(a, b) to be processed
- * but nothing pushes max(a, max(a, b)) for igvn.
+ * which causes c = a, which causes min(a, b) to be processed
+ * but nothing pushes min(a, min(a, b)) for igvn.
  *
  * Missed Identity optimization:
  * Old node:
