@@ -1,0 +1,92 @@
+* 10.12.25
+How does long manage to remove the last of the MaxNode?
+
+Failures after adding AddNode::Ideal call:
+#+begin_src bash
+Failed IR Rules (4) of Methods (4)
+----------------------------------
+1) Method "public int compiler.c2.templated.MinMaxIdeal.test_commute_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 1 = 0 [given]
+             - Matched node:
+               * 34  MaxI  === _ 11 12  [[ 47 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_commute_MAX_I @ bci:2 (line 19)
+
+2) Method "public int compiler.c2.templated.MinMaxIdeal.test_flatten_MAX_I(int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 1 = 0 [given]
+             - Matched node:
+               * 47  MaxI  === _ 11 35  [[ 48 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_flatten_MAX_I @ bci:6 (line 26)
+
+3) Method "public int compiler.c2.templated.MinMaxIdeal.test_push_constant_left_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 2 = 0 [given]
+             - Matched nodes (2):
+               * 47  MaxI  === _ 48 24  [[ 61 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_left_MAX_I @ bci:6 (line 33)
+               * 48  MaxI  === _ 11 12  [[ 47 61 ]]  !orig=35 !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_left_MAX_I @ bci:2 (line 33)
+
+4) Method "public int compiler.c2.templated.MinMaxIdeal.test_push_constant_right_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 2 = 0 [given]
+             - Matched nodes (2):
+               * 47  MaxI  === _ 48 24  [[ 61 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_right_MAX_I @ bci:6 (line 40)
+               * 48  MaxI  === _ 11 12  [[ 47 61 ]]  !orig=35 !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_right_MAX_I @ bci:3 (line 40)
+#+end_src
+
+Failures before fix:
+#+begin_src bash
+Failed IR Rules (4) of Methods (4)
+----------------------------------
+1) Method "public int compiler.c2.templated.MinMaxIdeal.test_commute_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 2 = 0 [given]
+             - Matched nodes (2):
+               * 34  MaxI  === _ 11 12  [[ 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_commute_MAX_I @ bci:2 (line 19)
+               * 46  MaxI  === _ 12 11  [[ 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_commute_MAX_I @ bci:7 (line 19)
+
+2) Method "public int compiler.c2.templated.MinMaxIdeal.test_flatten_MAX_I(int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 2 = 0 [given]
+             - Matched nodes (2):
+               * 34  MaxI  === _ 11 23  [[ 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_flatten_MAX_I @ bci:2 (line 26)
+               * 47  MaxI  === _ 34 35  [[ 48 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_flatten_MAX_I @ bci:6 (line 26)
+
+3) Method "public int compiler.c2.templated.MinMaxIdeal.test_push_constant_left_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 3 = 0 [given]
+             - Matched nodes (3):
+               * 35  MaxI  === _ 11 24  [[ 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_left_MAX_I @ bci:2 (line 33)
+               * 47  MaxI  === _ 35 12  [[ 60 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_left_MAX_I @ bci:6 (line 33)
+               * 59  MaxI  === _ 12 11  [[ 60 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_left_MAX_I @ bci:11 (line 33)
+
+4) Method "public int compiler.c2.templated.MinMaxIdeal.test_push_constant_right_MAX_I(int,int)" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#MAX_I#_", "= 0"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(MaxI.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 3 = 0 [given]
+             - Matched nodes (3):
+               * 35  MaxI  === _ 12 24  [[ 47 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_right_MAX_I @ bci:3 (line 40)
+               * 47  MaxI  === _ 35 11  [[ 60 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_right_MAX_I @ bci:6 (line 40)
+               * 59  MaxI  === _ 12 11  [[ 60 ]]  !jvms: Integer::max @ bci:2 (line 1934) MinMaxIdeal::test_push_constant_right_MAX_I @ bci:11 (line 40)
+#+end_src
