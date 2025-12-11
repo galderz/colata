@@ -22,7 +22,6 @@ echo "Scanning for failed/error .jtr files under: $SRC_ROOT"
 
 # Walk all .jtr files, check for result: Failed/Error, copy into OUT_DIR
 # while preserving relative path structure.
-count=0
 while IFS= read -r -d '' jtr; do
   if grep -qE '^result: (Failed|Error)' "$jtr"; then
     # Compute path relative to SRC_ROOT
@@ -31,16 +30,10 @@ while IFS= read -r -d '' jtr; do
 
     mkdir -p "$(dirname "$dest")"
     cp "$jtr" "$dest"
-    ((count++))
   fi
 done < <(find "$SRC_ROOT" -name '*.jtr' -print0)
 
-if (( count == 0 )); then
-  echo "No failing/error .jtr files found."
-  exit 0
-fi
-
-echo "Copied $count failing/error .jtr files into '$OUT_DIR'"
+echo "Copied failing/error .jtr files into '$OUT_DIR'"
 
 # Zip them up
 ZIP_NAME="$OUT_DIR.zip"
