@@ -256,6 +256,10 @@ test-compiler: build-jdk
 > CONF=$(conf_name) TEST="hotspot_compiler" make test
 .PHONY: test-compiler
 
+collect-failed-tests:
+> $(TOPDIR)/nix-make/collect-failed-tests.sh $(java_build_dir)/test-support
+.PHONY: collect-failed-tests
+
 $(jtreg_bin): $(shell find $(jtreg_src)/src -type f -name '*.java')
 $(jtreg_bin): $(jtreg_readme)
 > cd $(jtreg_src)
