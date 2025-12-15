@@ -25,7 +25,17 @@
  */
 public class TestIntMax
 {
-    private static int test(int a, int b)
+//    private static int test(int a, int b)
+//    {
+//        int i;
+//        for (i = -10; i < 1; i++)
+//        {
+//        }
+//        int c = a * i;
+//        return Integer.max(a, Integer.max(b, c));
+//    }
+
+    private static int test(int b, int a)
     {
         int i;
         for (i = -10; i < 1; i++)
