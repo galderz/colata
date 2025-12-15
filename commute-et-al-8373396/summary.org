@@ -1,3 +1,51 @@
+* 11.12.25
+tier1-3 results after adding min:
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+>> jtreg:test/hotspot/jtreg:tier1                     3192  3034     1     0   157 <<
+   jtreg:test/jdk:tier1                               2557  2518     0     0    39
+   jtreg:test/langtools:tier1                         4688  4678     0     0    10
+   jtreg:test/jaxp:tier1                                 0     0     0     0     0
+   jtreg:test/lib-test:tier1                            38    38     0     0     0
+   jtreg:test/hotspot/jtreg:tier2                      968   943     0     0    25
+>> jtreg:test/jdk:tier2                               4517  4259     8     4   246 <<
+   jtreg:test/langtools:tier2                           14    12     0     0     2
+   jtreg:test/jaxp:tier2                               517   516     0     0     1
+   jtreg:test/docs:tier2                                 4     0     0     0     4
+>> jtreg:test/hotspot/jtreg:tier3                      316   291     1     0    24 <<
+>> jtreg:test/jdk:tier3                               1642  1527     3     0   112 <<
+   jtreg:test/langtools:tier3                            0     0     0     0     0
+   jtreg:test/jaxp:tier3                                 0     0     0     0     0
+==============================
+TEST FAILURE
+#+end_src
+
+tier1-3 results:
+#+begin_src bash
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+>> jtreg:test/hotspot/jtreg:tier1                     3192  3034     1     0   157 <<
+   jtreg:test/jdk:tier1                               2557  2518     0     0    39
+   jtreg:test/langtools:tier1                         4688  4678     0     0    10
+   jtreg:test/jaxp:tier1                                 0     0     0     0     0
+   jtreg:test/lib-test:tier1                            38    38     0     0     0
+>> jtreg:test/hotspot/jtreg:tier2                      968   942     1     0    25 <<
+>> jtreg:test/jdk:tier2                               4517  4259     8     4   246 <<
+   jtreg:test/langtools:tier2                           14    12     0     0     2
+   jtreg:test/jaxp:tier2                               517   516     0     0     1
+   jtreg:test/docs:tier2                                 4     0     0     0     4
+>> jtreg:test/hotspot/jtreg:tier3                      316   291     1     0    24 <<
+>> jtreg:test/jdk:tier3                               1642  1527     3     0   112 <<
+   jtreg:test/langtools:tier3                            0     0     0     0     0
+   jtreg:test/jaxp:tier3                                 0     0     0     0     0
+==============================
+TEST FAILURE
+#+end_src
 * 10.12.25
 How does long manage to remove the last of the MaxNode?
 
