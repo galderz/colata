@@ -1,23 +1,20 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
-  unstable = import (builtins.fetchTarball
-    "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz") {};
-
   devkit = "/nix/store/dqxywksq5xmmpmrr0bybkjpszj08ysjq-Xcode26.1.1-MacOSX26";
   devdir="${devkit}/Xcode/Contents/Developer";
 in
 pkgs.mkShell {
-  packages = [
-    pkgs.ant
-    pkgs.autoconf
-    pkgs.capstone
-    pkgs.maven
-    pkgs.pandoc
-    pkgs.pigz
-    pkgs.temurin-bin-21
-    unstable.temurin-bin-25
-
+  packages = with pkgs; [
+    ant
+    autoconf
+    capstone
+    maven
+    pandoc
+    pigz
+    temurin-bin-21
+    temurin-bin-25
+  ] ++ [
     devkit
   ];
 
@@ -28,7 +25,7 @@ pkgs.mkShell {
   #   xcrun: error: unable to find Xcode installation from active developer path "/nix/store/ddwccf951n51ng61zql8y6wcvs65vzli-Xcode16.3-MacOSX15/Xcode/Contents/Developer", use xcode-select to change
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  BOOT_JDK_HOME="${unstable.temurin-bin-25}";
+  BOOT_JDK_HOME="${pkgs.temurin-bin-25}";
   CAPSTONE_HOME="${pkgs.capstone}";
   DEVELOPER_DIR="${devdir}";
   DEVKIT_ROOT="${devkit}";
