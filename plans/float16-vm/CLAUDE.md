@@ -15,10 +15,14 @@ You need to explain how the VM will be created.
 
 You need to be able to start a terminal in the VM and show it in the current terminal window.
 
+To speed up things, the JDK that contains the java binary will be built outside the VM.
+The VM should be configured to share a folder with the host,
+where the JDK will be placed.
+
+You will also provide tips on how to build the JDK outside the VM in a portable way,
+such that the VM can run the JDK without any issues.
+
 Within the VM terminal, explain how would achieve this:
 
-1. Git clone http://github.com/openjdk/jdk repository
-2. Install all the system level dependencies to be able to build `jdk`.
-3. Build the JDK
-4. Run a basic Java program (e.g. "hello world") with built JDK.
-5. Verify that the JDK built has the CPU features required
+1. Run a basic java program (e.g. "hello world") with JDK in the shared folder.
+2. Verify that the JDK built has the CPU features required.
