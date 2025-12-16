@@ -10,9 +10,10 @@ include $(TOPDIR)/nix-make/MakeBase.gmk
 include $(TOPDIR)/nix-make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
-base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
+base_jvm_args += -XX:-UseOnStackReplacement
 base_jvm_args += -XX:-UseSuperWord
+base_jvm_args += -XX:-TieredCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 base_jvm_args += -XX:VerifyIterativeGVN=1000
 
@@ -31,6 +32,7 @@ ideal_jvm_args += -XX:+PrintIdeal
 asm_jvm_args += -XX:+PrintNMethods
 
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN,AFTER_ITER_GVN"
 loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN

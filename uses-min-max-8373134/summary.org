@@ -1,3 +1,262 @@
+* TODOs
+Verify that the fix works for the reassociation work
+
+Create follow up issue for testing Float16 (MaxHFNode)
+https://mstone.info/posts/qemu-aarch64-hvf-20210831/?utm_source=chatgpt.com
+
+Try using claude code to create a VM
+* 16.12.25
+Focus only on:
+MaxD, MaxF, MaxL, MaxI
+
+float max ok:
+#+begin_src bash
+from:
+ 114  MulF  === _ 10 113  [[ 125 ]]  !jvms: TestFloatMax::test @ bci:17 (line 35)
+ 125  MaxF  === _ 11 114  [[ 137 ]]  !jvms: Float::max @ bci:2 (line 1349) TestFloatMax::test @ bci:22 (line 36)
+ 137  MaxF  === _ 10 125  [[ 138 ]]  !jvms: Float::max @ bci:2 (line 1349) TestFloatMax::test @ bci:25 (line 36)
+to:
+ 125  MaxF  === _ 10 11  [[ 138 ]]  !orig=[137] !jvms: Float::max @ bci:2 (line 1349) TestFloatMax::test @ bci:22 (line 36)
+#+end_src
+
+float max fail:
+#+begin_src bash
+ 114  MulF  === _ 11 113  [[ 125 ]]  !jvms: TestFloatMax::test @ bci:17 (line 45)
+ 125  MaxF  === _ 10 114  [[ 137 ]]  !jvms: Float::max @ bci:2 (line 1349) TestFloatMax::test @ bci:22 (line 46)
+ 137  MaxF  === _ 11 125  [[ 138 ]]  !jvms: Float::max @ bci:2 (line 1349) TestFloatMax::test @ bci:25 (line 46)
+#+end_src
+* 15.12.25
+AddNode subclasses:
+- [-] AddDNode No identity optimization
+- [-] AddFNode No identity optimization
+- [-] AddHFNode No identity optimization
+- [X] AddINode TestIntAdd
+- [X] AddLNode TestLongAdd
+- [X] MaxDNode TestDoubleMax
+- [X] MaxFNode TestFloatMax
+- [ ] MaxHFNode
+- [X] MaxLNode TestLongMax
+- [X] MaxINode TestIntMax
+- [X] MinDNode (min)
+- [X] MinFNode (min)
+- [ ] MinHFNode
+- [X] MinINode (min)
+- [X] MinLNode (min)
+- [ ] OrINode
+- [ ] OrLNode
+- [ ] XorINode
+- [ ] XorLNode
+- [-] MaxNode
+* 11.12.25
+then this code is called:
+#+begin_src cpp
+void PhaseIterGVN::subsume_node( Node *old, Node *nn ) {
+    // ...
+    uint num_edges = 0;
+    for (uint jmax = use->len(), j = 0; j < jmax; j++) {
+      if (use->in(j) == old) {
+        use->set_req(j, nn);
+        ++num_edges;
+      }
+    }
+
+// j = 2
+// use->in(j) =
+ 116  MulL  === _ 12 162  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 45)
+// old =
+ 116  MulL  === _ 12 162  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 45)
+// use->set_req(j, nn);
+ 127  MaxL  === _ 10 12  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 46)
+// use is transformed but its uses are not added to the worklist
+#+end_src
+
+#+begin_src bash
+transform_old()
+ 116  MulL  === _ 12 162  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 45)
+
+# through identity on 116, it becomes:
+  12  Parm  === 3  [[ 139 116 152 84 40 51 62 73 ]] Parm2: long !orig=116 !jvms: TestLongMax::test @ bci:-1 (line 42)
+
+# then it calls PhaseIterGVN::subsume_node where it's use is still:
+ 127  MaxL  === _ 10 116  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 46)
+#+end_src
+
+why doesn't 139 get called to be optimized?
+#+begin_src bash
+ 116  MulL  === _ 12 115  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 45)
+
+# 127 converts from:
+ 127  MaxL  === _ 10 116  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 46)
+# 127 converts to:
+ 127  MaxL  === _ 10 12  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 46)
+# but 139 is not optimized?
+#+end_src
+
+transform_old calls with:
+#+begin_src bash
+  10  Parm  === 3  [[ 127 152 84 73 40 51 62 ]] Parm0: long !jvms: TestLongMax::test @ bci:-1 (line 42)
+  12  Parm  === 3  [[ 139 116 152 84 40 51 62 73 ]] Parm2: long !jvms: TestLongMax::test @ bci:-1 (line 42)
+ 139  MaxL  === _ 12 127  [[ 140 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:30 (line 46)
+
+transform_old()
+ 116  MulL  === _ 12 162  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 45)
+transform_old()
+ 127  MaxL  === _ 10 12  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 46)
+#+end_src
+* 9.12.25
+MaxINode::Ideal is and it doesn't call AddNode::Ideal() and hence doesn't call commute:
+#+begin_src bash
+Node* MaxINode::Ideal(PhaseGVN* phase, bool can_reshape) {
+  return IdealI(phase, can_reshape);
+}
+#+end_src
+
+MaxLNode::Ideal calls AddNode::Ideal which in turn calls commute.
+That's how commutation happens for MaxL node.
+#+begin_src cpp
+Node* MaxLNode::Ideal(PhaseGVN* phase, bool can_reshape) {
+  Node* n = AddNode::Ideal(phase, can_reshape);
+  if (n != nullptr) {
+    return n;
+  }
+  if (can_reshape) {
+    return fold_subI_no_underflow_pattern(this, phase);
+  }
+  return nullptr;
+}
+#+end_src
+
+Ok, so then why 136 doesn't given 124 looks like this?
+#+begin_src bash
+ 124  MaxI  === _ 11 10  [[ 136 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:21 (line 35)
+#+end_src
+
+What is the change being made? Ideal runs and that causes 142 to be added to the worklist:
+#+begin_src bash
+from:
+ 130  MaxL  === _ 12 10  [[ 142 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:31 (line 20)
+to:
+ 130  MaxL  === _ 10 12  [[ 142 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:31 (line 20)
+#+end_src
+
+130 does not get transformed, so 142 is not being added to worklist as a use of that. So what causes 142 to be pushed to the worklist?
+It is because it made a change inside ~transform_old~:
+#+begin_src cpp
+  while (i != nullptr) {
+#ifdef ASSERT
+    if (loop_count >= K + C->live_nodes()) {
+      dump_infinite_loop_info(i, "PhaseIterGVN::transform_old");
+    }
+#endif
+    assert((i->_idx >= k->_idx) || i->is_top(), "Idealize should return new nodes, use Identity to return old nodes");
+    // Made a change; put users of original Node on worklist
+    add_users_to_worklist(k);
+#+end_src
+
+Why doesn't 136 get optimized in TestIntMax? What causes 142 to be optimized in TestLongMax?
+
+TestIntMax optimize order:
+AddI, AddI, AddI, MulI, MaxI
+Rounds of ~transform_old(n)~:
+#+begin_src bash
+ 136  MaxI  === _ 10 124  [[ 137 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:24 (line 35)
+
+r:
+  98  AddI  === _ 95 24  [[ 95 99 113 106 ]]  !jvms: TestIntMax::test @ bci:8 (line 31)
+r:
+  98  AddI  === _ 152 24  [[ 113 149 ]]  !jvms: TestIntMax::test @ bci:8 (line 31)
+r:
+ 139  AddI  === _ 152 24  [[ 140 ]]  !orig=[98] !jvms: TestIntMax::test @ bci:8 (line 31)
+r:
+ 113  MulI  === _ 10 24  [[ 124 ]]  !jvms: TestIntMax::test @ bci:16 (line 34)
+r:
+ 124  MaxI  === _ 11 10  [[ 136 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:21 (line 35)
+
+Missed Identity optimization:
+Old node:
+dist dump
+---------------------------------------------
+   1  124  MaxI  === _ 11 10  [[ 136 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:21 (line 35)
+   1   10  Parm  === 3  [[ 136 124 71 82 38 49 60 ]] Parm0: int !orig=[113] !jvms: TestIntMax::test @ bci:-1 (line 31)
+   0  136  MaxI  === _ 10 124  [[ 137 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:24 (line 35)
+New node:
+dist dump
+---------------------------------------------
+   1   10  Parm  === 3  [[ 136 124 71 82 38 49 60 ]] Parm0: int !orig=[113] !jvms: TestIntMax::test @ bci:-1 (line 31)
+   1   11  Parm  === 3  [[ 124 60 82 71 38 49 ]] Parm1: int !jvms: TestIntMax::test @ bci:-1 (line 31)
+   0  124  MaxI  === _ 11 10  [[ 136 ]]  !jvms: Integer::max @ bci:2 (line 1934) TestIntMax::test @ bci:21 (line 35)
+#+end_src
+
+TestLongMax optimize order:
+AddL x 5, MulL, AddL, MulL, MaxL, MaxL
+Rounds of ~transform_old(n)~:
+#+begin_src bash
+  10  Parm  === 3  [[ 65 130 76 87 43 54 ]] Parm0: long !orig=[119] !jvms: TestLongMax::test @ bci:-1 (line 17)
+  12  Parm  === 3  [[ 130 65 87 76 43 54 ]] Parm2: long !jvms: TestLongMax::test @ bci:-1 (line 17)
+
+r:
+ 103  AddL  === _ 100 26  [[ 100 104 119 112 ]]  !jvms: TestLongMax::test @ bci:15 (line 17)
+r:
+ 145  AddL  === _ 159 26  [[ 146 ]]  !orig=103 !jvms: TestLongMax::test @ bci:15 (line 17)
+r:
+ 103  AddL  === _ 159 26  [[ 119 104 ]]  !jvms: TestLongMax::test @ bci:15 (line 17)
+r:
+ 159  AddL  === _ 25 158  [[ 103 ]]
+r:
+ 103  AddL  === _ 159 26  [[ 119 104 ]]  !jvms: TestLongMax::test @ bci:15 (line 17)
+r:
+ 119  MulL  === _ 10 103  [[ 130 ]]  !jvms: TestLongMax::test @ bci:24 (line 19)
+r:
+ 103  AddL  === _ 163 167  [[ 119 ]]  !jvms: TestLongMax::test @ bci:15 (line 17)
+r:
+ 119  MulL  === _ 10 26  [[ 130 ]]  !jvms: TestLongMax::test @ bci:24 (line 19)
+r:
+ 119  MulL  === _ 10 26  [[ 130 ]]  !jvms: TestLongMax::test @ bci:24 (line 19)
+r:
+ 130  MaxL  === _ 12 10  [[ 142 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:31 (line 20)
+r:
+ 142  MaxL  === _ 10 130  [[ 143 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:34 (line 20)
+#+end_src
+
+AddL becomes ConL because of ~t~ is singleton():
+#+begin_src cpp
+  // If 'k' computes a constant, replace it with a constant
+  if (t->singleton() && !k->is_Con()) {
+#+end_src
+
+in the logs it ~MulL~ appears as but the AddL becomes a ConL, how?
+#+begin_src bash
+  10  Parm  === 3  [[ 142 119 177 87 43 54 65 76 ]] Parm0: long !jvms: TestLongMax::test @ bci:-1 (line 17)
+ 103  AddL  === _ 158 167  [[ 119 177 ]]  !jvms: TestLongMax::test @ bci:15 (line 17)
+ 119  MulL  === _ 10 103  [[ 130 ]]  !jvms: TestLongMax::test @ bci:24 (line 19)
+#+end_src
+
+indeed identity is applied on multiply long node:
+#+begin_src bash
+MulNode::Identity
+this:
+  10  Parm  === 3  [[ 139 116 101 84 40 51 62 73 ]] Parm0: long !jvms: TestLongMax::test @ bci:-1 (line 17)
+ 162  ConL  === 0  [[ 116 ]]  #long:1
+ 116  MulL  === _ 10 162  [[ 127 ]]  !jvms: TestLongMax::test @ bci:20 (line 20)
+returns:
+  10  Parm  === 3  [[ 139 116 152 84 40 51 62 73 ]] Parm0: long !jvms: TestLongMax::test @ bci:-1 (line 17)
+#+end_src
+
+question is, when does this transformation occur? probably some optimization with 116
+#+begin_src bash
+it works because
+127  MaxL  === _ 12 116
+has already been transformed to
+127  MaxL  === _ 10 12
+
+identity optimization
+this:
+ 139  MaxL  === _ 10 127  [[ 140 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:30 (line 21)
+operation:
+ 127  MaxL  === _ 10 12  [[ 139 ]]  !jvms: Long::max @ bci:2 (line 1945) TestLongMax::test @ bci:27 (line 21)
+operand:
+ 10  Parm  === 3  [[ 139 127 73 84 40 51 62 ]] Parm0: long !orig=[116] !jvms: TestLongMax::test @ bci:-1 (line 17)
+#+end_src
 * 5.12.25
 i = min(min(i, b), b)
 i' = min(i, b)
