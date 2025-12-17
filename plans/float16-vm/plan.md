@@ -1,7 +1,7 @@
-You are running on a Fedora 40 machine.
+You are running on a Fedora 43 machine.
 
 Think how to achieve the following objective:
-You want to run a java program within a Fedora 40 x86/64 VM that has `avx512_fp16` CPU features.
+You want to run a java program within a Fedora 43 x86/64 VM that has `avx512_fp16` CPU features.
 
 The CPU of the host system chip doesn't have those specific CPU features,
 so you need to use CPU emulation instead of hardware acceleration.
@@ -9,7 +9,7 @@ so you need to use CPU emulation instead of hardware acceleration.
 You don't need access to the graphical interface in the VM,
 you only need terminal access.
 
-Use a Fedora Linux 40 version as OS for the VM. The size of the VM should be 50 GB.
+Use a Fedora Linux 43 version as OS for the VM. The size of the VM should be 50 GB.
 
 You need to explain how the VM will be created.
 
