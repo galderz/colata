@@ -28,10 +28,6 @@ else
 fi
 
 # ---- 2) Locate compile-framework-sources-* folder and format *.java recursively ----
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <folder-path>" >&2
-  exit 2
-fi
 
 ROOT="$1"
 JAVA="$2"
