@@ -154,7 +154,7 @@ jtreg: clear-logs test-image
 .PHONY: jtreg
 
 jtreg-format:
-> $(TOPDIR)/nix-make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch
+> $(TOPDIR)/nix-make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch $(java)
 .PHONY: jtreg-format
 
 $(benchmarks_jar): test-image

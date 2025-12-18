@@ -34,6 +34,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 ROOT="$1"
+JAVA="$2"
 if [[ ! -d "$ROOT" ]]; then
   echo "Error: not a directory: $ROOT" >&2
   exit 2
@@ -57,7 +58,7 @@ echo "Found target directory: $TARGET_DIR" >&2
 found_any=0
 while IFS= read -r -d '' java_file; do
   found_any=1
-  java -jar "$JAR_PATH" -r "$java_file"
+  $JAVA -jar "$JAR_PATH" -r "$java_file"
 done < <(find "$TARGET_DIR" -type f -name '*.java' -print0)
 
 if [[ "$found_any" -eq 0 ]]; then
