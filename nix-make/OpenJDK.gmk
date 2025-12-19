@@ -144,7 +144,7 @@ endif
 
 test: clear-logs build-jdk
 > cd $(JDK_HOME)
-> CONF=$(conf_name) make exploded-test
+> CONF=$(conf_name) make test
 .PHONY: test
 
 jtreg: clear-logs test-image
