@@ -1,4 +1,6 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import <nixpkgs> {}
+, jtreg ? null  # Optional: path to jtreg installation
+}:
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
@@ -111,6 +113,19 @@ exit 0
 STUB_SETFILE_EOF
     chmod +x "$STUB_DIR/stub-setfile.sh"
 
+    # Set up jtreg if provided
+    ${if jtreg != null then ''
+      export JTREG_HOME="${jtreg}"
+      echo "JTREG_HOME set to: $JTREG_HOME"
+    '' else ''
+      if [ -n "$JTREG_HOME" ]; then
+        echo "JTREG_HOME already set to: $JTREG_HOME"
+      else
+        echo "JTREG_HOME not set (jtreg is optional)"
+      fi
+    ''}
+
+    echo ""
     echo "OpenJDK build environment ready!"
     echo "BOOT_JDK_HOME set to: $BOOT_JDK_HOME"
     echo "OPENJDK_STUB_DIR set to: $STUB_DIR"
@@ -125,9 +140,18 @@ STUB_SETFILE_EOF
     echo "   cd jdk"
     echo ""
     echo "2. Configure with workarounds for missing tools:"
-    echo "   bash configure --with-boot-jdk=\$BOOT_JDK_HOME --enable-headless-only \\"
-    echo "     METAL=/bin/echo METALLIB=/bin/echo \\"
-    echo "     MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
+    if [ -n "$JTREG_HOME" ]; then
+      echo "   bash configure --with-boot-jdk=\$BOOT_JDK_HOME --with-jtreg=\$JTREG_HOME \\"
+      echo "     --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo \\"
+      echo "     MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
+    else
+      echo "   bash configure --with-boot-jdk=\$BOOT_JDK_HOME --enable-headless-only \\"
+      echo "     METAL=/bin/echo METALLIB=/bin/echo \\"
+      echo "     MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
+      echo ""
+      echo "   To enable jtreg, set JTREG_HOME or pass jtreg parameter to nix-shell:"
+      echo "   nix-shell --arg jtreg /path/to/jtreg"
+    fi
     echo ""
     echo "3. Build (unsetting SOURCE_DATE_EPOCH to avoid jar date issues):"
     echo "   bash -c 'unset SOURCE_DATE_EPOCH && make images'"

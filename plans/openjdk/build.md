@@ -478,3 +478,86 @@ If you improve this build process:
 
 This build configuration (shell.nix and documentation) is provided as-is for building OpenJDK.
 OpenJDK itself is licensed under GPLv2 with Classpath Exception.
+
+---
+
+## Using jtreg for Testing (Optional)
+
+jtreg (Java Regression Test Harness) is the test framework used by OpenJDK. It's optional but useful for running the OpenJDK test suite.
+
+### Option 1: Download Pre-built jtreg
+
+Download a pre-built jtreg from the official source:
+
+```bash
+# Download jtreg (check https://ci.adoptium.net or builds from Oracle/Adop
+
+tium)
+# Example using a community build:
+cd ~/Downloads
+wget https://ci.adoptium.net/view/Dependencies/job/dependency_pipeline/lastSuccessfulBuild/artifact/jtreg/jtreg-7.4+1.tar.gz
+tar xzf jtreg-7.4+1.tar.gz
+export JTREG_HOME=~/Downloads/jtreg
+```
+
+### Option 2: Build jtreg from Source
+
+If you want to build jtreg yourself:
+
+```bash
+git clone https://github.com/openjdk/jtreg.git
+cd jtreg
+# Requires JDK 11+ and Ant
+bash make/build.sh --jdk /path/to/jdk
+# jtreg will be in build/images/jtreg/
+export JTREG_HOME=$(pwd)/build/images/jtreg
+```
+
+### Using jtreg with this Build
+
+Once you have jtreg, use it in two ways:
+
+**Method 1: Set environment variable before entering nix-shell**
+```bash
+export JTREG_HOME=/path/to/jtreg
+nix-shell
+# The shell will detect JTREG_HOME
+```
+
+**Method 2: Pass as parameter to nix-shell**
+```bash
+nix-shell --argstr jtreg /path/to/jtreg
+```
+
+**Method 3: Set during configure**
+```bash
+cd jdk
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-jtreg=/path/to/jtreg \
+  --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo \
+  MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
+```
+
+### Running Tests
+
+After building with jtreg configured:
+
+```bash
+# Run all tier1 tests (quick smoke tests)
+make test-tier1
+
+# Run specific test
+make test TEST="jdk/java/lang/String"
+
+# Run with jtreg directly
+$JTREG_HOME/bin/jtreg -jdk:build/macosx-aarch64-server-release/jdk \
+  test/jdk/java/lang/String
+```
+
+---
+
+## About jtreg.nix
+
+The `jtreg.nix` file is provided as a starting point for building jtreg with Nix, but due to jtreg's build-time network dependencies, it's currently easier to use a pre-built jtreg distribution.
+
+If you improve `jtreg.nix` to successfully build jtreg in a Nix environment, contributions are welcome!
+
