@@ -7,6 +7,7 @@ pkgs.mkShell {
     autoconf
     gnumake
     temurin-bin-25
+    git  # for cloning googletest
   ];
 
   shellHook = ''
@@ -16,6 +17,23 @@ pkgs.mkShell {
     STUB_DIR="$HOME/Library/Caches/openjdk-build-stubs"
     mkdir -p "$STUB_DIR"
     export OPENJDK_STUB_DIR="$STUB_DIR"
+
+    # Set up googletest for native testing
+    GTEST_DIR="$HOME/Library/Caches/openjdk-googletest"
+    if [ ! -d "$GTEST_DIR" ]; then
+      echo "Cloning googletest 1.14.0..."
+      git clone --depth 1 --branch v1.14.0 https://github.com/google/googletest.git "$GTEST_DIR" 2>/dev/null || true
+
+      # Patch gtest-printers.h to fix char16_t implicit conversion warning
+      if [ -f "$GTEST_DIR/googletest/include/gtest/gtest-printers.h" ]; then
+        echo "Patching googletest for clang character-conversion warnings..."
+        sed -i.bak 's/PrintTo(ImplicitCast_<char32_t>(c), os);/PrintTo(static_cast<char32_t>(c), os);/g' \
+          "$GTEST_DIR/googletest/include/gtest/gtest-printers.h"
+      fi
+    fi
+    if [ -d "$GTEST_DIR" ]; then
+      export GTEST_HOME="$GTEST_DIR"
+    fi
 
     # Create stub-mig.sh
     cat > "$STUB_DIR/stub-mig.sh" << 'STUB_MIG_EOF'
@@ -129,6 +147,9 @@ STUB_SETFILE_EOF
     echo "OpenJDK build environment ready!"
     echo "BOOT_JDK_HOME set to: $BOOT_JDK_HOME"
     echo "OPENJDK_STUB_DIR set to: $STUB_DIR"
+    if [ -n "$GTEST_HOME" ]; then
+      echo "GTEST_HOME set to: $GTEST_HOME"
+    fi
     echo ""
     echo "Stub scripts created in: $STUB_DIR"
     echo "  - stub-mig.sh"
@@ -140,14 +161,15 @@ STUB_SETFILE_EOF
     echo "   cd jdk"
     echo ""
     echo "2. Configure with workarounds for missing tools:"
-    if [ -n "$JTREG_HOME" ]; then
-      echo "   bash configure --with-boot-jdk=\$BOOT_JDK_HOME --with-jtreg=\$JTREG_HOME \\"
-      echo "     --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo \\"
-      echo "     MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
-    else
-      echo "   bash configure --with-boot-jdk=\$BOOT_JDK_HOME --enable-headless-only \\"
-      echo "     METAL=/bin/echo METALLIB=/bin/echo \\"
-      echo "     MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
+    CONFIGURE_CMD="bash configure --with-boot-jdk=\$BOOT_JDK_HOME"
+    [ -n "$JTREG_HOME" ] && CONFIGURE_CMD="$CONFIGURE_CMD --with-jtreg=\$JTREG_HOME"
+    [ -n "$GTEST_HOME" ] && CONFIGURE_CMD="$CONFIGURE_CMD --with-gtest=\$GTEST_HOME"
+    CONFIGURE_CMD="$CONFIGURE_CMD --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo"
+    CONFIGURE_CMD="$CONFIGURE_CMD MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
+
+    echo "   $CONFIGURE_CMD"
+
+    if [ -z "$JTREG_HOME" ]; then
       echo ""
       echo "   To enable jtreg, set JTREG_HOME or pass jtreg parameter to nix-shell:"
       echo "   nix-shell --arg jtreg /path/to/jtreg"

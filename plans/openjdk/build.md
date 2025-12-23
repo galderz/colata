@@ -12,7 +12,7 @@ nix-shell
 cd jdk
 
 # 3. Configure OpenJDK
-bash configure --with-boot-jdk=$BOOT_JDK_HOME --enable-headless-only \
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
   METAL=/bin/echo METALLIB=/bin/echo \
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
 
@@ -41,6 +41,9 @@ openjdk/
 ~/Library/Caches/openjdk-build-stubs/
 ├── stub-mig.sh         # Auto-generated when entering nix-shell
 └── stub-setfile.sh     # Auto-generated when entering nix-shell
+
+~/Library/Caches/openjdk-googletest/
+└── [googletest v1.14.0]  # Auto-cloned and patched when entering nix-shell
 ```
 
 ---
@@ -149,6 +152,34 @@ bash -c 'unset SOURCE_DATE_EPOCH && make images'
 
 ---
 
+### Challenge 6: googletest Character Conversion Warning
+
+**Problem:** When building with `--with-gtest` pointing to googletest v1.14.0, the build fails during gtest compilation due to implicit type conversions.
+
+**Error encountered:**
+```
+/Users/g/Library/Caches/openjdk-googletest/googletest/include/gtest/gtest-printers.h:498:35:
+error: implicit conversion from 'char16_t' to 'char32_t' may change the meaning
+of the represented code unit [-Werror,-Wcharacter-conversion]
+  PrintTo(ImplicitCast_<char32_t>(c), os);
+```
+
+**Initial consideration:** Modifying OpenJDK's CompileGtest.gmk to disable the warning → rejected (violates "no source modifications" principle)
+
+**Solution:** Patch googletest's gtest-printers.h in the cache directory after cloning:
+```bash
+sed -i.bak 's/PrintTo(ImplicitCast_<char32_t>(c), os);/PrintTo(static_cast<char32_t>(c), os);/g' \
+  "$GTEST_DIR/googletest/include/gtest/gtest-printers.h"
+```
+
+**Why this works:**
+- Changes `ImplicitCast_<char32_t>(c)` to `static_cast<char32_t>(c)` making the conversion explicit
+- Patch applied to cache directory files (not OpenJDK source)
+- Satisfies clang's strict `-Wcharacter-conversion` warning requirement
+- Maintains clean OpenJDK git status
+
+---
+
 ### Design Decision: Where to Store Stubs
 
 **Evolution:**
@@ -176,12 +207,20 @@ The `shell.nix` file:
    - `autoconf` - GNU autoconf for configure script
    - `gnumake` - GNU Make build system
    - `temurin-bin-25` - Boot JDK (required to build newer JDK)
+   - `git` - For cloning googletest
 
 2. **Sets environment variables:**
    - `BOOT_JDK_HOME` - Points to temurin-bin-25 installation
    - `OPENJDK_STUB_DIR` - Points to `~/Library/Caches/openjdk-build-stubs/`
+   - `GTEST_HOME` - Points to `~/Library/Caches/openjdk-googletest/` (if cloned successfully)
+   - `JTREG_HOME` - Points to jtreg installation (if provided via parameter)
 
-3. **Generates stub scripts** in shellHook:
+3. **Sets up googletest** in shellHook:
+   - Clones googletest v1.14.0 to cache if not present
+   - Patches gtest-printers.h to fix character-conversion warnings
+   - Sets GTEST_HOME environment variable
+
+4. **Generates stub scripts** in shellHook:
    - Creates cache directory if needed
    - Generates `stub-mig.sh` with full C code generation
    - Generates `stub-setfile.sh` as a no-op
@@ -194,12 +233,16 @@ The configure command uses several workarounds:
 ```bash
 bash configure \
   --with-boot-jdk=$BOOT_JDK_HOME \           # Use Nix-provided JDK 25
+  --with-gtest=$GTEST_HOME \                  # Use auto-cloned googletest
   --enable-headless-only \                    # Skip GUI dependencies
   METAL=/bin/echo \                           # Stub Metal compiler
   METALLIB=/bin/echo \                        # Stub MetalLib tool
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh \        # Custom MIG implementation
   SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh  # Stub SetFile tool
 ```
+
+Optional additions based on environment:
+- `--with-jtreg=$JTREG_HOME` - If jtreg is available for Java testing
 
 ---
 
@@ -247,8 +290,11 @@ bash configure \
    ```
 
    This will:
-   - Install required dependencies (autoconf, gnumake, temurin-bin-25)
+   - Install required dependencies (autoconf, gnumake, temurin-bin-25, git)
    - Set `BOOT_JDK_HOME` to the boot JDK location
+   - Clone googletest v1.14.0 to `~/Library/Caches/openjdk-googletest/` (if not present)
+   - Patch googletest to fix clang character-conversion warnings
+   - Set `GTEST_HOME` environment variable
    - Create stub scripts in `~/Library/Caches/openjdk-build-stubs/`
    - Set `OPENJDK_STUB_DIR` environment variable
 
@@ -259,12 +305,14 @@ bash configure \
 
 4. **Configure the build:**
    ```bash
-   bash configure --with-boot-jdk=$BOOT_JDK_HOME --enable-headless-only \
+   bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
      METAL=/bin/echo METALLIB=/bin/echo \
      MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
    ```
 
    Configuration will complete with warnings about ignored environment variables (normal).
+
+   Note: If `GTEST_HOME` is not set (googletest clone failed), you can omit `--with-gtest=$GTEST_HOME`.
 
 5. **Build OpenJDK:**
    ```bash
@@ -379,7 +427,7 @@ To reconfigure (after git pull or configure changes):
 
 ```bash
 # Reconfigure first
-bash configure --with-boot-jdk=$BOOT_JDK_HOME --enable-headless-only \
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
   METAL=/bin/echo METALLIB=/bin/echo \
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
 
@@ -391,13 +439,17 @@ bash -c 'unset SOURCE_DATE_EPOCH && make clean && make images'
 
 ## Cleanup
 
-To clean up the stub scripts:
+To clean up cache files:
 
 ```bash
+# Clean stub scripts (will be regenerated on next nix-shell)
 rm -rf ~/Library/Caches/openjdk-build-stubs
+
+# Clean googletest (will be re-cloned on next nix-shell)
+rm -rf ~/Library/Caches/openjdk-googletest
 ```
 
-They will be regenerated next time you enter `nix-shell`.
+All cache files will be regenerated/re-cloned next time you enter `nix-shell`.
 
 ---
 
@@ -560,4 +612,86 @@ $JTREG_HOME/bin/jtreg -jdk:build/macosx-aarch64-server-release/jdk \
 The `jtreg.nix` file is provided as a starting point for building jtreg with Nix, but due to jtreg's build-time network dependencies, it's currently easier to use a pre-built jtreg distribution.
 
 If you improve `jtreg.nix` to successfully build jtreg in a Nix environment, contributions are welcome!
+
+---
+
+## Using googletest (gtest) for Native Testing
+
+The shell.nix automatically sets up googletest v1.14.0 for OpenJDK native (C++) tests.
+
+### What is gtest?
+
+Google Test (gtest) is a C++ testing framework used by OpenJDK for native code testing, particularly for HotSpot VM tests. It enables running unit tests for C++ code in the JDK.
+
+### Automatic Setup
+
+When you enter `nix-shell`, it automatically:
+
+1. **Clones googletest v1.14.0** to `~/Library/Caches/openjdk-googletest/`
+2. **Sets GTEST_HOME** environment variable
+3. **Patches gtest-printers.h** to fix clang character-conversion warnings
+4. **Adds --with-gtest to configure** command
+
+The configure command includes `--with-gtest=$GTEST_HOME` automatically when GTEST_HOME is set.
+
+### Challenge: clang character-conversion Warning
+
+**Problem:** googletest v1.14.0's `gtest-printers.h` has implicit conversions from `char16_t` to `char32_t` that trigger errors when compiled with OpenJDK's strict warning settings.
+
+**Error encountered:**
+```
+/Users/g/Library/Caches/openjdk-googletest/googletest/include/gtest/gtest-printers.h:498:35:
+error: implicit conversion from 'char16_t' to 'char32_t' may change the meaning
+of the represented code unit [-Werror,-Wcharacter-conversion]
+```
+
+**Solution:** The shell.nix automatically patches the file after cloning:
+```bash
+sed -i.bak 's/PrintTo(ImplicitCast_<char32_t>(c), os);/PrintTo(static_cast<char32_t>(c), os);/g' \
+  "$GTEST_DIR/googletest/include/gtest/gtest-printers.h"
+```
+
+This changes implicit casts to explicit `static_cast` calls, satisfying the compiler's strict conversion warnings.
+
+**Why this works:** The patch is applied to files in the cache directory (not OpenJDK source), and explicit casts make the type conversion intentional rather than accidental.
+
+### Verifying gtest Integration
+
+After building, you can verify gtest was compiled:
+
+```bash
+# Check for gtest artifacts
+find build/macosx-aarch64-server-release -name "*gtest*" | head -10
+
+# You should see:
+# - libgtest.a (static library)
+# - gtestLauncher (test launcher executable)
+# - gtest object files
+```
+
+### Running Native Tests
+
+To run HotSpot gtest tests:
+
+```bash
+# Run all gtest tests
+make test-hotspot-gtest
+
+# Run specific gtest
+make test TEST="gtest:LogDecorations"
+```
+
+### Cache Directory
+
+Googletest is cloned to `~/Library/Caches/openjdk-googletest/` to:
+- Keep project directory clean
+- Persist across shell sessions (no re-cloning needed)
+- Allow patching without affecting project git status
+- Enable easy cleanup if needed
+
+To force re-clone (if needed):
+```bash
+rm -rf ~/Library/Caches/openjdk-googletest
+nix-shell  # Will clone and patch again
+```
 
