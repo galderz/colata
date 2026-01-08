@@ -23,6 +23,7 @@ base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:-UseSuperWord
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:VerifyIterativeGVN=1000
 
 ifdef NO_LOOP_UNROLL
   # Disabling loop unrolling.
@@ -43,7 +44,8 @@ asm_jvm_args += -XX:+PrintNMethods
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,BEFORE_MACRO_EXPANSION"
-loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,ITER_GVN2,AFTER_LOOP_OPTS"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,ITER_GVN2,AFTER_LOOP_OPTS"
+loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN
 #gvn_jvm_args += -XX:+Verbose

@@ -7,7 +7,7 @@ if [[ "$1" == "--clean=true" ]]; then
 fi
 
 tests=(
-    "test/hotspot/jtreg/compiler/loopopts/TestReductionReassociationFuzzer.java"
+    # "test/hotspot/jtreg/compiler/loopopts/TestReductionReassociationFuzzer.java"
     "test/hotspot/jtreg/compiler/loopopts/TestReductionReassociation.java"
 )
 

@@ -107,3 +107,32 @@ Make sure you enter on the linux Nix shell:
 ```shell
 > nix-shell linux.nix
 ```
+
+# Generating uiCA microprocessor uops graphs
+
+Generate ASM loops (you need fast-debug build to see the blocks and their frequencies:
+
+```bash
+GEN=ReTree16x1 make gen
+GEN=ReTree16x1 NO_UNROLL=true make run-gen
+```
+
+Split inner ASM loops from execution, by locating the block with highest frequencies, e.g.
+
+```shell
+ ;; B37: #	out( B37 B38 ) <- in( B36 B37 ) Loop( B37-B37 inner  strip mined) Freq: 385763
+  0x00007fb9b4adcf50:   movq		0x88(%rsi, %rbx, 8), %r10;*laload {reexecute=0 rethrow=0 return_oop=0}
+ ...
+```
+
+Call `UopsLoop` with the folder where the `.asm` files are.
+This will convert the files to a format that can be used by uiCA.
+You can do it from the IDE.
+
+Then, create a Nix shell and invoke the `uica.sh` script passing in the folder with the ASM files:
+
+```shell
+[nix-shell:~]$ cd opt/uiCA/
+[nix-shell:~/opt/uiCA]$ nix-shell ~/private/dotfiles/nix-shells/uica.nix
+[nix-shell:~/opt/uiCA]$ ~/src/colata/nix-make/uica.sh ~/tmp/avoid-cmov-long-min-max/2409
+```

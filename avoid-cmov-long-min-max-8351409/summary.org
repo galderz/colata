@@ -15,6 +15,367 @@
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [ ] see if an IR test can be developed, though IR node shape is not a feature
+* 04.12.25
+More debugging when it goes wrong
+#+begin_src bash
+transform_old(222  MaxL  === _ 917 221  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38))
+operation:  917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42)
+
+transform_old(917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42))
+-
+
+n:  916  MaxL  === _ 914 915  [[ 917 ]]  !jvms: TestPlain::test @ bci:139 (line 42)
+transform_old(916)
+operation:  916  MaxL  === _ 914 915  [[ 917 ]]  !jvms: TestPlain::test @ bci:139 (line 42)
+
+n:  222  MaxL  === _ 221 917  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38)
+transform_old(222)
+operation: 917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42)
+
+n:  916  MaxL  === _ 220 219  [[ 917 ]]  !jvms: TestPlain::test @ bci:139 (line 42)
+transform_old(916)
+operation: 220  MaxL  === _ 817 865  [[ 221 916 ]]  !orig=[914] !jvms: TestPlain::test @ bci:101 (line 36)
+identity: 916  MaxL  === _ 219 220  [[ 917 ]]  !jvms: TestPlain::test @ bci:139 (line 42)
+global value numbering:  221  MaxL  === _ 219 220  [[ 222 ]]  !jvms: TestPlain::test @ bci:110 (line 37)
+
+transform_old(917  MaxL  === _ 119 221  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42))
+#+end_src
+
+Further debugging that doesn't work:
+#+begin_src bash
+MaxNode::find_identity_operation(in(2), in(1))
+ n: 222  MaxL  === _ 917 221  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38)
+
+ operation:  917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42)
+ operand:  221  MaxL  === _ 219 220  [[ 222 ]]  !jvms: TestPlain::test @ bci:110 (line 37)
+ n1: 119  Phi  === 676 22 917  [[ 917 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestPlain::test @ bci:18 (line 22)
+ n2: 916  MaxL  === _ 914 915  [[ 917 ]]  !jvms: TestPlain::test @ bci:139 (line 42)
+
+ n1 == operand = false
+ n2 == operand = false
+
+MaxNode::find_identity_operation(in(1), in(2))
+ n: 222  MaxL  === _ 917 221  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38)
+
+ operation: 221  MaxL  === _ 219 220  [[ 222 ]]  !jvms: TestPlain::test @ bci:110 (line 37)
+ operand: 917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42)
+ n1: 219  MaxL  === _ 724 769  [[ 221 ]]  !jvms: TestPlain::test @ bci:92 (line 35)
+ n2: 220  MaxL  === _ 817 865  [[ 221 ]]  !jvms: TestPlain::test @ bci:101 (line 36)
+
+ n1 == operand = false
+ n2 == operand = false
+#+end_src
+
+Further debugging that works:
+#+begin_src bash
+n: 205  MaxL  === _ 204 677  [[ 469 643 538 242 520 394 365 356 345 ]]  !jvms: TestReductionReassociation::test @ bci:128 (line 77)
+
+operation:  677  MaxL  === _ 102 204  [[ 102 509 502 538 492 242 643 205 611 ]]  !orig=[201] !jvms: TestReductionReassociation::test @ bci:149 (line 81)
+operand:  204  MaxL  === _ 202 203  [[ 205 677 ]]  !orig=[676] !jvms: TestReductionReassociation::test @ bci:120 (line 76)
+n1:  102  Phi  === 642 22 677  [[ 677 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestReductionReassociation::test @ bci:20 (line 61)
+n2:  204  MaxL  === _ 202 203  [[ 205 677 ]]  !orig=[676] !jvms: TestReductionReassociation::test @ bci:120 (line 76)
+
+n2 == operand = true
+operation->Opcode() == Opcode() == true
+
+205 = Max(204, Max(102, 204))
+#+end_src
+
+Trace GVN differences:
+#+begin_src bash
+# 205 replaced by 677
+< 		< 205  MaxL  === _ _ _  [[ ]]   [10430000000205]
+> long:minint..maxlong, 0u..maxulong, widen: 3	 677  MaxL  === _ 102 204  [[ 102 509 502 538 492 242 643 469 611 345 356 365 394 520 242 538 643 ]]  !orig=[201] !jvms: TestReductionReassociation::test @ bci:149 (line 81)
+#+end_src
+
+Trave GVN, nodes 4:
+#+begin_src bash
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  102  Phi  === 642 22 201  [[ 198 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestReductionReassociation::test @ bci:20 (line 61)
+[avoid-cmov] try reassociate; chain head:
+ 201  MaxL  === _ 200 197  [[ 611 205 643 242 492 538 502 509 102 ]]  !jvms: TestReductionReassociation::test @ bci:90 (line 70)
+< 		< 674  MaxL  === _ _ _  [[ ]]   [10430000000674]
+> long		 203  MaxL  === _ 175 197  [[ 204 676 ]]  !orig=[674] !jvms: TestReductionReassociation::test @ bci:111 (line 75)
+< 		< 675  MaxL  === _ _ _  [[ ]]   [10430000000675]
+> long		 202  MaxL  === _ 130 152  [[ 204 676 ]]  !orig=[675] !jvms: TestReductionReassociation::test @ bci:102 (line 74)
+< 		< 676  MaxL  === _ _ _  [[ ]]   [10430000000676]
+> long		 204  MaxL  === _ 202 203  [[ 205 677 ]]  !orig=[676] !jvms: TestReductionReassociation::test @ bci:120 (line 76)
+= long:minint..maxlong, 0u..maxulong, widen: 3	 677  MaxL  === _ 102 204  [[ 102 509 502 538 492 242 643 205 611 ]]  !orig=[201] !jvms: TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 205  MaxL  === _ _ _  [[ ]]   [10430000000205]
+> long:minint..maxlong, 0u..maxulong, widen: 3	 677  MaxL  === _ 102 204  [[ 102 509 502 538 492 242 643 469 611 345 356 365 394 520 242 538 643 ]]  !orig=[201] !jvms: TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 365  ConvL2I  === _ _  [[ ]]   [10430000000365]
+> int		 509  ConvL2I  === _ 677  [[ 510 366 ]]  #int !orig=[365] !jvms: Long::valueOf @ bci:24 (line 959) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 356  CmpL  === _ _ _  [[ ]]   [10430000000356]
+> int:-1..1, 0u..maxuint	 502  CmpL  === _ 677 353  [[ 503 357 ]]  !orig=[356] !jvms: Long::valueOf @ bci:17 (line 958) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 345  CmpL  === _ _ _  [[ ]]   [10430000000345]
+> int:-1..1, 0u..maxuint	 492  CmpL  === _ 677 342  [[ 493 346 ]]  !orig=[345] !jvms: Long::valueOf @ bci:9 (line 958) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 366  AddI  === _ _ _  [[ ]]   [10430000000366]
+> int		 510  AddI  === _ 509 341  [[ 526 513 520 378 371 384 ]]  !orig=[366] !jvms: Long::valueOf @ bci:28 (line 959) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 346  Bool  === _ _  [[ ]]   [10430000000346]
+> bool		 493  Bool  === _ 492  [[ 494 347 ]] [lt] !orig=[346] !jvms: Long::valueOf @ bci:9 (line 958) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 371  CmpU  === _ _ _  [[ ]]   [10430000000371]
+> int:-1..1, 0u..maxuint	 513  CmpU  === _ 510 370  [[ 514 372 ]]  !orig=[371] !jvms: Long::valueOf @ bci:29 (line 959) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 357  Bool  === _ _  [[ ]]   [10430000000357]
+> bool		 503  Bool  === _ 502  [[ 504 358 ]] [le] !orig=[357] !jvms: Long::valueOf @ bci:17 (line 958) TestReductionReassociation::test @ bci:149 (line 81)
+< 		< 372  Bool  === _ _  [[ ]]   [10430000000372]
+> bool		 514  Bool  === _ 513  [[ 515 373 ]] [lt] !orig=[372] !jvms: Long::valueOf @ bci:29 (line 959) TestReductionReassociation::test @ bci:149 (line 81)
+AFTER: AFTER_LOOP_OPTS
+#+end_src
+
+Trace GVN, nodes 5:
+#+begin_src bash
+[nix-shell:~/src/colata/avoid-cmov-long-min-max-8351409]$ CLASS=TestPlain LOOP_ARGS=true NO_LOOP_UNROLL=true GVN_ARGS=true make run
+...
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  119  Phi  === 676 22 218  [[ 215 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestPlain::test @ bci:18 (line 22)
+[avoid-cmov] try reassociate; chain head:
+ 218  MaxL  === _ 217 865  [[ 242 222 677 119 ]]  !jvms: TestPlain::test @ bci:80 (line 31)
+= long		 222  MaxL  === _ 221 917  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38)
+= long:minint..maxlong, 0u..maxulong, widen: 3	 917  MaxL  === _ 119 916  [[ 119 677 222 242 ]]  !orig=[218] !jvms: TestPlain::test @ bci:139 (line 42)
+< 		< 915  MaxL  === _ _ _  [[ ]]   [1060000000915]
+> long		 219  MaxL  === _ 724 769  [[ 221 916 ]]  !orig=[915] !jvms: TestPlain::test @ bci:92 (line 35)
+< 		< 914  MaxL  === _ _ _  [[ ]]   [1060000000914]
+> long		 220  MaxL  === _ 817 865  [[ 221 916 ]]  !orig=[914] !jvms: TestPlain::test @ bci:101 (line 36)
+= long:minint..maxlong, 0u..maxulong, widen: 3	 222  MaxL  === _ 221 917  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38)
+< 		< 916  MaxL  === _ _ _  [[ ]]   [1060000000916]
+> long		 221  MaxL  === _ 219 220  [[ 222 917 ]]  !orig=[916] !jvms: TestPlain::test @ bci:110 (line 37)
+AFTER: AFTER_LOOP_OPTS
+#+end_src
+
+Nodes 4, before iter GVN 11
+#+begin_src bash
+674 MaxL = 197 175
+675 MaxL = 152 130
+676 MaxL = 674 675
+677 MaxL = 102 676
+
+202 MaxL = 130 152
+203 MaxL = 175 197
+204 MaxL = 202 203
+205 MaxL = 677 204
+#+end_src
+
+Nodes 4, after iter GVN 11
+205 replaced by 677
+#+begin_src bash
+202 MaxL = 130 152
+203 MaxL = 175 197
+204 MaxL = 202 203
+677 MaxL = 102 204
+#+end_src
+
+Nodes 5, before iter GVN 13
+#+begin_src bash
+914 MaxL = 865 817
+915 MaxL = 769 724
+916 MaxL = 914 915
+917 MaxL = 119 916
+
+219 MaxL = 724 769
+220 MaxL = 817 865
+221 MaxL = 219 220
+222 MaxL = 917 221
+#+end_src
+
+Nodes 5, after iter GVN 13
+222 not replaced by 917
+#+begin_src bash
+219 MaxL = 724 769
+220 MaxL = 817 865
+221 MaxL = 219 220
+917 MaxL = 119 221
+
+222 MaxL = 221 917
+#+end_src
+* 02.12.25
+** Comparison
+#+begin_src bash
+uica.log:97:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc4.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc4.html
+uica.log:98-Throughput (in cycles per iteration): 3.52
+--
+uica.log:137:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc8.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc8.html
+uica.log:138-Throughput (in cycles per iteration): 6.50
+--
+uica.log:17:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc16.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc16.html
+uica.log:18-Throughput (in cycles per iteration): 14.50
+--
+uica.log:272:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree4x1.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree4x1.html
+uica.log:273-Throughput (in cycles per iteration): 3.51
+--
+uica.log:312:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree8x1.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree8x1.html
+uica.log:313-Throughput (in cycles per iteration): 6.50
+--
+uica.log:189:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree16x1.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree16x1.html
+uica.log:190-Throughput (in cycles per iteration): 15.00
+--
+uica.log:448:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll4.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll4.html
+uica.log:449-Throughput (in cycles per iteration): 8.00
+--
+uica.log:488:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll8.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll8.html
+uica.log:489-Throughput (in cycles per iteration): 16.00
+--
+uica.log:364:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll16.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll16.html
+uica.log:365-Throughput (in cycles per iteration): 32.00
+#+end_src
+** Patch performance
+It's the same performance as ReTree16x1:
+#+begin_src bash
+Warmup
+Running
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Throughput: 204 ops/ms
+Throughput: 205 ops/ms
+Throughput: 205 ops/ms
+Validate
+#+end_src
+** Unroll16
+Theoretical results:
+#+begin_src bash
++ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll16.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Unroll16.html
+Throughput (in cycles per iteration): 32.00
+Bottleneck: Dependencies
+
+The following throughputs could be achieved if the given property were the only bottleneck:
+
+  - Decoder: 22.00
+  - DSB: 9.33
+  - Issue: 14.00
+  - Ports: 10.50
+  - Dependencies: 32.00
+
+1.90 Ghz is 1.9 x 1_000_000 cycles per millisecond = 1_900_000 cycles per ms
+Array size = 10_000
+Manual unroll size = 16
+Loop iterations per op = 10_000 / 16 = 625
+Cycles per iteration = 32
+Cycles per loop = 22
+625 loops/op * 32 cycles/loop = 20_000 cycles/op
+1_900_000 cycles/ms / 20_000 cycles/op = 95 ops/ms
+#+end_src
+
+Benchmark results:
+#+begin_src bash
+Validate
+Warmup
+Running
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Throughput: 93 ops/ms
+Validate
+#+end_src
+** ReTree16x1
+Theoretical results:
+#+begin_src bash
++ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree16x1.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/ReTree16x1.html
+Throughput (in cycles per iteration): 15.00
+Bottleneck: LSD
+
+The following throughputs could be achieved if the given property were the only bottleneck:
+
+  - LSD: 15.00
+  - Issue: 14.25
+  - Ports: 8.50
+  - Dependencies: 2.00
+
+1.90 Ghz is 1.9 x 1_000_000 cycles per millisecond = 1_900_000 cycles per ms
+Array size = 10_000
+Manual unroll size = 16
+Loop iterations per op = 10_000 / 16 = 625
+Cycles per iteration = 15
+Cycles per loop = 15
+625 loops/op * 15 cycles/loop = 9_375 cycles/op
+1_900_000 cycles/ms / 9_375 cycles/op = 202.666 ops/ms
+#+end_src
+
+Benchmark results:
+#+begin_src bash
+Running
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 202 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+Throughput: 203 ops/ms
+#+end_src
+
+~perf record -e cycles:pp~:
+#+begin_src bash
+Running
+Throughput: 200 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Throughput: 202 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Throughput: 201 ops/ms
+Validate
+
+$ perf report --header
+# sample duration :  13164.125 ms
+# MEM_TOPOLOGY info available, use -I to display
+# cpu pmu capabilities: branches=32, max_precise=3, pmu_name=skylake
+# intel_pt pmu capabilities: topa_multiple_entries=1, psb_cyc=1, single_range_output=1, mtc_periods=249, ip_filtering=1, output_subsys=0, cr3_filtering=1, psb_periods=3f, event_trace=0, cycle_thresholds=3fff, power_event_trace=0, mtc=1, payloads_lip=0, ptwrite=0, num_address_ran>
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# ========
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 53K of event 'cycles:pp'
+# Event count (approx.): 25165394499
+
+200 ops/ms (recorded)
+Manual unroll size = 16
+Loop iterations per op = 10_000 / 16 = 625
+
+25165394499 cycles
+13164.125 ms
+
+200 ops/ms * 13164 ms = 2_632_800 ops
+2_632_800 ops * 625 loops/op = 1,645,500,000 loops
+25165394499 cycles / 1,645,500,000 loops = 15.2934636882 cycles/iteration
+#+end_src
+* 01.12.25
+#+begin_src bash
+1.90 Ghz is 1.9 x 1_000_000 cycles per millisecond = 1_900_000 cycles per ms
+204 ops/ms
+1 op has ~625 loop iterations
+204 * 625 = 127_500 loop interations per ms
+uica says 32.33 cycles per loop iteration
+1_900_000 / 127_500 = 15 cycles per loop iteration
+
+--
+
+25,583,732,176 cycles
+12.857476989 seconds = 12_857 ms
+1_989_867 = cycles per ms
+204 ops/ms measured
+1 op has ~625 loop iterations
+204 * 625 = 127_500 loop interations per ms
+1_989_867 / 127_500 = ~15 cycles per ms
+#+end_src
 * 26.11.25
 unroll5:
 #+begin_src bash
