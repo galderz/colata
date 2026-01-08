@@ -23,7 +23,6 @@ pkgs.mkShell {
     # Define here to get $HOME resolved
     export STUB_DIR="$HOME/Library/Caches/openjdk-build-stubs";
 
-
     mkdir -p "$STUB_DIR"
     export OPENJDK_STUB_DIR="$STUB_DIR"
 
