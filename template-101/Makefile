@@ -10,9 +10,11 @@ base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=dontinline,$(CLASS)::blackhole
+#base_jvm_args += -XX:CompileCommand=dontinline,Vector::*
 
-ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN"
-#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_MACRO_EXPANSION"
+#ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_ITER_GVN","AFTER_MACRO_EXPANSION"
+ideal_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_MACRO_EXPANSION"
 #ideal_jvm_args += -XX:+PrintIdeal
 
 ifdef IDEAL_ARGS
@@ -27,10 +29,11 @@ valhalla_jvm_args += -XX:-DoEscapeAnalysis
 valhalla_jvm_args += -XX:+PrintEliminateAllocations
 valhalla_jvm_args += -XX:+PrintOptoStatistics
 # Print field layout
-valhalla_jvm_args += -XX:+PrintFieldLayout
-valhalla_jvm_args += -XX:+PrintInlining
+# valhalla_jvm_args += -XX:+PrintFieldLayout
+# valhalla_jvm_args += -XX:+PrintInlining
 
 jvm_args += $(base_jvm_args)
+#jvm_args += -XX:+PrintCompilation
 jvm_args += $(valhalla_jvm_args)
 
 TOPDIR = ..
