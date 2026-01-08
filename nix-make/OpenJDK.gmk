@@ -106,6 +106,7 @@ endif
 configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
 > pushd $(JDK_HOME)
 > bash configure \
+>   --enable-headless-only \
 >   --disable-precompiled-headers \
 >   --with-boot-jdk=$(BOOT_JDK_HOME) \
 >   --with-conf-name=$(conf_name) \
@@ -113,6 +114,10 @@ configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
 >   --with-gtest=$(gtest_src) \
 >   --with-jmh=build/jmh/jars \
 >   --with-jtreg=$(jtreg_home) \
+>   METAL=/bin/echo \
+>   METALLIB=/bin/echo \
+>   MIG=$(STUB_DIR)/stub-mig.sh \
+>   SETFILE=$(STUB_DIR)/stub-setfile.sh \
 >   $(conf_args)
 > popd
 ifeq ($(os),darwin)
@@ -270,8 +275,10 @@ $(jtreg_readme):
 > git clone https://github.com/openjdk/jtreg
 
 $(gtest_src):
-> cd $(opt)
+> pushd $(opt)
 > git clone -b v1.14.0 https://github.com/google/googletest
+> popd
+> $(TOPDIR)/nix-make/patch-gtest.sh $(gtest_src)
 
 igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer

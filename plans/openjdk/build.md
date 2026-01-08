@@ -12,12 +12,13 @@ nix-shell
 cd jdk
 
 # 3. Configure OpenJDK
-bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME \
+  --enable-headless-only --disable-warnings-as-errors \
   METAL=/bin/echo METALLIB=/bin/echo \
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
 
 # 4. Build
-bash -c 'unset SOURCE_DATE_EPOCH && make images'
+make images
 
 # 5. Test
 build/macosx-aarch64-server-release/jdk/bin/java --version
@@ -133,12 +134,14 @@ exit 0
 date 1980-01-01T00:00:00Z is not within the valid range 1980-01-01T00:00:02Z to 2099-12-31T23:59:59Z
 ```
 
-**Solution:** Unset `SOURCE_DATE_EPOCH` before building:
+**Solution:** Set `SOURCE_DATE_EPOCH` to a valid value in shell.nix's shellHook:
 ```bash
-bash -c 'unset SOURCE_DATE_EPOCH && make images'
+# Fix SOURCE_DATE_EPOCH for jar date validation
+# Nix sets it to 315532800 (1980-01-01 00:00:00) but jar needs >= 1980-01-01 00:00:02
+export SOURCE_DATE_EPOCH=315532802
 ```
 
-**Why this works:** Removes the problematic environment variable that Nix sets. The 2-second difference is a jar format limitation.
+**Why this works:** Fixes the timestamp to 1980-01-01 00:00:02 which meets jar's minimum requirement. The 2-second difference is a jar format limitation.
 
 ---
 
@@ -177,6 +180,44 @@ sed -i.bak 's/PrintTo(ImplicitCast_<char32_t>(c), os);/PrintTo(static_cast<char3
 - Patch applied to cache directory files (not OpenJDK source)
 - Satisfies clang's strict `-Wcharacter-conversion` warning requirement
 - Maintains clean OpenJDK git status
+
+---
+
+### Challenge 7: Test Image Build Warnings
+
+**Problem:** When building test-image, JVMTI test files have uninitialized variables passed as const pointers, triggering compilation errors.
+
+**Error encountered:**
+```
+test/hotspot/jtreg/vmTestbase/nsk/jvmti/scenarios/multienv/MA04/ma04t002/ma04t002.cpp:129:99:
+error: variable 'dummy' is uninitialized when passed as a const pointer argument here
+[-Werror,-Wuninitialized-const-pointer]
+```
+
+**Initial considerations:**
+- Modifying `make/common/TestFilesCompilation.gmk` to disable warning → Would modify source files
+- Patching test source files → Would affect multiple files and git status
+- Using EXTRA_CFLAGS make variable → Not supported by build system
+
+**Solution:** Use `--disable-warnings-as-errors` configure flag:
+```bash
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME \
+  --enable-headless-only --disable-warnings-as-errors \
+  METAL=/bin/echo METALLIB=/bin/echo \
+  MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
+```
+
+**Why this works:**
+- Treats warnings as warnings (not compilation errors)
+- No source code modifications required
+- Clean git status maintained
+- Standard configure option, well-supported by OpenJDK build system
+- Warnings are still visible during build for awareness
+
+**Trade-off:** Disabling warnings-as-errors affects all native code compilation, not just tests. However:
+- This is acceptable for local development builds
+- Production builds by OpenJDK use stricter settings
+- All warnings are still logged and visible
 
 ---
 
@@ -235,6 +276,7 @@ bash configure \
   --with-boot-jdk=$BOOT_JDK_HOME \           # Use Nix-provided JDK 25
   --with-gtest=$GTEST_HOME \                  # Use auto-cloned googletest
   --enable-headless-only \                    # Skip GUI dependencies
+  --disable-warnings-as-errors \              # Allow warnings in test code
   METAL=/bin/echo \                           # Stub Metal compiler
   METALLIB=/bin/echo \                        # Stub MetalLib tool
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh \        # Custom MIG implementation
@@ -251,6 +293,7 @@ Optional additions based on environment:
 ### ✅ No Source Modifications
 - Zero changes to OpenJDK source code
 - Clean git status in jdk/ directory
+- All solutions use configure-time options or external workarounds
 - Development-friendly for contributing to OpenJDK
 
 ### ✅ No Permission Changes
@@ -305,7 +348,8 @@ Optional additions based on environment:
 
 4. **Configure the build:**
    ```bash
-   bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
+   bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME \
+     --enable-headless-only --disable-warnings-as-errors \
      METAL=/bin/echo METALLIB=/bin/echo \
      MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
    ```
@@ -316,7 +360,7 @@ Optional additions based on environment:
 
 5. **Build OpenJDK:**
    ```bash
-   bash -c 'unset SOURCE_DATE_EPOCH && make images'
+   make images
    ```
 
    The build will:
@@ -403,9 +447,9 @@ ls -la $OPENJDK_STUB_DIR/stub-mig.sh
 ```
 
 ### Date validation error in jar creation
-**Solution:** Make sure you unset SOURCE_DATE_EPOCH:
+**Solution:** This is fixed automatically by shell.nix setting SOURCE_DATE_EPOCH=315532802. If you're not using nix-shell, set it manually:
 ```bash
-bash -c 'unset SOURCE_DATE_EPOCH && make images'
+export SOURCE_DATE_EPOCH=315532802
 ```
 
 ### Permission denied on configure
@@ -419,20 +463,21 @@ To rebuild after making changes:
 
 ```bash
 # In nix-shell, from jdk/ directory:
-make clean                                    # Clean previous build
-bash -c 'unset SOURCE_DATE_EPOCH && make images'  # Rebuild
+make clean        # Clean previous build
+make images       # Rebuild
 ```
 
 To reconfigure (after git pull or configure changes):
 
 ```bash
 # Reconfigure first
-bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME --enable-headless-only \
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-gtest=$GTEST_HOME \
+  --enable-headless-only --disable-warnings-as-errors \
   METAL=/bin/echo METALLIB=/bin/echo \
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
 
 # Then build
-bash -c 'unset SOURCE_DATE_EPOCH && make clean && make images'
+make clean && make images
 ```
 
 ---
@@ -584,8 +629,9 @@ nix-shell --argstr jtreg /path/to/jtreg
 **Method 3: Set during configure**
 ```bash
 cd jdk
-bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-jtreg=/path/to/jtreg \
-  --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo \
+bash configure --with-boot-jdk=$BOOT_JDK_HOME --with-jtreg=/path/to/jtreg --with-gtest=$GTEST_HOME \
+  --enable-headless-only --disable-warnings-as-errors \
+  METAL=/bin/echo METALLIB=/bin/echo \
   MIG=$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=$OPENJDK_STUB_DIR/stub-setfile.sh
 ```
 
@@ -693,5 +739,30 @@ To force re-clone (if needed):
 ```bash
 rm -rf ~/Library/Caches/openjdk-googletest
 nix-shell  # Will clone and patch again
+```
+
+---
+
+## Building test-image
+
+The `test-image` target builds test binaries and prepares the test infrastructure. This is required if you want to run jtreg tests.
+
+### Running make test-image
+
+```bash
+# In nix-shell, from jdk/ directory:
+make test-image
+```
+
+Note: If you configured with `--disable-warnings-as-errors` (recommended), test-image will build successfully. If you didn't, you may encounter uninitialized variable warnings treated as errors.
+
+**Verification:**
+After successful build, test-image artifacts will be in:
+```bash
+build/macosx-aarch64-server-release/images/test/
+├── hotspot/      # HotSpot test binaries
+├── jdk/          # JDK test binaries
+├── lib-test/     # Test libraries
+└── setup_aot/    # AOT test setup
 ```
 

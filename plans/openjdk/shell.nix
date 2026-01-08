@@ -11,6 +11,10 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
+    # Fix SOURCE_DATE_EPOCH for jar date validation
+    # Nix sets it to 315532800 (1980-01-01 00:00:00) but jar needs >= 1980-01-01 00:00:02
+    export SOURCE_DATE_EPOCH=315532802
+
     export BOOT_JDK_HOME="${pkgs.temurin-bin-25}"
 
     # Create directory for stub scripts in cache
@@ -164,7 +168,8 @@ STUB_SETFILE_EOF
     CONFIGURE_CMD="bash configure --with-boot-jdk=\$BOOT_JDK_HOME"
     [ -n "$JTREG_HOME" ] && CONFIGURE_CMD="$CONFIGURE_CMD --with-jtreg=\$JTREG_HOME"
     [ -n "$GTEST_HOME" ] && CONFIGURE_CMD="$CONFIGURE_CMD --with-gtest=\$GTEST_HOME"
-    CONFIGURE_CMD="$CONFIGURE_CMD --enable-headless-only METAL=/bin/echo METALLIB=/bin/echo"
+    CONFIGURE_CMD="$CONFIGURE_CMD --enable-headless-only --disable-warnings-as-errors"
+    CONFIGURE_CMD="$CONFIGURE_CMD METAL=/bin/echo METALLIB=/bin/echo"
     CONFIGURE_CMD="$CONFIGURE_CMD MIG=\$OPENJDK_STUB_DIR/stub-mig.sh SETFILE=\$OPENJDK_STUB_DIR/stub-setfile.sh"
 
     echo "   $CONFIGURE_CMD"
@@ -175,8 +180,8 @@ STUB_SETFILE_EOF
       echo "   nix-shell --arg jtreg /path/to/jtreg"
     fi
     echo ""
-    echo "3. Build (unsetting SOURCE_DATE_EPOCH to avoid jar date issues):"
-    echo "   bash -c 'unset SOURCE_DATE_EPOCH && make images'"
+    echo "3. Build:"
+    echo "   make images"
     echo ""
     echo "4. Test the built JDK:"
     echo "   build/macosx-aarch64-server-release/jdk/bin/java --version"
