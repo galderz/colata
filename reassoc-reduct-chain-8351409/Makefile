@@ -1,4 +1,4 @@
-ID ?= avoid-cmov-long-min-max
+ID ?= reassoc-reduct-chain
 CLASS ?= Test
 
 BOOT_JDK_VERSION ?= 25

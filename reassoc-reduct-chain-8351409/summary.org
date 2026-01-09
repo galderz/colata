@@ -1,6 +1,11 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* Benefits of simple reassociation
+Little chance of register pressure
+Still gets considerable performance improvement.
+Improvement of binary tree only on big enough unrolls (see 2, 4, 8, 16).
+Can reassociate to non-power-of-2 chains.
 * Next steps
 - [X] call igvn.replace_node on reassociated node
 - [X] check the assembly and make sure the differences in IR are reflected there
@@ -8,14 +13,64 @@
 - [X] try to understand why manual reassoc4 is faster than manual reassoc16 (investigate unrolling in reassoc4, disable loop unrolling)
 - [X] generate reassoc2x8
 - [X] generate reassoc8x2
-- [ ] generate binary tree reassoc
-- [ ] remove striped counted loop check, not necessary
-- [ ] try to get it working with a manually unrolled loops where one of the intermediate values is somehow either inside or outside the loop
-- [ ]   e.g. if statement for an intermediate value, or just use it outside
+- [X] generate binary tree reassoc
+- [X] remove striped counted loop check, not necessary
+- [X] try to get it working with a manually unrolled loops where one of the intermediate values is somehow either inside or outside the loop
+      e.g. if statement for an intermediate value, or just use it outside
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
-- [ ] see if an IR test can be developed, though IR node shape is not a feature
-* 04.12.25
+- [X] see if an IR test can be developed, though IR node shape is not a feature
+* 9.1.26
+Failure:
+#+begin_src bash
+Missed Identity optimization:
+Old node:
+dist dump
+---------------------------------------------
+   1  1048  MaxL  === _ 124 336  [[ 124 812 374 348 ]]  !orig=[300] !jvms: ReductionReassociation::test_2 @ bci:149 (line 38)
+   1   336  MinL  === _ 324 1000  [[ 348 1048 ]]  !orig=[1047] !jvms: Long::min @ bci:2 (line 1961) ReductionReassociation::test_2 @ bci:120 (line 36)
+   0   348  MinL  === _ 336 1048  [[ 375 812 ]]  !jvms: Long::min @ bci:2 (line 1961) ReductionReassociation::test_2 @ bci:128 (line 37)
+New node:
+dist dump
+---------------------------------------------
+   1  1000  LoadL  === 998 7 251  [[ 336 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long (does not depend only on test, unknown control) !orig=[253] !jvms: ReductionReassociation::test_2 @ bci:57 (line 31)
+   1   324  MinL  === _ 312 951  [[ 336 ]]  !orig=[1046] !jvms: Long::min @ bci:2 (line 1961) ReductionReassociation::test_2 @ bci:111 (line 35)
+   0   336  MinL  === _ 324 1000  [[ 348 1048 ]]  !orig=[1047] !jvms: Long::min @ bci:2 (line 1961) ReductionReassociation::test_2 @ bci:120 (line 36)
+#+end_src
+
+min(min(324, 1000), max(124, min(324, 1000)))
+=
+min(min(312, 951), 1000)
+
+* 8.1.26
+#+begin_src bash
+[avoid-cmov] try reassociate; chain length: 8
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+[avoid-cmov] try reassociate; chain head:
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+
+ 216  MaxL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: Test::test @ bci:20 (line 21)
+ 274  MaxL  === _ 292 275  [[ 292 297 306 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 310  MaxL  === _ 328 311  [[ 328 337 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 347  MaxL  === _ 365 348  [[ 365 374 629 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 407  MaxL  === _ 402 389  [[ 408 ]]
+ 454  MaxL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 535  MaxL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 538  MaxL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 593  MaxL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: Test::test @ bci:20 (line 21)
+ 596  MaxL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 603  MaxL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 606  MaxL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: Test::test @ bci:20 (line 21)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+
+ 216 = max(max(max(max(max(max(max(max(629, 607), 604), 597), 594), 539), 536), 455), 217)
+
+ to
+
+ = max(max(max(max(max(max(max(max(607, 604), 597), 594), 539), 536), 455), 217), 629)
+#+end_src
+* 4.12.25
 More debugging when it goes wrong
 #+begin_src bash
 transform_old(222  MaxL  === _ 917 221  [[ 243 677 ]]  !jvms: TestPlain::test @ bci:118 (line 38))
@@ -189,7 +244,7 @@ Nodes 5, after iter GVN 13
 
 222 MaxL = 221 917
 #+end_src
-* 02.12.25
+* 2.12.25
 ** Comparison
 #+begin_src bash
 uica.log:97:+ ./uiCA.py /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc4.o -arch CLX -trace /home/g/tmp/avoid-cmov-long-min-max/0212/xeon/Reassoc4.html
@@ -337,7 +392,7 @@ $ perf report --header
 # MEM_TOPOLOGY info available, use -I to display
 # cpu pmu capabilities: branches=32, max_precise=3, pmu_name=skylake
 # intel_pt pmu capabilities: topa_multiple_entries=1, psb_cyc=1, single_range_output=1, mtc_periods=249, ip_filtering=1, output_subsys=0, cr3_filtering=1, psb_periods=3f, event_trace=0, cycle_thresholds=3fff, power_event_trace=0, mtc=1, payloads_lip=0, ptwrite=0, num_address_ran>
-# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY
 # ========
 #
 #
@@ -357,7 +412,7 @@ Loop iterations per op = 10_000 / 16 = 625
 2_632_800 ops * 625 loops/op = 1,645,500,000 loops
 25165394499 cycles / 1,645,500,000 loops = 15.2934636882 cycles/iteration
 #+end_src
-* 01.12.25
+* 1.12.25
 #+begin_src bash
 1.90 Ghz is 1.9 x 1_000_000 cycles per millisecond = 1_900_000 cycles per ms
 204 ops/ms
