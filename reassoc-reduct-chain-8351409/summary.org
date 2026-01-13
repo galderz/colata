@@ -7,6 +7,7 @@ Still gets considerable performance improvement.
 Improvement of binary tree only on big enough unrolls (see 2, 4, 8, 16).
 Can reassociate to non-power-of-2 chains.
 * Next steps
+- [ ] Test HF reassociation
 - [X] call igvn.replace_node on reassociated node
 - [X] check the assembly and make sure the differences in IR are reflected there
 - [X] check the performance of manual unroll 16 and compare with prototype
@@ -20,6 +21,27 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 12.1.26
+AddNode subclasses:
+- [ ] AddINode
+- [ ] AddLNode
+- [X] MaxDNode
+- [X] MaxFNode
+- [ ] MaxHFNode
+- [X] MaxINode
+- [X] MaxLNode
+- [X] MinDNode
+- [X] MinFNode
+- [ ] MinHFNode
+- [X] MinINode
+- [X] MinLNode
+- [ ] OrINode
+- [ ] OrLNode
+- [ ] XorINode
+- [ ] XorLNode
+- [-] AddDNode (not associative)
+- [-] AddFNode (not associative)
+- [-] AddHFNode (not associative)
 * 9.1.26
 Failure:
 #+begin_src bash
