@@ -15,7 +15,7 @@ final class TestHalfFloatMin {
 
   static final Random RND = new Random(42);
 
-  static Float16 test(Float16 array) {
+  static Float16 test(Float16[] array) {
     Float16 result = Float16.MAX_VALUE;
     for (int i = 0; i < array.length; i ++) {
       var v = array[i];
