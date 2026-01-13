@@ -20,6 +20,7 @@ final class TestHalfFloatMin {
     for (int i = 0; i < array.length; i ++) {
       var v = array[i];
       result = Float16.min(v, result);
+    }
     return result;
   }
 
