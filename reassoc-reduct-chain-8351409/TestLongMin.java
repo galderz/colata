@@ -5,7 +5,7 @@ import static java.util.concurrent.TimeUnit.*;
 import java.lang.String;
 import java.util.Random;
 
-final class TestMinL {
+final class TestLongMin {
   static final int ITER = 100_000;
 
   static final int NUM_RUNS = 10;
