@@ -21,24 +21,99 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 14.1.26
+#+begin_quote
+Have you looked at what the other uses are?
+#+end_quote
+#+begin_src bash
+ 698  MinHF  === _ 699 703  [[ 697 267 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 698 users -> 697 (ReinterpreteHF2S...), 267 (MinHF)
+
+ 163  If  === 731 160  [[ 164 745 ]] P=0.999999, C=-1.000000 !jvms: Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 164  IfTrue  === 163  [[ 241 171 ]] #1 !orig=[199] !jvms: Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 171  CastPP  === 164 148  [[ 190 190 ]]  #instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):NotNull:exact+0,iid=bot floating narrowing dependency  Oop:instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):NotNull:exact+0,iid=bot !jvms: Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 241  Allocate  === 164 717 722 8 1 (139 172 24 1 1 39 1 706 1 1 1 228 ) [[ 242 243 244 251 252 253 ]]  rawptr:NotNull ( int:>=0, instptr:java/lang/Object:NotNull+0,iid=bot, bool, top, bool ) allocationKlass:jdk/incubator/vector/Float16 Float16::valueOf @ bci:0 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22) !jvms: Float16::valueOf @ bci:0 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 226  ConvHF2F  === _ 697  [[ 228 ]]  #float !jvms: Float16::floatValue @ bci:4 (line 879) Float16::min @ bci:5 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 228  MinF  === _ 192 226  [[ 241 ]]  !jvms: Float16::min @ bci:8 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 241  Allocate  === 164 717 722 8 1 (139 172 24 1 1 39 1 706 1 1 1 228 ) [[ 242 243 244 251 252 253 ]]  rawptr:NotNull ( int:>=0, instptr:java/lang/Object:NotNull+0,iid=bot, bool, top, bool ) allocationKlass:jdk/incubator/vector/Float16 Float16::valueOf @ bci:0 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22) !jvms: Float16::valueOf @ bci:0 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 267  MinHF  === _ 265 698  [[ 268 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 692  MergeMem  === _ 1 724 734 1 1 693 735 736  [[ 723 ]]  { N734:rawptr:BotPTR - - N693:instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot N735:instptr:java/lang/Object:BotPTR+0,iid=bot N736:instptr:java/lang/Object:BotPTR+8,iid=bot [narrowklass] }  Memory: @ptr:BotPTR+bot, idx=Bot; !orig=274 !jvms: Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 693  StoreC  === 739 737 694 697  [[ 692 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=6;  Memory: @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):NotNull:exact+12,iid=bot, name=value, idx=6; !orig=321,[323],[273] !jvms: Float16::<init> @ bci:6 (line 129) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 697  ReinterpretHF2S  === _ 698  [[ 693 226 ]]  !orig=268 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 698  MinHF  === _ 699 703  [[ 697 267 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 722  Proj  === 723  [[ 274 764 763 257 403 241 191 ]] #2  Memory: @ptr:BotPTR+bot, idx=Bot; !orig=328,760 !jvms: Float16::<init> @ bci:-1 (line 128) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 723  MemBarStoreStore  === 739 1 692 1 1 718  [[ 722 731 ]]  !orig=326 !jvms: Float16::<init> @ bci:-1 (line 128) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 731  Proj  === 723  [[ 163 ]] #0 !orig=327,335 !jvms: Float16::<init> @ bci:-1 (line 128) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 745  IfFalse  === 163  [[ 744 ]] #0 !orig=[603],[476],[165] !jvms: Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+#+end_src
+* 13.1.26
+Reassociation not kicking in for Float16 Min/Max:
+#+begin_src bash
+ 248  LoadS  === _ 153 247  [[ 249 324 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=7; #short !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 283  LoadS  === _ 153 282  [[ 284 325 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=7; #short !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:5 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 324  ReinterpretS2HF  === _ 248  [[ 326 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 325  ReinterpretS2HF  === _ 283  [[ 326 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 326  MinHF  === _ 324 325  [[ 327 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+
+ 191  LoadS  === _ 722 190  [[ 192 265 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=6; #short !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 265  ReinterpretS2HF  === _ 191  [[ 267 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 267  MinHF  === _ 265 698  [[ 268 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 427  MinHF  === _ 428 432  [[ 426 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 554  MinHF  === _ 555 559  [[ 553 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 698  MinHF  === _ 699 703  [[ 697 267 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 699  ReinterpretS2HF  === _ 700  [[ 698 ]]  !orig=265 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 700  LoadS  === _ 724 701  [[ 696 699 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=6; #short !orig=191 !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 703  ReinterpretS2HF  === _ 704  [[ 698 ]]  !orig=[266] !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 724  Phi  === 725 578 328  [[ 692 700 704 709 715 720 763 764 ]]  #memory  Memory: @ptr:BotPTR+bot, idx=Bot; !orig=119,[273] !jvms: TestHalfFloatMin::test @ bci:12 (line 21)
+
+ 190  AddP  === _ 171 171 40  [[ 191 ]]   Oop:instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):NotNull:exact+12,iid=bot !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 191  LoadS  === _ 722 190  [[ 192 265 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=6; #short !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 265  ReinterpretS2HF  === _ 191  [[ 267 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 267  MinHF  === _ 265 698  [[ 268 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 268  ReinterpretHF2S  === _ 267  [[ 321 ]]  !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 426  ReinterpretHF2S  === _ 427  [[ 422 ]]  !orig=268 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 427  MinHF  === _ 428 432  [[ 426 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 554  MinHF  === _ 555 559  [[ 553 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 697  ReinterpretHF2S  === _ 698  [[ 693 226 ]]  !orig=268 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 698  MinHF  === _ 699 703  [[ 697 267 ]]  !orig=267 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 699  ReinterpretS2HF  === _ 700  [[ 698 ]]  !orig=265 !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 700  LoadS  === _ 724 701  [[ 696 699 ]]  @instptr:jdk/incubator/vector/Float16 (java/io/Serializable,java/lang/Comparable):BotPTR:exact+12,iid=bot, name=value, idx=6; #short !orig=191 !jvms: Float16::floatValue @ bci:1 (line 879) Float16::min @ bci:1 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 703  ReinterpretS2HF  === _ 704  [[ 698 ]]  !orig=[266] !jvms: Float16::valueOf @ bci:5 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 722  Proj  === 723  [[ 274 764 763 257 403 241 191 ]] #2  Memory: @ptr:BotPTR+bot, idx=Bot; !orig=328,760 !jvms: Float16::<init> @ bci:-1 (line 128) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 723  MemBarStoreStore  === 739 1 692 1 1 718  [[ 722 731 ]]  !orig=326 !jvms: Float16::<init> @ bci:-1 (line 128) Float16::valueOf @ bci:8 (line 364) Float16::min @ bci:11 (line 1097) TestHalfFloatMin::test @ bci:18 (line 22)
+ 724  Phi  === 725 578 328  [[ 692 700 704 709 715 720 763 764 ]]  #memory  Memory: @ptr:BotPTR+bot, idx=Bot; !orig=119,[273] !jvms: TestHalfFloatMin::test @ bci:12 (line 21)
+#+end_src
+
+vs MinL:
+#+begin_src bash
+ 216  MinL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 454  MinL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 535  MinL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 538  MinL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 593  MinL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 596  MinL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 603  MinL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 606  MinL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: TestLongMin::test @ bci:20 (line 21)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+#+end_src
 * 12.1.26
 AddNode subclasses:
 - [ ] AddINode
 - [ ] AddLNode
-- [X] MaxDNode
-- [X] MaxFNode
-- [ ] MaxHFNode
-- [X] MaxINode
-- [X] MaxLNode
-- [X] MinDNode
-- [X] MinFNode
-- [ ] MinHFNode
-- [X] MinINode
-- [X] MinLNode
 - [ ] OrINode
 - [ ] OrLNode
 - [ ] XorINode
 - [ ] XorLNode
+- [X] MaxDNode
+- [X] MaxFNode
+- [-] MaxHFNode
+- [X] MaxINode
+- [X] MaxLNode
+- [X] MinDNode
+- [X] MinFNode
+- [-] MinHFNode
+- [X] MinINode
+- [X] MinLNode
 - [-] AddDNode (not associative)
 - [-] AddFNode (not associative)
 - [-] AddHFNode (not associative)
