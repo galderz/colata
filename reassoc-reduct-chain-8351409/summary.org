@@ -21,7 +21,188 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 15.1.26
+Investigating the AddL nodes with ConvI2L nodes.
+
+Why do ConvI2L nodes get created?
+#+begin_src bash
+ConvI2LNode::ConvI2LNode(Node *, const TypeLong *) convertnode.hpp:173
+Compile::constrained_convI2L(PhaseGVN *, Node *, const TypeInt *, Node *, bool) compile.cpp:4588
+Compile::conv_I2X_index(PhaseGVN *, Node *, const TypeInt *, Node *) compile.cpp:4571
+GraphKit::array_element_address(Node *, Node *, BasicType, const TypeInt *, Node *) graphKit.cpp:1786
+Parse::array_addressing(BasicType, int, const Type *&) parse2.cpp:207
+Parse::array_load(BasicType) parse2.cpp:57
+Parse::do_one_bytecode() parse2.cpp:2234
+Parse::do_one_block() parse1.cpp:1593
+Parse::do_all_blocks() parse1.cpp:724
+Parse::Parse(JVMState *, ciMethod *, float) parse1.cpp:628
+Parse::Parse(JVMState *, ciMethod *, float) parse1.cpp:404
+ParseGenerator::generate(JVMState *) callGenerator.cpp:97
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:807
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:705
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:147
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2345
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1989
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:69
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:242
+thread_native_entry(Thread *) os_bsd.cpp:602
+#+end_src
+
+Source of additional AddLNodes:
+#+begin_src cpp
+Node* ConvI2LNode::Ideal(PhaseGVN* phase, bool can_reshape) {
+  // Convert ConvI2L(AddI(x, y)) to AddL(ConvI2L(x), ConvI2L(y))
+...
+      case Op_AddI:  return new AddLNode(cx, cy);
+#+end_src
+
+#+begin_src bash
+AddLNode::AddLNode(Node *, Node *) addnode.hpp:156
+AddLNode::AddLNode(Node *, Node *) addnode.hpp:156
+ConvI2LNode::Ideal(PhaseGVN *, bool) convertnode.cpp:810
+PhaseGVN::apply_ideal(Node *, bool) phaseX.cpp:668
+PhaseIterGVN::transform_old(Node *) phaseX.cpp:2108
+PhaseIterGVN::optimize() phaseX.cpp:1054
+Compile::process_for_post_loop_opts_igvn(PhaseIterGVN &) compile.cpp:1892
+Compile::Optimize() compile.cpp:2525
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:862
+Compile::Compile(ciEnv *, ciMethod *, int, Options, DirectiveSet *) compile.cpp:705
+C2Compiler::compile_method(ciEnv *, ciMethod *, int, bool, DirectiveSet *) c2compiler.cpp:147
+CompileBroker::invoke_compiler_on_method(CompileTask *) compileBroker.cpp:2345
+CompileBroker::compiler_thread_loop() compileBroker.cpp:1989
+CompilerThread::thread_entry(JavaThread *, JavaThread *) compilerThread.cpp:69
+JavaThread::thread_main_inner() javaThread.cpp:776
+JavaThread::run() javaThread.cpp:761
+Thread::call_run() thread.cpp:242
+thread_native_entry(Thread *) os_bsd.cpp:602
+#+end_src
 * 14.1.26
+** AddL / AddI
+IR failures:
+#+begin_src bash
+         * Constraint 1: "(\d+(\s){2}(AddL.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 14 = 4 [given]
+             - Matched nodes (14):
+               * 258  AddL  === _ 771 816  [[ 259 ]]  !orig=[962] !jvms: ReductionReassociation::test_2 @ bci:94 (line 42)
+               * 259  AddL  === _ 258 864  [[ 260 ]]  !orig=[963] !jvms: ReductionReassociation::test_2 @ bci:101 (line 43)
+               * 260  AddL  === _ 259 913  [[ 261 965 ]]  !orig=[964] !jvms: ReductionReassociation::test_2 @ bci:108 (line 44)
+               * 261  AddL  === _ 260 965  [[ 288 725 ]]  !jvms: ReductionReassociation::test_2 @ bci:114 (line 45)
+               * 783  AddL  === _ 741 933  [[ 785 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 793  AddL  === _ 791 932  [[ 795 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 828  AddL  === _ 741 948  [[ 830 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 838  AddL  === _ 836 947  [[ 840 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 854  AddL  === _ 852 947  [[ 856 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 876  AddL  === _ 741 953  [[ 878 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 886  AddL  === _ 884 936  [[ 888 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 902  AddL  === _ 900 936  [[ 904 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 921  AddL  === _ 741 920  [[ 745 ]]  !orig=[743] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+               * 965  AddL  === _ 124 260  [[ 124 725 261 287 ]]  !orig=[257] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+
+  23  ConI  === 0  [[ 125 110 606 309 52 110 835 790 77 77 721 733 883 750 606 588 461 ]]  #int:0
+ 124  Phi  === 724 22 965  [[ 965 ]]  #long !jvms: ReductionReassociation::test_2 @ bci:20 (line 33)
+ 258  AddL  === _ 771 816  [[ 259 ]]  !orig=[962] !jvms: ReductionReassociation::test_2 @ bci:94 (line 42)
+ 259  AddL  === _ 258 864  [[ 260 ]]  !orig=[963] !jvms: ReductionReassociation::test_2 @ bci:101 (line 43)
+ 260  AddL  === _ 259 913  [[ 261 965 ]]  !orig=[964] !jvms: ReductionReassociation::test_2 @ bci:108 (line 44)
+ 261  AddL  === _ 260 965  [[ 288 725 ]]  !jvms: ReductionReassociation::test_2 @ bci:114 (line 45)
+ 733  LoopLimit  === _ 23 46 262  [[ 741 ]]  !orig=[773] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 741  ConvI2L  === _ 733  [[ 921 783 828 876 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !orig=[780] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 771  LoadL  === 770 7 166  [[ 258 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long (does not depend only on test, unknown control) !orig=[168] !jvms: ReductionReassociation::test_2 @ bci:27 (line 33)
+ 783  AddL  === _ 741 933  [[ 785 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 790  OpaqueLoopInit  === _ 23  [[ 791 935 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 791  ConvI2L  === _ 790  [[ 793 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 793  AddL  === _ 791 932  [[ 795 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 816  LoadL  === 815 7 194  [[ 258 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long (does not depend only on test, unknown control) !orig=[196] !jvms: ReductionReassociation::test_2 @ bci:37 (line 34)
+ 828  AddL  === _ 741 948  [[ 830 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 835  OpaqueLoopInit  === _ 23  [[ 836 952 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 836  ConvI2L  === _ 835  [[ 838 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 847  IfTrue  === 843  [[ 851 859 ]] #1 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 850  AddI  === _ 952 922  [[ 851 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 851  CastII  === 847 850  [[ 852 ]]  #int:0..maxint-1, widen: 3 floating narrowing dependency !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 838  AddL  === _ 836 947  [[ 840 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 852  ConvI2L  === _ 851  [[ 854 ]]  #long:0..maxint-1, widen: 3 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 854  AddL  === _ 852 947  [[ 856 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 864  LoadL  === 863 7 223  [[ 259 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long (does not depend only on test, unknown control) !orig=[225] !jvms: ReductionReassociation::test_2 @ bci:47 (line 35)
+ 876  AddL  === _ 741 953  [[ 878 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 883  OpaqueLoopInit  === _ 23  [[ 884 945 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 884  ConvI2L  === _ 883  [[ 886 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 886  AddL  === _ 884 936  [[ 888 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 899  CastII  === 895 898  [[ 900 ]]  #int:0..maxint-1, widen: 3 floating narrowing dependency !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 900  ConvI2L  === _ 899  [[ 902 ]]  #long:0..maxint-1, widen: 3 !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 902  AddL  === _ 900 936  [[ 904 ]]  !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 913  LoadL  === 911 7 251  [[ 260 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long (does not depend only on test, unknown control) !orig=[253] !jvms: ReductionReassociation::test_2 @ bci:57 (line 36)
+ 920  ConL  === 0  [[ 921 ]]  #long:-4
+ 932  ConL  === 0  [[ 793 ]]  #long:1
+ 933  ConL  === 0  [[ 783 ]]  #long:-3
+ 921  AddL  === _ 741 920  [[ 745 ]]  !orig=[743] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+ 936  ConL  === 0  [[ 902 886 ]]  #long:3
+ 947  ConL  === 0  [[ 854 838 ]]  #long:2
+ 948  ConL  === 0  [[ 828 ]]  #long:-2
+ 953  ConL  === 0  [[ 876 ]]  #long:-1
+ 965  AddL  === _ 124 260  [[ 124 725 261 287 ]]  !orig=[257] !jvms: ReductionReassociation::test_2 @ bci:133 (line 48)
+
+ AddL[965](Phi[124], AddL[260](AddL[259](AddL[258](LoadL, LoadL), LoadL), LoadL)) = 4
+ AddL[261](AddL[260](..), AddL[965](..)) 5
+ AddL[783](ConvI2L[741](LoopLimit[733]), ConL[933]) 6
+ AddL[793](ConvI2L[791](OpaqueLoopLimit[790](ConI[23])), ConL) 7
+ AddL[828](ConvI2L[741](LoopLimit[733]), ConL[948]) 8
+ AddL[838](ConvI2L[836](OpaqueLoopLimit[835](ConI[23])), ConL[947]) 9
+ AddL[854](ConvI2L[852](CastII[851](...)), ConL[947]) 10
+ AddL[876](ConvI2L[741](LoopLimit[733]), ConL[953]) 11
+ AddL[886](ConvI2L[884](OpaqueLoopLimit[883](ConI[23])), ConL[936]) 12
+ AddL[902](ConvI2L[900](CastII[899](...), ConL[936]) 13
+ AddL[921](ConvI2L[741](LoopLimit[733]), ConL[920]) 14
+#+end_src
+
+#+begin_src bash
+before:
+
+ 216  AddL  === _ 454 217  [[ 374 629 268 ]]  !orig=191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 274  AddL  === _ 292 275  [[ 292 297 306 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 310  AddL  === _ 328 311  [[ 328 337 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 347  AddL  === _ 365 348  [[ 365 374 629 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 454  AddL  === _ 535 455  [[ 216 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 535  AddL  === _ 538 536  [[ 454 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 538  AddL  === _ 593 539  [[ 535 ]]  !orig=454,216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 593  AddL  === _ 596 594  [[ 538 ]]  !orig=216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 596  AddL  === _ 603 597  [[ 593 ]]  !orig=454,216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 603  AddL  === _ 606 604  [[ 596 ]]  !orig=535,216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 606  AddL  === _ 629 607  [[ 603 ]]  !orig=538,454,216,191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 607  LoadL  === 385 7 608  [[ 606 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=539,455,217,190 !jvms: TestLongAdd::test @ bci:14 (line 20)
+ 629  Phi  === 627 347 216  [[ 606 ]]  #long !orig=[556],[472],[251],[246]
+
+ add(add(add(add(add(add(add(add(629, 607), 604), 597), 594), 539), 536), 455), 217)
+
+after:
+
+ 274  AddL  === _ 292 275  [[ 292 297 306 ]]  !orig=[216],191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 310  AddL  === _ 328 311  [[ 328 337 ]]  !orig=[216],191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 347  AddL  === _ 365 348  [[ 365 374 629 ]]  !orig=[216],191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+ 664  AddL  === _ 604 607  [[ 665 ]]
+ 665  AddL  === _ 664 597  [[ 666 ]]
+ 666  AddL  === _ 665 594  [[ 667 ]]
+ 667  AddL  === _ 666 539  [[ 668 ]]
+ 668  AddL  === _ 667 536  [[ 669 ]]
+ 669  AddL  === _ 668 455  [[ 670 ]]
+ 670  AddL  === _ 669 217  [[ 671 ]]
+ 671  AddL  === _ 629 670  [[ 268 629 374 ]]  !orig=[216],191 !jvms: TestLongAdd::test @ bci:20 (line 21)
+
+ add(629, add(add(add(add(add(add(add(604, 607), 597), 594), 539), 536), 455), 217)
+#+end_src
+
+#+begin_src bash
+i = max(a, max(b, max(c, max(d, i))))
+i' = max(i, max(a, max(b, max(c, d))))
+#+end_src
+#+begin_src bash
+i = a + b + c + d + i;
+i' = i + a + b + c + d;
+
+i = i + a + b + c + d;
+i' = i + a + b + c + d;
+#+end_src
+** Float16
 #+begin_quote
 Have you looked at what the other uses are?
 #+end_quote
