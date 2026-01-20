@@ -5,7 +5,7 @@ import static java.util.concurrent.TimeUnit.*;
 import java.lang.String;
 import java.util.Random;
 
-final class TestUseOut {
+final class TestUseMiddle {
   static final int ITER = 100_000;
 
   static final int NUM_RUNS = 10;
@@ -33,9 +33,6 @@ final class TestUseOut {
       var v13 = array[i + 13];
       var v14 = array[i + 14];
       var v15 = array[i + 15];
-      if (v15 == array.hashCode()) {
-        System.out.print(".");
-      }
       var t0 = Math.max(v0, result);
       var t1 = Math.max(v1, t0);
       var t2 = Math.max(v2, t1);
@@ -44,6 +41,9 @@ final class TestUseOut {
       var t5 = Math.max(v5, t4);
       var t6 = Math.max(v6, t5);
       var t7 = Math.max(v7, t6);
+      if (t7 == array.hashCode()) {
+        System.out.print(".");
+      }
       var t8 = Math.max(v8, t7);
       var t9 = Math.max(v9, t8);
       var t10 = Math.max(v10, t9);

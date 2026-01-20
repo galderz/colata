@@ -5,7 +5,7 @@ import static java.util.concurrent.TimeUnit.*;
 import java.lang.String;
 import java.util.Random;
 
-final class TestLongAdd {
+final class TestUnrollLongAdd {
   static final int ITER = 100_000;
 
   static final int NUM_RUNS = 10;
@@ -15,10 +15,18 @@ final class TestLongAdd {
   static final Random RND = new Random(42);
 
   static long test(long[] array) {
-    long result = Long.MIN_VALUE;
-    for (int i = 0; i < array.length; i++) {
-      var v = getArrayLong_dontinline(i, array);
-      result = v + result;
+    long result = Integer.MIN_VALUE;
+    for (int i = 0; i < array.length; i += 4) {
+      var v0 = getArrayLong_dontinline(i + 0, array);
+      var v1 = getArrayLong_dontinline(i + 1, array);
+      var v2 = getArrayLong_dontinline(i + 2, array);
+      var v3 = getArrayLong_dontinline(i + 3, array);
+      var t0 = v0 + result;
+      var t1 = v1 + t0;
+      var t2 = v2 + t1;
+      var t3 = v3 + t2;
+      // result = v3 + v2 + v1 + v0 + result
+      result = t3;
     }
     return result;
   }
@@ -62,7 +70,7 @@ final class TestLongAdd {
   }
 
   static long expect(long[] array) {
-    long result = Long.MIN_VALUE;
+    long result = Integer.MIN_VALUE;
     for (int i = 0; i < array.length; i++) {
       var v = array[i];
       var t = v + result;

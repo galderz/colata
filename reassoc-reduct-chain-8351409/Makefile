@@ -23,6 +23,7 @@ base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:-UseSuperWord
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
 base_jvm_args += -XX:VerifyIterativeGVN=1000
 
 ifdef NO_LOOP_UNROLL

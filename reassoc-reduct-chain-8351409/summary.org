@@ -21,7 +21,551 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 20.1.26
+** Use replicate 2nd
+Use last:
+#+begin_src bash
+  119  Phi  === 610 22 564  [[ 491 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestUseMiddle::test @ bci:12 (line 20)
+  491  MaxL  === _ 119 649  [[ 492 ]]  !jvms: TestUseMiddle::test @ bci:137 (line 36)
+  492  MaxL  === _ 491 694  [[ 493 ]]  !jvms: TestUseMiddle::test @ bci:146 (line 37)
+  493  MaxL  === _ 492 742  [[ 494 ]]  !jvms: TestUseMiddle::test @ bci:155 (line 38)
+  494  MaxL  === _ 493 790  [[ 495 ]]  !jvms: TestUseMiddle::test @ bci:164 (line 39)
+  495  MaxL  === _ 494 838  [[ 496 ]]  !jvms: TestUseMiddle::test @ bci:173 (line 40)
+  496  MaxL  === _ 495 886  [[ 497 ]]  !jvms: TestUseMiddle::test @ bci:182 (line 41)
+  497  MaxL  === _ 496 934  [[ 498 ]]  !jvms: TestUseMiddle::test @ bci:191 (line 42)
+  498  MaxL  === _ 497 982  [[ 552 542 525 525 557 544 ]]  !jvms: TestUseMiddle::test @ bci:200 (line 43)
+#+end_src
+
+No use:
+#+begin_src bash
+ 147  MaxL  === _ 384 215  [[ 668 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 178  SafePoint  === 680 1 7 1 1 179 38 147 1 148 1 1  [[ 174 ]]  SafePoint  !orig=149 !jvms: Test::test @ bci:27 (line 19)
+ 322  Phi  === 314 301 147  [[ 240 247 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 529  MaxL  === _ 624 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 636  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 625  MaxL  === _ 626 640  [[ 624 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 626  MaxL  === _ 627 644  [[ 625 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 627  MaxL  === _ 628 648  [[ 626 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 628  MaxL  === _ 631 629  [[ 627 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 631  MaxL  === _ 632 654  [[ 628 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 632  MaxL  === _ 633 658  [[ 631 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 633  MaxL  === _ 668 634  [[ 632 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 668  Phi  === 665 301 147  [[ 633 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+#+end_src
+** Use replicate 1st
+Use middle:
+#+begin_src bash
+  119  Phi  === 610 22 564  [[ 334 361 549 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestUseMiddle::test @ bci:12 (line 20)
+  549  MaxL  === _ 119 649  [[ 550 ]]  !jvms: TestUseMiddle::test @ bci:156 (line 39)
+  550  MaxL  === _ 549 694  [[ 551 ]]  !jvms: TestUseMiddle::test @ bci:165 (line 40)
+  551  MaxL  === _ 550 742  [[ 552 ]]  !jvms: TestUseMiddle::test @ bci:174 (line 41)
+  552  MaxL  === _ 551 790  [[ 553 ]]  !jvms: TestUseMiddle::test @ bci:183 (line 42)
+  553  MaxL  === _ 552 838  [[ 554 ]]  !jvms: TestUseMiddle::test @ bci:192 (line 43)
+  554  MaxL  === _ 553 886  [[ 555 ]]  !jvms: TestUseMiddle::test @ bci:201 (line 44)
+  555  MaxL  === _ 554 934  [[ 556 ]]  !jvms: TestUseMiddle::test @ bci:210 (line 45)
+  556  MaxL  === _ 555 982  [[ 557 ]]  !jvms: TestUseMiddle::test @ bci:219 (line 46)
+  557  MaxL  === _ 556 1030  [[ 558 ]]  !jvms: TestUseMiddle::test @ bci:228 (line 47)
+  558  MaxL  === _ 557 1078  [[ 559 ]]  !jvms: TestUseMiddle::test @ bci:237 (line 48)
+  559  MaxL  === _ 558 1126  [[ 560 ]]  !jvms: TestUseMiddle::test @ bci:246 (line 49)
+  560  MaxL  === _ 559 1174  [[ 561 ]]  !jvms: TestUseMiddle::test @ bci:255 (line 50)
+  561  MaxL  === _ 560 1222  [[ 562 ]]  !jvms: TestUseMiddle::test @ bci:264 (line 51)
+  562  MaxL  === _ 561 1270  [[ 563 ]]  !jvms: TestUseMiddle::test @ bci:273 (line 52)
+  563  MaxL  === _ 562 1318  [[ 564 ]]  !jvms: TestUseMiddle::test @ bci:282 (line 53)
+  564  MaxL  === _ 563 1366  [[ 584 119 ]]  !jvms: TestUseMiddle::test @ bci:291 (line 54)
+#+end_src
+
+Use last:
+#+begin_src bash
+  119  Phi  === 610 22 564  [[ 549 544 517 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestUseOut::test @ bci:12 (line 20)
+  549  MaxL  === _ 119 649  [[ 550 ]]  !jvms: TestUseOut::test @ bci:156 (line 39)
+  550  MaxL  === _ 549 694  [[ 551 ]]  !jvms: TestUseOut::test @ bci:165 (line 40)
+  551  MaxL  === _ 550 742  [[ 552 ]]  !jvms: TestUseOut::test @ bci:174 (line 41)
+  552  MaxL  === _ 551 790  [[ 553 ]]  !jvms: TestUseOut::test @ bci:183 (line 42)
+  553  MaxL  === _ 552 838  [[ 554 ]]  !jvms: TestUseOut::test @ bci:192 (line 43)
+  554  MaxL  === _ 553 886  [[ 555 ]]  !jvms: TestUseOut::test @ bci:201 (line 44)
+  555  MaxL  === _ 554 934  [[ 556 ]]  !jvms: TestUseOut::test @ bci:210 (line 45)
+  556  MaxL  === _ 555 982  [[ 557 ]]  !jvms: TestUseOut::test @ bci:219 (line 46)
+  557  MaxL  === _ 556 1030  [[ 558 ]]  !jvms: TestUseOut::test @ bci:228 (line 47)
+  558  MaxL  === _ 557 1078  [[ 559 ]]  !jvms: TestUseOut::test @ bci:237 (line 48)
+  559  MaxL  === _ 558 1126  [[ 560 ]]  !jvms: TestUseOut::test @ bci:246 (line 49)
+  560  MaxL  === _ 559 1174  [[ 561 ]]  !jvms: TestUseOut::test @ bci:255 (line 50)
+  561  MaxL  === _ 560 1222  [[ 562 ]]  !jvms: TestUseOut::test @ bci:264 (line 51)
+  562  MaxL  === _ 561 1270  [[ 563 ]]  !jvms: TestUseOut::test @ bci:273 (line 52)
+  563  MaxL  === _ 562 1318  [[ 564 ]]  !jvms: TestUseOut::test @ bci:282 (line 53)
+  564  MaxL  === _ 563 1366  [[ 584 119 ]]  !jvms: TestUseOut::test @ bci:291 (line 54)
+  584  Phi  === 54 564 22  [[ 587 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !jvms: TestUseOut::test @ bci:9 (line 19)
+#+end_src
+
+No use:
+#+begin_src bash
+ 147  MaxL  === _ 384 215  [[ 668 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 178  SafePoint  === 680 1 7 1 1 179 38 147 1 148 1 1  [[ 174 ]]  SafePoint  !orig=149 !jvms: Test::test @ bci:27 (line 19)
+ 322  Phi  === 314 301 147  [[ 240 247 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 529  MaxL  === _ 624 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 636  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 625  MaxL  === _ 626 640  [[ 624 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 626  MaxL  === _ 627 644  [[ 625 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 627  MaxL  === _ 628 648  [[ 626 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 628  MaxL  === _ 631 629  [[ 627 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 631  MaxL  === _ 632 654  [[ 628 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 632  MaxL  === _ 633 658  [[ 631 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 633  MaxL  === _ 668 634  [[ 632 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 668  Phi  === 665 301 147  [[ 633 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+#+end_src
+* 19.1.26
+Baseline loop args:
+#+begin_src bash
+ 147  MaxL  === _ 384 215  [[ 668 322 178 ]]  !orig=400 !jvms: Test::test @ bci:20 (line 21)
+ 232  MaxL  === _ 240 233  [[ 240 247 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 301  MaxL  === _ 309 302  [[ 309 322 668 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 322  Phi  === 314 301 147  [[ 240 247 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3
+ 384  MaxL  === _ 449 385  [[ 147 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 449  MaxL  === _ 450 453  [[ 384 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 450  MaxL  === _ 524 451  [[ 449 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 524  MaxL  === _ 527 525  [[ 450 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 527  MaxL  === _ 528 534  [[ 524 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 528  MaxL  === _ 529 538  [[ 527 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 529  MaxL  === _ 624 530  [[ 528 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 624  MaxL  === _ 625 636  [[ 529 ]]  !orig=147,400 !jvms: Test::test @ bci:20 (line 21)
+ 625  MaxL  === _ 626 640  [[ 624 ]]  !orig=384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 626  MaxL  === _ 627 644  [[ 625 ]]  !orig=449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 627  MaxL  === _ 628 648  [[ 626 ]]  !orig=450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 628  MaxL  === _ 631 629  [[ 627 ]]  !orig=524,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 631  MaxL  === _ 632 654  [[ 628 ]]  !orig=527,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 632  MaxL  === _ 633 658  [[ 631 ]]  !orig=528,449,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 633  MaxL  === _ 668 634  [[ 632 ]]  !orig=529,450,384,147,400 !jvms: Test::test @ bci:20 (line 21)
+ 665  CountedLoop  === 665 176 160  [[ 665 172 668 677 ]] inner stride: 16 main of N665 strip mined !orig=[550],[460],[389],[177],[168],[116] !jvms: Test::test @ bci:12 (line 20)
+ 668  Phi  === 665 301 147  [[ 633 ]]  #long:minint..maxlong, 0u..maxulong, widen: 3 !orig=551,463,392,119 !jvms: Test::test @ bci:12 (line 20)
+#+end_src
+
+Baseline
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ GEN=Base make
+cd /Users/g/src/colata/reassoc-reduct-chain-8351409/src/Base
+/Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:-UseSuperWord -XX:CompileCommand=compileonly,Test::test -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 Test.java
+[0.002s][info][os] Use of CLOCK_MONOTONIC is supported
+[0.002s][info][os] Use of pthread_condattr_setclock is not supported
+[0.002s][info][os] Relative timed-wait using pthread_cond_timedwait is associated with the default clock
+[0.002s][info][os] SafePoint Polling address, bad (protected) page:0x00000001048c8000, good (unprotected) page:0x00000001048cc000
+[0.004s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib
+[0.004s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib was successful
+CompileCommand: compileonly Test.test bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+[0.037s][info][os] Initialized VM with process ID 33390
+[0.046s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib
+[0.047s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib was successful
+[0.056s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib
+[0.056s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib was successful
+Validate
+Warmup
+Running
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Throughput: 224 ops/ms
+Validate
+#+end_src
+* 16.1.26
+Roland:
+#+begin_src bash
+ 812  MaxL  === _ 813 920  [[ 865 897 ]]  !orig=370 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:115 (line 33)
+ 813  MaxL  === _ 814 837  [[ 812 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:107 (line 32)
+ 814  MaxL  === _ 826 817  [[ 813 ]]  !orig=344 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:98 (line 31)
+ 815  MaxL  === _ 816 837  [[ 865 910 920 ]]  !orig=318 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:80 (line 29)
+ 816  MaxL  === _ 827 817  [[ 815 ]]  !orig=305 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:71 (line 28)
+ 826  MaxL  === _ 829 833  [[ 814 ]]  !orig=331 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:89 (line 30)
+ 827  MaxL  === _ 828 833  [[ 816 ]]  !orig=292 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:62 (line 27)
+ 828  MaxL  === _ 920 829  [[ 827 ]]  !orig=279 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:53 (line 26)
+ 829  LoadL  === 858 7 830  [[ 826 828 257 235 212 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=201 !jvms: TestCommonRolandLongMax::test @ bci:23 (line 22)
+
+  33  LoadL  === 5 7 31  [[ 74 910 920 105 ]]  @rawptr:BotPTR, idx=Raw; #long (does not depend only on test, raw access) !orig=[85] !jvms: TestCommonRolandLongMax::test @ bci:11 (line 21)
+ 829  LoadL  === 858 7 830  [[ 826 828 257 235 212 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=201 !jvms: TestCommonRolandLongMax::test @ bci:23 (line 22)
+ 833  LoadL  === 860 7 834  [[ 826 827 257 235 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=223 !jvms: TestCommonRolandLongMax::test @ bci:31 (line 23)
+ 817  LoadL  === 862 7 818  [[ 814 816 257 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=246 !jvms: TestCommonRolandLongMax::test @ bci:39 (line 24)
+ 837  LoadL  === 864 7 838  [[ 813 815 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=6; #long !orig=268 !jvms: TestCommonRolandLongMax::test @ bci:47 (line 25)
+ 872  Loop  === 872 868 173  [[ 855 872 920 926 ]] inner partial_peel  !orig=[809] !jvms: TestCommonRolandLongMax::test @ bci:139 (line 37)
+ 920  Phi  === 872 33 815  [[ 257 235 212 188 828 812 ]]  #long !orig=[917] !jvms: TestCommonRolandLongMax::test @ bci:139 (line 37)
+
+ MaxL.812(MaxL.813(..), Phi.920)
+ MaxL.813(MaxL.814(..), LoadL.837)
+ MaxL.814(MaxL.826(..), LoadL.817)
+ MaxL.815(MaxL.816(..), LoadL.837)
+ MaxL.816(MaxL.827(..), LoadL.817)
+ MaxL.826(LoadL.829, LoadL.833)
+ MaxL.827(MaxL.828(..), LoadL.833)
+ MaxL.828(Phi.920, LoadL.829)
+
+ Phi.920 has two MaxL uses: 828 and 812
+ Phi.920 has one MaxL input: 815
+   MaxL.815 (line 29) long u3 = Long.max(v3, u2);
+   -> MaxL.816 (line 28) long u2 = Long.max(v2, u1);
+   -> MaxL.827 (line 27) long u1 = Long.max(v1, u0);
+   -> MaxL.828 (line 26) long u0 = Long.max(v0, result);
+
+You have to go through uses to find the associative operation that is a use of Phi.
+This associative then has to have a use that is associative.
+Max(y, Max(x, Phi()))
+So it's fine that a Phi has multiple uses,
+you have to iterate through those.
+See this in action:
+
+ 920  Phi  === 872 33 815  [[ 257 235 212 188 828 812 ]]  #long !orig=[917] !jvms: TestCommonRolandLongMax::test @ bci:139 (line 37)
+
+Has two uses MaxL:
+
+ 828  MaxL  === _ 920 829  [[ 827 ]]  !orig=279 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:53 (line 26)
+ 812  MaxL  === _ 813 920  [[ 865 897 ]]  !orig=370 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:115 (line 33)
+
+We see that:
+
+MaxL.812(MaxL.813(), Phi) has 2 uses none of which are associative operations:
+ 865  SafePoint  === 864 1 375 1 1 810 72 815 1 812 1 811 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  [[ 172 ]]  SafePoint  !orig=374 !jvms: TestCommonRolandLongMax::test @ bci:129 (line 21)
+ 897  Phi  === 886 40 812  [[ 506 517 526 554 681 398 699 630 ]]  #long !jvms: TestCommonRolandLongMax::test @ bci:139 (line 37)
+
+MaxL.828(Phi, LoadL.829) has a single use which is associative, this is the interesting path:
+ 827  MaxL  === _ 828 833  [[ 816 ]]  !orig=292 !jvms: Long::max @ bci:2 (line 1949) TestCommonRolandLongMax::test @ bci:62 (line 27)
+
+#+end_src
+
+#+begin_src bash
+for (int i = 0; i < input_2.length; i += 4) {
+      long v0 = input_2[i + 0];
+      long v1 = input_2[i + 1];
+      long v2 = input_2[i + 2];
+      long v3 = input_2[i + 3];
+      long u0 = v0 + result;
+      long u1 = v1 + u0;
+      long u2 = v2 + u1;
+      long u3 = v3 + u2;
+      result = u3;
+      long t0 = v0 + v1;
+      long t1 = v2 + t0;
+      long t2 = v3 + t1;
+      long t3 = result + t2;
+      result2 = t3;
+}
+
+result(iteration i) = result(iteration i - 1) + v0 + v1 + v2 + v3
+result2(iteration i) = result(iteration i - 1) + result(iteration i) + v0 + v1 + v2 + v3
+
+result2(iteration i) = result(iteration i) + v0 + v1 + v2 + v3
+#+end_src
+
+** MaxL vs AddL v2
+Without Identity MaxL fails with:
+#+begin_src bash
+Missed Identity optimization:
+Old node:
+dist dump
+---------------------------------------------
+   1  932  MaxL  === _ 914 807  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+   1  807  MaxL  === _ 808 831  [[ 806 932 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+   0  806  MaxL  === _ 807 932  [[ 862 896 ]]  !orig=370 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:128 (line 76)
+New node:
+dist dump
+---------------------------------------------
+   1  807  MaxL  === _ 808 831  [[ 806 932 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+   1  914  Phi  === 866 30 932  [[ 229 200 170 257 932 ]]  #long !orig=[911] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+   0  932  MaxL  === _ 914 807  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+#+end_src
+
+MaxL:
+#+begin_src bash
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  914  Phi  === 866 30 809  [[ 229 200 170 257 822 ]]  #long !orig=[911] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] try reassociate; chain head:
+ 809  MaxL  === _ 810 831  [[ 806 862 914 904 ]]  !orig=318 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:90 (line 71)
+[avoid-cmov] after reassociate; new chain head:
+ 932  MaxL  === _ 914 931  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+
+AFTER: AFTER_LOOP_OPTS
+ 806  MaxL  === _ 807 809  [[ 862 896 ]]  !orig=370 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:128 (line 76)
+ 807  MaxL  === _ 808 831  [[ 932 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+ 932  MaxL  === _ 914 807  [[ 904 914 862 862 896 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+#+end_src
+
+AddL:
+#+begin_src bash
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  118  Phi  === 647 30 226  [[ 625 223 259 154 208 170 191 552 516 523 506 ]]  #long !jvms: TestReductionReassociation2::test_2 @ bci:11 (line 58)
+[avoid-cmov] try reassociate; chain head:
+ 226  AddL  === _ 213 225  [[ 118 230 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:80 (line 66)
+[avoid-cmov] after reassociate; new chain head:
+ 664  AddL  === _ 118 663  [[ 230 118 ]]  !orig=[226] !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+
+AFTER: AFTER_LOOP_OPTS
+ 229  AddL  === _ 213 228  [[ 230 664 ]]  !orig=[663] !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+ 664  AddL  === _ 118 229  [[ 230 118 ]]  !orig=[226] !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+#+end_src
+** MaxL vs AddL
+*** MaxL
+#+begin_src bash
+
+#+end_src
+
+#+begin_src bash
+Missed Identity optimization:
+Old node:
+dist dump
+---------------------------------------------
+   1  932  MaxL  === _ 914 807  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+   1  807  MaxL  === _ 808 831  [[ 806 932 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+   0  806  MaxL  === _ 807 932  [[ 862 896 ]]  !orig=370 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:128 (line 76)
+New node:
+dist dump
+---------------------------------------------
+   1  807  MaxL  === _ 808 831  [[ 806 932 ]]  !orig=357 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+   1  914  Phi  === 866 30 932  [[ 229 200 170 257 932 ]]  #long !orig=[911] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+   0  932  MaxL  === _ 914 807  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+
+MaxL.807(808, 831)
+MaxL.932(Phi.914, MaxL.807(..))
+MaxL.806(MaxL.807(..), MaxL.932(..))
+
+MaxL.932(Phi.914, MaxL.807(808, 831))
+MaxL.806(MaxL.807(808, 831), MaxL.932(..))
+
+MaxL.806(MaxL.807(808, 831), MaxL.932(Phi.914, MaxL.807(808, 831)))
+
+MaxL.806(MaxL.807, MaxL.932(Phi.914, MaxL.807))
+
+MaxL.806(MaxL.932(Phi.914, MaxL.807))
+#+end_src
+
+#+begin_src bash
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  914  Phi  === 866 30 809  [[ 229 200 170 257 822 ]]  #long !orig=[911] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] try reassociate; chain head:
+ 809  MaxL  === _ 810 831  [[ 806 862 914 904 ]]  !orig=318 !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:90 (line 71)
+[avoid-cmov] after reassociate; new chain head:
+ 932  MaxL  === _ 914 931  [[ 904 914 862 806 ]]  !orig=[809],318 !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+
+  124  Phi  === 811 22 300  [[ 264 ]]  #long !jvms: TestReductionReassociation3::test_122 @ bci:20 (line 64)
+  264  MaxL  === _ 124 858  [[ 276 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:63 (line 68)
+  276  MaxL  === _ 264 903  [[ 288 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:72 (line 69)
+  288  MaxL  === _ 276 951  [[ 300 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:81 (line 70)
+  300  MaxL  === _ 288 1000  [[ 348 374 812 124 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:90 (line 71)
+  312  MaxL  === _ 858 903  [[ 324 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:102 (line 73)
+  324  MaxL  === _ 312 951  [[ 336 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:111 (line 74)
+  336  MaxL  === _ 324 1000  [[ 348 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+  348  MaxL  === _ 300 336  [[ 375 812 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:128 (line 76)
+
+[avoid-cmov] try reassociate; chain length: 4
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:   124  Phi  === 811 22 300  [[ 264 ]]  #long !jvms: TestReductionReassociation3::test_122 @ bci:20 (line 64)
+[avoid-cmov] try reassociate; chain head:
+  300  MaxL  === _ 288 1000  [[ 348 374 812 124 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:90 (line 71)
+[avoid-cmov] after reassociate; new chain head:
+ 1052  MaxL  === _ 124 1051  [[ 124 812 374 348 ]]  !orig=[300] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+
+[avoid-cmov] before hash find insert:   348  MaxL  === _ 336 1052  [[ 375 812 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:128 (line 76)
+[avoid-cmov] after hash find insert: null
+[avoid-cmov] before hash find insert:  1052  MaxL  === _ 124 1051  [[ 124 812 374 348 ]]  !orig=[300] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert: null
+[avoid-cmov] before hash find insert:  1051  MaxL  === _ 1050 1000  [[ 1052 ]]  !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert: null
+[avoid-cmov] before hash find insert:  1050  MaxL  === _ 1049 951  [[ 1051 ]]  !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert: null
+[avoid-cmov] before hash find insert:  1049  MaxL  === _ 858 903  [[ 1050 ]]  !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert:   312  MaxL  === _ 858 903  [[ 324 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:102 (line 73)
+[avoid-cmov] before hash find insert:  1050  MaxL  === _ 312 951  [[ 1051 ]]  !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert:   324  MaxL  === _ 312 951  [[ 336 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:111 (line 74)
+[avoid-cmov] before hash find insert:  1051  MaxL  === _ 324 1000  [[ 1052 ]]  !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert:   336  MaxL  === _ 324 1000  [[ 348 ]]  !jvms: Long::max @ bci:2 (line 1949) TestReductionReassociation3::test_122 @ bci:120 (line 75)
+[avoid-cmov] before hash find insert:  1052  MaxL  === _ 124 336  [[ 124 812 374 812 ]]  !orig=[300] !jvms: TestReductionReassociation3::test_122 @ bci:149 (line 79)
+[avoid-cmov] after hash find insert: null
+
+#+end_src
 * 15.1.26
+Graph before:
+#+begin_src bash
+ 124  Phi  === 657 22 201  [[ 183 198 129 166 145 ]]  #long !jvms: TestReductionReassociation2::test_2 @ bci:20 (line 59)
+ 198  AddL  === _ 124 134  [[ 199 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:59 (line 63)
+ 199  AddL  === _ 150 198  [[ 200 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:66 (line 64)
+ 200  AddL  === _ 171 199  [[ 201 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:73 (line 65)
+ 201  AddL  === _ 188 200  [[ 241 205 124 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:80 (line 66)
+ 202  AddL  === _ 134 150  [[ 203 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:90 (line 68)
+ 203  AddL  === _ 171 202  [[ 204 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:97 (line 69)
+ 204  AddL  === _ 188 203  [[ 205 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+ 205  AddL  === _ 201 204  [[ 242 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:110 (line 71)
+#+end_src
+
+#+begin_src bash
+[avoid-cmov] try reassociate; chain head:
+ 201  AddL  === _ 188 200  [[ 241 205 124 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:80 (line 66)
+[avoid-cmov] after reassociate; new chain head:
+ 672  AddL  === _ 124 671  [[ 124 205 241 ]]  !orig=[201] !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+
+avoid-cmov] before hash find insert:  669  AddL  === _ 134 150  [[ 670 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+[avoid-cmov] after hash find insert:  202  AddL  === _ 134 150  [[ 203 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:90 (line 68)
+[avoid-cmov] before hash find insert:  670  AddL  === _ 171 202  [[ 671 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+[avoid-cmov] after hash find insert:  203  AddL  === _ 171 202  [[ 204 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:97 (line 69)
+[avoid-cmov] before hash find insert:  205  AddL  === _ 204 672  [[ 242 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:110 (line 71)
+[avoid-cmov] after hash find insert: null
+[avoid-cmov] before hash find insert:  671  AddL  === _ 188 203  [[ 672 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+[avoid-cmov] after hash find insert:  204  AddL  === _ 188 203  [[ 205 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+[avoid-cmov] before hash find insert:  672  AddL  === _ 124 204  [[ 124 205 241 ]]  !orig=[201] !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+[avoid-cmov] after hash find insert: null
+#+end_src
+
+Down to 5 nodes with a fix to walk through one of Phi outputs that is associative
+#+begin_src bash
+
+1) Method "public java.lang.Object[] compiler.loopopts.TestReductionReassociation2.test_2()" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={AFTER_LOOP_OPTS}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#ADD_L#_", "= 4"}, failOn={}, applyIfPlatform={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "After Loop Optimizations":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(AddL.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 5 = 4 [given]
+             - Matched nodes (5):
+               * 202  AddL  === _ 134 150  [[ 203 ]]  !orig=[669] !jvms: TestReductionReassociation2::test_2 @ bci:90 (line 68)
+               * 203  AddL  === _ 171 202  [[ 204 ]]  !orig=[670] !jvms: TestReductionReassociation2::test_2 @ bci:97 (line 69)
+               * 204  AddL  === _ 188 203  [[ 205 672 ]]  !orig=[671] !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+               * 205  AddL  === _ 204 672  [[ 242 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:110 (line 71)
+               * 672  AddL  === _ 124 204  [[ 124 205 241 ]]  !orig=[201] !jvms: TestReductionReassociation2::test_2 @ bci:129 (line 74)
+
+  55  IfTrue  === 54  [[ 59 ]] #1 !jvms: TestReductionReassociation2::test_2 @ bci:17 (line 58)
+  59  Region  === 59 236 55  [[ 59 264 239 240 241 242 ]] #reducible  !jvms: TestReductionReassociation2::test_2 @ bci:122 (line 74)
+ 124  Phi  === 657 22 672  [[ 183 672 129 166 145 ]]  #long !jvms: TestReductionReassociation2::test_2 @ bci:20 (line 59)
+ 134  Proj  === 129  [[ 202 145 183 166 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:24 (line 59)
+ 150  Proj  === 145  [[ 202 166 183 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:33 (line 60)
+ 171  Proj  === 166  [[ 203 183 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:42 (line 61)
+ 188  Proj  === 183  [[ 204 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:51 (line 62)
+ 242  Phi  === 59 205 22  [[ 489 264 558 540 413 384 375 364 ]]  #long !jvms: TestReductionReassociation2::test_2 @ bci:17 (line 58)
+
+ Phi.242(IfTrue.55, AddL.205, Region.59)
+
+ AddL.202(Proj.134, Proj.150)
+ AddL.203(Proj.171, AddL.202(..))
+ AddL.204(Proj.188, AddL.203(..))
+ AddL.672(Phi.124, AddL.204(..))
+ AddL.205(AddL.204(..), AddL.672())
+
+ Assume:
+ v0 = Proj.134
+ v1 = Proj.150
+ v2 = Proj.171
+ v3 = Proj.188
+ result = Phi.124
+
+ AddL.672(result, AddL.204(v3, AddL.203(v2, AddL.202(v0, v1))))
+ AddL.205(AddL.204(..), AddL.672())
+
+ AddL.672(result, v3 + v2 + v0 + v1)
+ AddL.205(v3 + v2 + v0 + v1, AddL.672())
+
+ AddL.205(v3 + v2 + v0 + v1, result + v3 + v2 + v0 + v1))
+
+ AddL.202(Proj.134, Proj.150) // long u1 = v1 + u0;
+ AddL.203(Proj.171, AddL.202(..)) // long u2 = v2 + u1;
+ AddL.204(Proj.188, AddL.203(..)) // long u3 = v3 + u2;
+ AddL.672(Phi.124, AddL.204(..)) // 
+ AddL.205(AddL.204(..), AddL.672()) // 
+
+ long u0 = v0 + result;
+ long u1 = v1 + u0;
+ long u2 = v2 + u1;
+ long u3 = v3 + u2;
+ result = u3;
+ long t0 = v0 + v1;
+ long t1 = v2 + t0;
+ long t2 = v3 + t1;
+ long t3 = result + t2;
+ result2 = t3;
+
+ long u0 = v0 + result;
+ long u1 = v1 + u0;
+ long u2 = v2 + u1;
+ long u3 = v3 + u2;
+ result = u3;
+ // t2 == u3
+ long t3 = result + u3; // AddL.672?
+ result2 = t3;
+#+end_src
+
+Dont Inline experiment in ~TestUnrollLongAdd-dontinline.log~:
+#+begin_src bash
+ 140  Phi  === 260 33 241  [[ 253 238 223 169 206 185 ]]  #long !jvms: TestUnrollLongAdd::test @ bci:6 (line 19)
+ 169  CallStaticJava  === 164 137 142 8 1 (141 157 157 140 1 141 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 170 171 172 174 ]] # Static  TestUnrollLongAdd::getArrayLong_dontinline long/half ( int, aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot ) TestUnrollLongAdd::test @ bci:16 (line 20) !jvms: TestUnrollLongAdd::test @ bci:16 (line 20)
+ 185  CallStaticJava  === 177 171 172 8 1 (184 157 157 140 1 141 174 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 186 187 188 190 ]] # Static  TestUnrollLongAdd::getArrayLong_dontinline long/half ( int, aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot ) TestUnrollLongAdd::test @ bci:25 (line 21) !jvms: TestUnrollLongAdd::test @ bci:25 (line 21)
+ 206  CallStaticJava  === 193 187 188 8 1 (205 157 157 140 1 141 174 1 190 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 207 208 209 211 ]] # Static  TestUnrollLongAdd::getArrayLong_dontinline long/half ( int, aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot ) TestUnrollLongAdd::test @ bci:34 (line 22) !jvms: TestUnrollLongAdd::test @ bci:34 (line 22)
+ 223  CallStaticJava  === 214 208 209 8 1 (222 157 157 140 1 141 174 1 190 1 211 1 1 1 1 1 1 1 1 1 1 1 ) [[ 224 225 226 228 ]] # Static  TestUnrollLongAdd::getArrayLong_dontinline long/half ( int, aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot ) TestUnrollLongAdd::test @ bci:43 (line 23) !jvms: TestUnrollLongAdd::test @ bci:43 (line 23)
+ 238  AddL  === _ 140 174  [[ 239 ]]  !jvms: TestUnrollLongAdd::test @ bci:51 (line 24)
+ 239  AddL  === _ 190 238  [[ 240 ]]  !jvms: TestUnrollLongAdd::test @ bci:58 (line 25)
+ 240  AddL  === _ 211 239  [[ 241 ]]  !jvms: TestUnrollLongAdd::test @ bci:65 (line 26)
+ 241  AddL  === _ 228 240  [[ 140 ]]  !jvms: TestUnrollLongAdd::test @ bci:72 (line 27)
+ 253  Return  === 165 137 16 8 9 returns 140  [[ 0 ]]
+#+end_src
+
+Moved array extraction to a separate method and made it non inline, then it fails with:
+#+begin_src bash
+         * Constraint 1: "(\d+(\s){2}(AddL.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 8 = 4 [given]
+             - Matched nodes (8):
+               * 198  AddL  === _ 124 134  [[ 199 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:59 (line 63)
+               * 199  AddL  === _ 150 198  [[ 200 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:66 (line 64)
+               * 200  AddL  === _ 171 199  [[ 201 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:73 (line 65)
+               * 201  AddL  === _ 188 200  [[ 241 205 124 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:80 (line 66)
+               * 202  AddL  === _ 134 150  [[ 203 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:90 (line 68)
+               * 203  AddL  === _ 171 202  [[ 204 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:97 (line 69)
+               * 204  AddL  === _ 188 203  [[ 205 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+               * 205  AddL  === _ 201 204  [[ 242 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:110 (line 71)
+
+ 198  AddL  === _ 124 134  [[ 199 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:59 (line 63)
+ 199  AddL  === _ 150 198  [[ 200 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:66 (line 64)
+ 200  AddL  === _ 171 199  [[ 201 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:73 (line 65)
+ 201  AddL  === _ 188 200  [[ 241 205 124 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:80 (line 66)
+ 202  AddL  === _ 134 150  [[ 203 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:90 (line 68)
+ 203  AddL  === _ 171 202  [[ 204 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:97 (line 69)
+ 204  AddL  === _ 188 203  [[ 205 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:104 (line 70)
+ 205  AddL  === _ 201 204  [[ 242 ]]  !jvms: TestReductionReassociation2::test_2 @ bci:110 (line 71)
+
+ 124  Phi  === 657 22 201  [[ 183 198 129 166 145 ]]  #long !jvms: TestReductionReassociation2::test_2 @ bci:20 (line 59)
+ 129  CallStaticJava  === 657 122 123 8 1 (125 1 124 1 1 1 125 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 130 131 132 134 ]] # Static  compiler.loopopts.TestReductionReassociation2::getArrayLong_dontinline long/half ( int ) TestReductionReassociation2::test_2 @ bci:24 (line 59) !jvms: TestReductionReassociation2::test_2 @ bci:24 (line 59)
+ 134  Proj  === 129  [[ 202 145 198 166 183 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:24 (line 59)
+
+ 145  CallStaticJava  === 137 131 132 8 1 (144 1 124 1 1 1 125 134 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 146 147 148 150 ]] # Static  compiler.loopopts.TestReductionReassociation2::getArrayLong_dontinline long/half ( int ) TestReductionReassociation2::test_2 @ bci:33 (line 60) !jvms: TestReductionReassociation2::test_2 @ bci:33 (line 60)
+ 150  Proj  === 145  [[ 202 166 199 183 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:33 (line 60)
+
+ 166  CallStaticJava  === 153 147 148 8 1 (165 1 124 1 1 1 125 134 1 150 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 167 168 169 171 ]] # Static  compiler.loopopts.TestReductionReassociation2::getArrayLong_dontinline long/half ( int ) TestReductionReassociation2::test_2 @ bci:42 (line 61) !jvms: TestReductionReassociation2::test_2 @ bci:42 (line 61)
+ 171  Proj  === 166  [[ 203 183 200 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:42 (line 61)
+
+ 183  CallStaticJava  === 174 168 169 8 1 (182 1 124 1 1 1 125 134 1 150 1 171 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ) [[ 184 185 186 188 ]] # Static  compiler.loopopts.TestReductionReassociation2::getArrayLong_dontinline long/half ( int ) TestReductionReassociation2::test_2 @ bci:51 (line 62) !jvms: TestReductionReassociation2::test_2 @ bci:51 (line 62)
+ 188  Proj  === 183  [[ 204 201 ]] #5 !jvms: TestReductionReassociation2::test_2 @ bci:51 (line 62)
+
+ AddL.198(Phi.124, Proj.134(CallStaticJava.129))
+ AddL.199(Proj.150(CallStaticJava.145), AddL.198(..))
+ AddL.200(Proj.171(CallStaticJava.166), AddL.199(..))
+ AddL.201(Proj.188(CallStaticJava.183), AddL.200(..))
+
+ AddL.202(Proj.134(..), Proj.150(..))
+ AddL.203(Proj.171(..), AddL.202(..))
+ AddL.204(Proj.188(..), AddL.203(..))
+ AddL.205(AddL.201(..), AddL.204(..))
+#+end_src
+
 Investigating the AddL nodes with ConvI2L nodes.
 
 Why do ConvI2L nodes get created?
