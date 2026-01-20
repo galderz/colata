@@ -22,6 +22,27 @@ Can reassociate to non-power-of-2 chains.
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
 * 20.1.26
+** Progress
+AddNode subclasses:
+- [X] XorINode
+- [X] XorLNode
+- [X] OrINode
+- [X] OrLNode
+- [X] AddINode
+- [X] AddLNode
+- [X] MaxDNode
+- [X] MaxFNode
+- [-] MaxHFNode
+- [X] MaxINode
+- [X] MaxLNode
+- [X] MinDNode
+- [X] MinFNode
+- [-] MinHFNode
+- [X] MinINode
+- [X] MinLNode
+- [-] AddDNode (not associative)
+- [-] AddFNode (not associative)
+- [-] AddHFNode (not associative)
 ** Use replicate 2nd
 Use last:
 #+begin_src bash
