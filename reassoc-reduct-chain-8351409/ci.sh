@@ -14,6 +14,9 @@ tests=(
     "test/hotspot/jtreg/compiler/intrinsics/sha/sanity/TestSHA1Intrinsics.java"
     "test/hotspot/jtreg/compiler/loopopts/superword/ReductionPerf.java"
     "test/hotspot/jtreg/compiler/vectorapi/VectorMaskLoadStoreTest.java"
+    "test/hotspot/jtreg/compiler/c2/cmove/TestFPComparison2.java"
+    "test/hotspot/jtreg/compiler/loopopts/superword/RedTest_int.java"
+    "test/hotspot/jtreg/compiler/loopopts/superword/RedTest_long.java"
 )
 
 TEST="${tests[*]}" make jtreg

@@ -22,6 +22,22 @@ Can reassociate to non-power-of-2 chains.
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
 * 21.1.26
+** after fix
+new errors:
+#+begin_src bash
+compiler/c2/cmove/TestFPComparison2.java: The test is to trigger code path of BoolTest::ge/gt in C2_MacroAssembler::enc_cmove_cmp_fp
+compiler/loopopts/superword/RedTest_int.java: Add C2 x86 Superword support for scalar logical reduction optimizations : int test
+compiler/loopopts/superword/RedTest_long.java: Add C2 x86 Superword support for scalar logical reduction optimizations : long test
+#+end_src
+
+patch
+#+begin_src bash
+Test results: passed: 2,052; failed: 8; error: 35; skipped: 6; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
+base:
+#+begin_src bash
+Test results: passed: 2,053; failed: 8; error: 32; skipped: 6; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
 ** sum max
 #+begin_src bash
  277  AddL  === _ 296 278  [[ 296 301 310 ]]  !orig=217,192 !jvms: TestSumMax::test @ bci:24 (line 21)
