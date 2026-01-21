@@ -78,7 +78,7 @@ ifdef SUPER_ARGS
   jvm_args += $(super_jvm_args)
 endif
 
-ifdef BRANCH_NEVER_MAX
+ifdef REASSOC
   jvm_args += -XX:+UseNewCode
 endif
 

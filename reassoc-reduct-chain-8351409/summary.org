@@ -21,6 +21,152 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 21.1.26
+** sum max
+#+begin_src bash
+ 277  AddL  === _ 296 278  [[ 296 301 310 ]]  !orig=217,192 !jvms: TestSumMax::test @ bci:24 (line 21)
+ 278  MaxL  === _ 296 279  [[ 277 ]]  !orig=218,191 !jvms: TestSumMax::test @ bci:21 (line 21)
+ 296  Phi  === 288 33 277  [[ 277 278 313 ]]  #long !orig=[253],247
+ 313  Phi  === 305 296 344  [[ 178 ]]  #long
+
+
+
+[avoid-cmov] try reassociate; chain length: 2
+[avoid-cmov] try reassociate:
+[avoid-cmov] phi:  296  Phi  === 288 33 277  [[ 277 278 313 ]]  #long !orig=[253],247
+[avoid-cmov] try reassociate; chain head:
+ 277  AddL  === _ 296 278  [[ 296 301 310 ]]  !orig=217,192 !jvms: TestSumMax::test @ bci:24 (line 21)
+[avoid-cmov] after reassociate; new chain head:
+ 677  MaxL  === _ 296 278  [[ 310 301 296 ]]  !orig=[277],217,192 !jvms: TestSumMax::test @ bci:24 (line 21)
+#+end_src
+** compiler suite base vs patch
+detail:
+base:
+#+begin_src bash
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/c2/irTests/TestDuplicateBackedge.d/driver.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.irmatching.IRViolationException: There were one or multiple IR rule failures. Please check stderr for more information.
+
+2 warnings
+
+TEST RESULT: Failed. Compilation failed: Compilation failed
+--
+3 errors
+
+TEST RESULT: Failed. Compilation failed: Compilation failed
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/cpuflags/TestAESIntrinsicsOnSupportedConfig.d/main.4.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.AssertionError: Expected message not found: 'com\.sun\.crypto\.provider\.CipherBlockChaining::(implEncrypt|implDecrypt) \([0-9]+ bytes\)\s+\(intrinsic[,\)]'. Case testUseAES failed
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/gallery/TestNormalMapping_visual.d/main.0.jta visual
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.awt.HeadlessException: No X11 DISPLAY variable was set, or no headful library support was found, but this program performed an operation which requires it.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/jvmci/compilerToVM/IterateFramesNative.d/main.5.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.UnsatisfiedLinkError: no IterateFramesNative in java.library.path: /usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/jvmci/jdk.vm.ci.runtime.test/src/jdk/vm/ci/runtime/test/ConstantPoolTest.d/testng.1.jta compiler/jvmci/jdk.vm.ci.runtime.test/src/jdk/vm/ci/runtime/test/ConstantPoolTest.java false jdk.vm.ci.runtime.test.ConstantPoolTest
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.Exception: config failures: 0, test failures: 1
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/colata/jdk-latest/JTwork/compiler/jvmci/TestUncaughtErrorInCompileMethod.d/driver.3.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Expected to get exit value of [0], exit value is: [134]
+#+end_src
+patch:
+#+begin_src bash
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/c2/irTests/TestDuplicateBackedge.d/driver.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.irmatching.IRViolationException: There were one or multiple IR rule failures. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/c2/Test5091921.d/main.0.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+2 warnings
+
+TEST RESULT: Failed. Compilation failed: Compilation failed
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/codecache/TestStressCodeBuffers.d/main.0.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+3 errors
+
+TEST RESULT: Failed. Compilation failed: Compilation failed
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/cpuflags/TestAESIntrinsicsOnSupportedConfig.d/main.4.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.AssertionError: Expected message not found: 'com\.sun\.crypto\.provider\.CipherBlockChaining::(implEncrypt|implDecrypt) \([0-9]+ bytes\)\s+\(intrinsic[,\)]'. Case testUseAES failed
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/gallery/TestNormalMapping_visual.d/main.0.jta visual
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.awt.HeadlessException: No X11 DISPLAY variable was set, or no headful library support was found, but this program performed an operation which requires it.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/gcbarriers/TestMinMaxLongLoopBarrier.d/driver.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.TestVMException: There were one or multiple errors. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA1Intrinsics.d/main.4.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.Exception: java.lang.Exception: TestDigest Error
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA1MultiBlockIntrinsics.d/main.4.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.Exception: java.lang.Exception: TestDigest Error
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA256Intrinsics.d/main.4.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA256MultiBlockIntrinsics.d/main.4.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA512Intrinsics.d/main.4.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 139]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/sanity/TestSHA512MultiBlockIntrinsics.d/main.4.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 139]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/intrinsics/sha/TestDigest.d/main.2.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/jvmci/compilerToVM/IterateFramesNative.d/main.5.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.UnsatisfiedLinkError: no IterateFramesNative in java.library.path: /usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/jvmci/jdk.vm.ci.runtime.test/src/jdk/vm/ci/runtime/test/ConstantPoolTest.d/testng.1.jta compiler/jvmci/jdk.vm.ci.runtime.test/src/jdk/vm/ci/runtime/test/ConstantPoolTest.java false jdk.vm.ci.runtime.test.ConstantPoolTest
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.Exception: config failures: 0, test failures: 1
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/jvmci/TestUncaughtErrorInCompileMethod.d/driver.3.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Expected to get exit value of [0], exit value is: [134]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/ReductionPerf.d/main.0.jta
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/RedTest_int.d/driver.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.shared.TestRunException: The following scenarios have failed: #0, #3, #4, #5. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/RedTest_long.d/driver.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.shared.TestRunException: The following scenarios have failed: #0, #3, #4, #5. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestLoopPhiApplyBadType_all-flags-2.d/main.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Failure
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestLoopPhiApplyBadType_fewer-flags-2.d/main.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Failure
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestLoopPhiApplyBadType_minimal-flags.d/main.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Failure
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestLoopPhiApplyBadType_no-flags.d/main.0.jta
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: Failure
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestReductions_force-vectorization.d/driver.0.jta P2
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.TestVMException: There were one or multiple errors. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/loopopts/superword/TestReductions_no-vectorization.d/driver.0.jta P0
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.TestVMException: There were one or multiple errors. Please check stderr for more information.
+
+        com.sun.javatest.regtest.agent.MainWrapper /home/g/src/jdk-reassoc-reduct-chain/JTwork/compiler/vectorapi/VectorMaskLoadStoreTest_id1.d/testng.0.jta compiler/vectorapi/VectorMaskLoadStoreTest.java#id1 false compiler.vectorapi.VectorMaskLoadStoreTest
+TEST RESULT: Failed. Unexpected exit from test [exit code: 134]
+#+end_src
+
+summary
+base:
+#+begin_src bash
+Test results: passed: 2,053; failed: 8; error: 32; skipped: 6; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
+patch:
+#+begin_src bash
+Test results: passed: 2,034; failed: 28; error: 32; skipped: 6; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
 * 20.1.26
 ** Progress
 AddNode subclasses:
@@ -502,8 +648,8 @@ Down to 5 nodes with a fix to walk through one of Phi outputs that is associativ
  AddL.202(Proj.134, Proj.150) // long u1 = v1 + u0;
  AddL.203(Proj.171, AddL.202(..)) // long u2 = v2 + u1;
  AddL.204(Proj.188, AddL.203(..)) // long u3 = v3 + u2;
- AddL.672(Phi.124, AddL.204(..)) // 
- AddL.205(AddL.204(..), AddL.672()) // 
+ AddL.672(Phi.124, AddL.204(..)) //
+ AddL.205(AddL.204(..), AddL.672()) //
 
  long u0 = v0 + result;
  long u1 = v1 + u0;
