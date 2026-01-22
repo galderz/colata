@@ -78,3 +78,7 @@ benchmark_branch "topic.reassoc-reduct-chain" "" "noprof"
 benchmark_branch "topic.reassoc-reduct-chain.base" "-prof ${ASM_PROFILER}" "perfasm"
 benchmark_branch "topic.reassoc-reduct-chain.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 benchmark_branch "topic.reassoc-reduct-chain.base" "" "noprof"
+
+zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
+zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
+zip -j "$zipfile" "$zipdir"/*.csv && realpath "$zipfile"
