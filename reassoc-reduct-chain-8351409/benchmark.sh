@@ -30,7 +30,7 @@ benchmark_all()
     local rff_prefix=$3
 
     log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rff_prefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
+    # log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
@@ -38,9 +38,9 @@ benchmark_branch()
     local branch=$1
     local extra_args=$2
     local rff_suffix=$3
-    local common_args="-p includeEquals=true -bm thrpt -tu ms"
+    local common_args="-bm thrpt -tu ms"
 
-    pushd $HOME/src/jdk-avoid-cmov-long-min-max
+    pushd $HOME/src/jdk-reassoc-reduct-chain
     git checkout ${branch}
     popd
 
@@ -50,9 +50,7 @@ benchmark_branch()
     fi
 
     if [[ $branch != *base ]]; then
-        # Branch never max:  -XX:+UseNewCode
-        # Branch never min:  -XX:+UseNewCode2
-        benchmark_all ${branch} "${extra_args} ${common_args} -jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -jvmArgsAppend -XX:+UseNewCode2;FORK=1" "branch-never-${rff_suffix}"
+        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "patch-${rff_suffix}"
     else
         benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "base-${rff_suffix}"
     fi
@@ -74,9 +72,9 @@ CONF=release make clean-csv
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.avoid-cmov.0521.aarch64-x64" "" "noprof"
-benchmark_branch "topic.avoid-cmov.0521.base" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.avoid-cmov.0521.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.avoid-cmov.0521.base" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark_branch "topic.reassoc-reduct-chain" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.base" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.base" "" "noprof"
