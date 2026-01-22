@@ -257,7 +257,7 @@ public class BenchmarkCompare
         for (Path path : csvPaths)
         {
             final String fileName = path.getFileName().toString();
-            final Label label = fileName.endsWith("-base.csv") ? Label.BASE : Label.PATCH;
+            final Label label = fileName.startsWith("base-") ? Label.BASE : Label.PATCH;
             labelCsvPaths.put(label, path);
         }
 
