@@ -39,3 +39,4 @@ echo "Copied failing/error .jtr files into '$OUT_DIR'"
 ZIP_NAME="$OUT_DIR.zip"
 zip -r "$ZIP_NAME" "$OUT_DIR" >/dev/null
 echo "Created zip: $ZIP_NAME"
+realpath "$ZIP_NAME"
