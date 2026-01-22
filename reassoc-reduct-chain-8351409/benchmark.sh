@@ -29,7 +29,7 @@ benchmark_all()
     local extra_args=$2
     local rff_prefix=$3
 
-    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rff_prefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword\" MICRO=\"OPTIONS=-rff ${rff_prefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
     # log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
