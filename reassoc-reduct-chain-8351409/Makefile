@@ -24,7 +24,9 @@ base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:-UseSuperWord
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
-base_jvm_args += -XX:VerifyIterativeGVN=1000
+ifneq ($(CONF),release)
+  base_jvm_args += -XX:VerifyIterativeGVN=1000
+endif
 
 ifdef NO_LOOP_UNROLL
   # Disabling loop unrolling.
