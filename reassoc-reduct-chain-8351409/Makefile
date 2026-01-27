@@ -110,7 +110,7 @@ compile: $(java)
 > $(javap) -v $(CLASS).class
 .PHONY: compile
 
-run: clear-logs $(java)
+run: print-branch-commit clear-logs $(java)
 > $(java) \
 >   $(jvm_args) $(shell pwd)/$(CLASS).java
 .PHONY: run
@@ -172,7 +172,7 @@ gen: $(java)
 > $(java) -cp $(gen_lib_dir)/* src-gen/Gen.java $(GEN)
 .PHONY: gen
 
-run-gen: $(java)
+run-gen: print-branch-commit $(java)
 > cd $(src)
 > $(java) \
 >   $(jvm_args) Test.java

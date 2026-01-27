@@ -342,6 +342,11 @@ print-jtreg-bin:
 > $(info $(jtreg_bin))
 .PHONY: print-jtreg-bin
 
+print-branch-commit:
+> cd $(JDK_HOME)
+> git log -1 --pretty=format:'%D%n%h %s'
+.PHONY: print-branch-commit
+
 update-build-docs:
 > cd $(JDK_HOME)
 > CONF=$(conf_name) make update-build-docs
