@@ -22,6 +22,859 @@ Can reassociate to non-power-of-2 chains.
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
 * 22.1.26
+** with superword
+*** performance up
+#+begin_src bash
+Benchmark                                           (SIZE)  (seed)   Mode  Cnt       Base      Patch   Units   Diff
+VectorReduction2.WithSuperword.byteMaxBig             2048       0  thrpt    3    270.808    295.733  ops/ms    +9%
+VectorReduction2.WithSuperword.byteMaxDotProduct      2048       0  thrpt    3    416.865    483.741  ops/ms   +16%
+VectorReduction2.WithSuperword.byteMaxSimple          2048       0  thrpt    3    461.964    574.125  ops/ms   +24%
+VectorReduction2.WithSuperword.byteMinBig             2048       0  thrpt    3    270.952    295.729  ops/ms    +9%
+VectorReduction2.WithSuperword.byteMinDotProduct      2048       0  thrpt    3    416.754    483.777  ops/ms   +16%
+VectorReduction2.WithSuperword.byteMinSimple          2048       0  thrpt    3    461.955    574.010  ops/ms   +24%
+VectorReduction2.WithSuperword.byteOrBig              2048       0  thrpt    3    311.531    342.391  ops/ms   +10%
+VectorReduction2.WithSuperword.charMaxDotProduct      2048       0  thrpt    3    423.346    508.457  ops/ms   +20%
+VectorReduction2.WithSuperword.charMaxSimple          2048       0  thrpt    3    464.078    987.273  ops/ms  +113%
+VectorReduction2.WithSuperword.charMinDotProduct      2048       0  thrpt    3    430.221    507.495  ops/ms   +18%
+VectorReduction2.WithSuperword.charMinSimple          2048       0  thrpt    3    463.839    986.987  ops/ms  +113%
+VectorReduction2.WithSuperword.charOrSimple           2048       0  thrpt    3    924.255   1552.109  ops/ms   +68%
+VectorReduction2.WithSuperword.charXorSimple          2048       0  thrpt    3    924.014   1551.430  ops/ms   +68%
+VectorReduction2.WithSuperword.shortMaxDotProduct     2048       0  thrpt    3    433.411    508.707  ops/ms   +17%
+VectorReduction2.WithSuperword.shortMaxSimple         2048       0  thrpt    3    463.843    987.276  ops/ms  +113%
+VectorReduction2.WithSuperword.shortMinDotProduct     2048       0  thrpt    3    433.340    508.695  ops/ms   +17%
+VectorReduction2.WithSuperword.shortMinSimple         2048       0  thrpt    3    463.968    987.562  ops/ms  +113%
+VectorReduction2.WithSuperword.shortOrSimple          2048       0  thrpt    3    924.372   1551.642  ops/ms   +68%
+VectorReduction2.WithSuperword.shortXorSimple         2048       0  thrpt    3    924.331   1552.338  ops/ms   +68%
+#+end_src
+*** performance down
+#+begin_src bash
+Benchmark                                           (SIZE)  (seed)   Mode  Cnt       Base      Patch   Units   Diff
+VectorReduction2.WithSuperword.charMaxBig             2048       0  thrpt    3    320.193    288.223  ops/ms   -10%
+VectorReduction2.WithSuperword.charMinBig             2048       0  thrpt    3    319.897    288.153  ops/ms   -10%
+VectorReduction2.WithSuperword.charOrBig              2048       0  thrpt    3    361.109    327.742  ops/ms    -9%
+VectorReduction2.WithSuperword.charXorBig             2048       0  thrpt    3    311.954    201.986  ops/ms   -35%
+VectorReduction2.WithSuperword.charXorDotProduct      2048       0  thrpt    3    621.685    539.482  ops/ms   -13%
+VectorReduction2.WithSuperword.shortMaxBig            2048       0  thrpt    3    308.113    196.756  ops/ms   -36%
+VectorReduction2.WithSuperword.shortMinBig            2048       0  thrpt    3    308.262    196.788  ops/ms   -36%
+VectorReduction2.WithSuperword.shortOrBig             2048       0  thrpt    3    356.743    292.456  ops/ms   -18%
+VectorReduction2.WithSuperword.shortXorBig            2048       0  thrpt    3    305.427    174.760  ops/ms   -43%
+VectorReduction2.WithSuperword.shortXorDotProduct     2048       0  thrpt    3    621.842    540.086  ops/ms   -13%
+#+end_src
+*** compare
+#+begin_src bash
+Benchmark                                           (SIZE)  (seed)   Mode  Cnt       Base      Patch   Units   Diff
+VectorReduction2.WithSuperword.byteAddBig             2048       0  thrpt    3    307.266    307.178  ops/ms     0%
+VectorReduction2.WithSuperword.byteAddDotProduct      2048       0  thrpt    3    397.532    397.507  ops/ms     0%
+VectorReduction2.WithSuperword.byteAddSimple          2048       0  thrpt    3    462.270    462.343  ops/ms     0%
+VectorReduction2.WithSuperword.byteAndBig             2048       0  thrpt    3    311.600    311.570  ops/ms     0%
+VectorReduction2.WithSuperword.byteAndDotProduct      2048       0  thrpt    3    631.137    631.352  ops/ms     0%
+VectorReduction2.WithSuperword.byteAndSimple          2048       0  thrpt    3    790.631    790.664  ops/ms     0%
+VectorReduction2.WithSuperword.byteMaxBig             2048       0  thrpt    3    270.808    295.733  ops/ms    +9%
+VectorReduction2.WithSuperword.byteMaxDotProduct      2048       0  thrpt    3    416.865    483.741  ops/ms   +16%
+VectorReduction2.WithSuperword.byteMaxSimple          2048       0  thrpt    3    461.964    574.125  ops/ms   +24%
+VectorReduction2.WithSuperword.byteMinBig             2048       0  thrpt    3    270.952    295.729  ops/ms    +9%
+VectorReduction2.WithSuperword.byteMinDotProduct      2048       0  thrpt    3    416.754    483.777  ops/ms   +16%
+VectorReduction2.WithSuperword.byteMinSimple          2048       0  thrpt    3    461.955    574.010  ops/ms   +24%
+VectorReduction2.WithSuperword.byteMulBig             2048       0  thrpt    3    230.416    230.396  ops/ms     0%
+VectorReduction2.WithSuperword.byteMulDotProduct      2048       0  thrpt    3    231.414    231.340  ops/ms     0%
+VectorReduction2.WithSuperword.byteMulSimple          2048       0  thrpt    3    232.943    232.889  ops/ms     0%
+VectorReduction2.WithSuperword.byteOrBig              2048       0  thrpt    3    311.531    342.391  ops/ms   +10%
+VectorReduction2.WithSuperword.byteOrDotProduct       2048       0  thrpt    3    632.636    635.232  ops/ms     0%
+VectorReduction2.WithSuperword.byteOrSimple           2048       0  thrpt    3    790.192    787.565  ops/ms     0%
+VectorReduction2.WithSuperword.byteXorBig             2048       0  thrpt    3    344.813    344.457  ops/ms     0%
+VectorReduction2.WithSuperword.byteXorDotProduct      2048       0  thrpt    3    653.181    634.046  ops/ms    -3%
+VectorReduction2.WithSuperword.byteXorSimple          2048       0  thrpt    3    790.624    790.453  ops/ms     0%
+VectorReduction2.WithSuperword.charAddBig             2048       0  thrpt    3    278.876    278.693  ops/ms     0%
+VectorReduction2.WithSuperword.charAddDotProduct      2048       0  thrpt    3    401.025    401.013  ops/ms     0%
+VectorReduction2.WithSuperword.charAddSimple          2048       0  thrpt    3    463.266    463.170  ops/ms     0%
+VectorReduction2.WithSuperword.charAndBig             2048       0  thrpt    3    361.060    360.951  ops/ms     0%
+VectorReduction2.WithSuperword.charAndDotProduct      2048       0  thrpt    3    680.814    681.147  ops/ms     0%
+VectorReduction2.WithSuperword.charAndSimple          2048       0  thrpt    3    924.092    924.302  ops/ms     0%
+VectorReduction2.WithSuperword.charMaxBig             2048       0  thrpt    3    320.193    288.223  ops/ms   -10%
+VectorReduction2.WithSuperword.charMaxDotProduct      2048       0  thrpt    3    423.346    508.457  ops/ms   +20%
+VectorReduction2.WithSuperword.charMaxSimple          2048       0  thrpt    3    464.078    987.273  ops/ms  +113%
+VectorReduction2.WithSuperword.charMinBig             2048       0  thrpt    3    319.897    288.153  ops/ms   -10%
+VectorReduction2.WithSuperword.charMinDotProduct      2048       0  thrpt    3    430.221    507.495  ops/ms   +18%
+VectorReduction2.WithSuperword.charMinSimple          2048       0  thrpt    3    463.839    986.987  ops/ms  +113%
+VectorReduction2.WithSuperword.charMulBig             2048       0  thrpt    3    209.969    209.934  ops/ms     0%
+VectorReduction2.WithSuperword.charMulDotProduct      2048       0  thrpt    3    231.396    231.428  ops/ms     0%
+VectorReduction2.WithSuperword.charMulSimple          2048       0  thrpt    3    232.988    232.996  ops/ms     0%
+VectorReduction2.WithSuperword.charOrBig              2048       0  thrpt    3    361.109    327.742  ops/ms    -9%
+VectorReduction2.WithSuperword.charOrDotProduct       2048       0  thrpt    3    677.813    667.551  ops/ms    -2%
+VectorReduction2.WithSuperword.charOrSimple           2048       0  thrpt    3    924.255   1552.109  ops/ms   +68%
+VectorReduction2.WithSuperword.charXorBig             2048       0  thrpt    3    311.954    201.986  ops/ms   -35%
+VectorReduction2.WithSuperword.charXorDotProduct      2048       0  thrpt    3    621.685    539.482  ops/ms   -13%
+VectorReduction2.WithSuperword.charXorSimple          2048       0  thrpt    3    924.014   1551.430  ops/ms   +68%
+VectorReduction2.WithSuperword.doubleAddBig           2048       0  thrpt    3    183.057    183.059  ops/ms     0%
+VectorReduction2.WithSuperword.doubleAddDotProduct    2048       0  thrpt    3    233.823    234.035  ops/ms     0%
+VectorReduction2.WithSuperword.doubleAddSimple        2048       0  thrpt    3    236.282    236.292  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMaxBig           2048       0  thrpt    3    271.505    270.925  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMaxDotProduct    2048       0  thrpt    3    272.008    271.973  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMaxSimple        2048       0  thrpt    3    377.230    377.369  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMinBig           2048       0  thrpt    3    321.070    320.753  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMinDotProduct    2048       0  thrpt    3    309.528    309.530  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMinSimple        2048       0  thrpt    3    331.216    331.568  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMulBig           2048       0  thrpt    3     93.370     93.232  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMulDotProduct    2048       0  thrpt    3    182.664    183.070  ops/ms     0%
+VectorReduction2.WithSuperword.doubleMulSimple        2048       0  thrpt    3    150.739    150.697  ops/ms     0%
+VectorReduction2.WithSuperword.floatAddBig            2048       0  thrpt    3    184.574    185.734  ops/ms    +1%
+VectorReduction2.WithSuperword.floatAddDotProduct     2048       0  thrpt    3    234.142    234.317  ops/ms     0%
+VectorReduction2.WithSuperword.floatAddSimple         2048       0  thrpt    3    236.227    236.248  ops/ms     0%
+VectorReduction2.WithSuperword.floatMaxBig            2048       0  thrpt    3    534.521    533.401  ops/ms     0%
+VectorReduction2.WithSuperword.floatMaxDotProduct     2048       0  thrpt    3    534.595    533.221  ops/ms     0%
+VectorReduction2.WithSuperword.floatMaxSimple         2048       0  thrpt    3    735.905    734.863  ops/ms     0%
+VectorReduction2.WithSuperword.floatMinBig            2048       0  thrpt    3    624.509    624.689  ops/ms     0%
+VectorReduction2.WithSuperword.floatMinDotProduct     2048       0  thrpt    3    607.058    606.966  ops/ms     0%
+VectorReduction2.WithSuperword.floatMinSimple         2048       0  thrpt    3    666.463    666.698  ops/ms     0%
+VectorReduction2.WithSuperword.floatMulBig            2048       0  thrpt    3    128.569    128.633  ops/ms     0%
+VectorReduction2.WithSuperword.floatMulDotProduct     2048       0  thrpt    3    210.479    210.504  ops/ms     0%
+VectorReduction2.WithSuperword.floatMulSimple         2048       0  thrpt    3    182.734    182.696  ops/ms     0%
+VectorReduction2.WithSuperword.intAddBig              2048       0  thrpt    3   1580.912   1594.548  ops/ms    +1%
+VectorReduction2.WithSuperword.intAddDotProduct       2048       0  thrpt    3   3041.620   3039.946  ops/ms     0%
+VectorReduction2.WithSuperword.intAddSimple           2048       0  thrpt    3   6929.596   6939.765  ops/ms     0%
+VectorReduction2.WithSuperword.intAndBig              2048       0  thrpt    3   1746.255   1745.936  ops/ms     0%
+VectorReduction2.WithSuperword.intAndDotProduct       2048       0  thrpt    3   3468.199   3468.210  ops/ms     0%
+VectorReduction2.WithSuperword.intAndSimple           2048       0  thrpt    3  10955.795  10964.187  ops/ms     0%
+VectorReduction2.WithSuperword.intMaxBig              2048       0  thrpt    3   1613.565   1627.703  ops/ms    +1%
+VectorReduction2.WithSuperword.intMaxDotProduct       2048       0  thrpt    3   2719.968   2727.226  ops/ms     0%
+VectorReduction2.WithSuperword.intMaxSimple           2048       0  thrpt    3   6993.981   6995.456  ops/ms     0%
+VectorReduction2.WithSuperword.intMinBig              2048       0  thrpt    3   1626.847   1626.963  ops/ms     0%
+VectorReduction2.WithSuperword.intMinDotProduct       2048       0  thrpt    3   2744.196   2743.569  ops/ms     0%
+VectorReduction2.WithSuperword.intMinSimple           2048       0  thrpt    3   6999.963   6942.129  ops/ms    -1%
+VectorReduction2.WithSuperword.intMulBig              2048       0  thrpt    3    570.691    570.710  ops/ms     0%
+VectorReduction2.WithSuperword.intMulDotProduct       2048       0  thrpt    3    585.234    585.145  ops/ms     0%
+VectorReduction2.WithSuperword.intMulSimple           2048       0  thrpt    3    771.198    771.216  ops/ms     0%
+VectorReduction2.WithSuperword.intOrBig               2048       0  thrpt    3   1693.346   1714.569  ops/ms    +1%
+VectorReduction2.WithSuperword.intOrDotProduct        2048       0  thrpt    3   3521.571   3520.614  ops/ms     0%
+VectorReduction2.WithSuperword.intOrSimple            2048       0  thrpt    3  10969.068  10945.403  ops/ms     0%
+VectorReduction2.WithSuperword.intXorBig              2048       0  thrpt    3   1712.578   1683.884  ops/ms    -2%
+VectorReduction2.WithSuperword.intXorDotProduct       2048       0  thrpt    3   3500.208   3501.492  ops/ms     0%
+VectorReduction2.WithSuperword.intXorSimple           2048       0  thrpt    3  11009.225  11023.374  ops/ms     0%
+VectorReduction2.WithSuperword.longAddBig             2048       0  thrpt    3    561.371    560.487  ops/ms     0%
+VectorReduction2.WithSuperword.longAddDotProduct      2048       0  thrpt    3   1201.234   1193.903  ops/ms    -1%
+VectorReduction2.WithSuperword.longAddSimple          2048       0  thrpt    3   3645.445   3645.694  ops/ms     0%
+VectorReduction2.WithSuperword.longAndBig             2048       0  thrpt    3    588.523    589.927  ops/ms     0%
+VectorReduction2.WithSuperword.longAndDotProduct      2048       0  thrpt    3   1297.352   1264.459  ops/ms    -3%
+VectorReduction2.WithSuperword.longAndSimple          2048       0  thrpt    3   6431.085   6435.236  ops/ms     0%
+VectorReduction2.WithSuperword.longMaxBig             2048       0  thrpt    3    547.323    556.307  ops/ms    +2%
+VectorReduction2.WithSuperword.longMaxDotProduct      2048       0  thrpt    3    955.827    955.669  ops/ms     0%
+VectorReduction2.WithSuperword.longMaxSimple          2048       0  thrpt    3   1290.457   1290.252  ops/ms     0%
+VectorReduction2.WithSuperword.longMinBig             2048       0  thrpt    3    547.154    554.255  ops/ms    +1%
+VectorReduction2.WithSuperword.longMinDotProduct      2048       0  thrpt    3    955.321    957.327  ops/ms     0%
+VectorReduction2.WithSuperword.longMinSimple          2048       0  thrpt    3   1290.257   1290.708  ops/ms     0%
+VectorReduction2.WithSuperword.longMulBig             2048       0  thrpt    3    228.545    228.781  ops/ms     0%
+VectorReduction2.WithSuperword.longMulDotProduct      2048       0  thrpt    3    195.250    195.268  ops/ms     0%
+VectorReduction2.WithSuperword.longMulSimple          2048       0  thrpt    3    251.205    251.318  ops/ms     0%
+VectorReduction2.WithSuperword.longOrBig              2048       0  thrpt    3    580.646    584.536  ops/ms    +1%
+VectorReduction2.WithSuperword.longOrDotProduct       2048       0  thrpt    3   1300.432   1281.840  ops/ms    -1%
+VectorReduction2.WithSuperword.longOrSimple           2048       0  thrpt    3   6438.352   6438.390  ops/ms     0%
+VectorReduction2.WithSuperword.longXorBig             2048       0  thrpt    3    586.244    580.693  ops/ms    -1%
+VectorReduction2.WithSuperword.longXorDotProduct      2048       0  thrpt    3   1300.861   1261.397  ops/ms    -3%
+VectorReduction2.WithSuperword.longXorSimple          2048       0  thrpt    3   6427.791   6435.064  ops/ms     0%
+VectorReduction2.WithSuperword.shortAddBig            2048       0  thrpt    3    228.896    228.824  ops/ms     0%
+VectorReduction2.WithSuperword.shortAddDotProduct     2048       0  thrpt    3    401.089    400.975  ops/ms     0%
+VectorReduction2.WithSuperword.shortAddSimple         2048       0  thrpt    3    463.255    463.259  ops/ms     0%
+VectorReduction2.WithSuperword.shortAndBig            2048       0  thrpt    3    356.013    356.011  ops/ms     0%
+VectorReduction2.WithSuperword.shortAndDotProduct     2048       0  thrpt    3    684.273    684.519  ops/ms     0%
+VectorReduction2.WithSuperword.shortAndSimple         2048       0  thrpt    3    924.154    924.458  ops/ms     0%
+VectorReduction2.WithSuperword.shortMaxBig            2048       0  thrpt    3    308.113    196.756  ops/ms   -36%
+VectorReduction2.WithSuperword.shortMaxDotProduct     2048       0  thrpt    3    433.411    508.707  ops/ms   +17%
+VectorReduction2.WithSuperword.shortMaxSimple         2048       0  thrpt    3    463.843    987.276  ops/ms  +113%
+VectorReduction2.WithSuperword.shortMinBig            2048       0  thrpt    3    308.262    196.788  ops/ms   -36%
+VectorReduction2.WithSuperword.shortMinDotProduct     2048       0  thrpt    3    433.340    508.695  ops/ms   +17%
+VectorReduction2.WithSuperword.shortMinSimple         2048       0  thrpt    3    463.968    987.562  ops/ms  +113%
+VectorReduction2.WithSuperword.shortMulBig            2048       0  thrpt    3    194.862    194.912  ops/ms     0%
+VectorReduction2.WithSuperword.shortMulDotProduct     2048       0  thrpt    3    231.440    231.472  ops/ms     0%
+VectorReduction2.WithSuperword.shortMulSimple         2048       0  thrpt    3    233.051    232.997  ops/ms     0%
+VectorReduction2.WithSuperword.shortOrBig             2048       0  thrpt    3    356.743    292.456  ops/ms   -18%
+VectorReduction2.WithSuperword.shortOrDotProduct      2048       0  thrpt    3    678.666    668.359  ops/ms    -2%
+VectorReduction2.WithSuperword.shortOrSimple          2048       0  thrpt    3    924.372   1551.642  ops/ms   +68%
+VectorReduction2.WithSuperword.shortXorBig            2048       0  thrpt    3    305.427    174.760  ops/ms   -43%
+VectorReduction2.WithSuperword.shortXorDotProduct     2048       0  thrpt    3    621.842    540.086  ops/ms   -13%
+VectorReduction2.WithSuperword.shortXorSimple         2048       0  thrpt    3    924.331   1552.338  ops/ms   +68%
+
+Process finished with exit code 0
+#+end_src
+** long max simple
+*** perfasm xeon
+**** patch
+#+begin_src bash
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 562 
+
+                 0x00007fae9baf3354:   addq		$0x30, %rsp
+                 0x00007fae9baf3358:   popq		%rbp
+                 0x00007fae9baf3359:   cmpq		0x28(%r15), %rsp    ;   {poll_return}
+                 0x00007fae9baf335d:   ja		0x7fae9baf3630
+                 0x00007fae9baf3363:   retq		
+           ↗     0x00007fae9baf3364:   vmovq		%xmm0, %rbx
+           │     0x00007fae9baf3369:   vmovq		%xmm1, %rdi
+           │     0x00007fae9baf336e:   vmovq		%xmm2, %rdx
+           │     0x00007fae9baf3373:   vmovq		%xmm3, %rax
+           │  ↗  0x00007fae9baf3378:   movl		%r10d, %esi
+   0.03%   │  │  0x00007fae9baf337b:   subl		%r11d, %esi
+           │  │  0x00007fae9baf337e:   cmpl		%r11d, %r10d
+   0.07%   │  │  0x00007fae9baf3381:   cmovll		%r8d, %esi
+           │  │  0x00007fae9baf3385:   cmpl		$0x3e80, %esi
+   0.03%   │  │  0x00007fae9baf338b:   cmoval		%ecx, %esi
+           │  │  0x00007fae9baf338e:   addl		%r11d, %esi
+           │  │  0x00007fae9baf3391:   vmovq		%rbx, %xmm0
+           │  │  0x00007fae9baf3396:   vmovq		%rdi, %xmm1
+           │  │  0x00007fae9baf339b:   vmovq		%rdx, %xmm2
+   0.03%   │  │  0x00007fae9baf33a0:   vmovq		%rax, %xmm3
+           │  │  0x00007fae9baf33a5:   nopw		(%rax, %rax)        ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@16 (line 1058)
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.16%  ↗│  │  0x00007fae9baf33b0:   movq		0x88(%r14, %r11, 8), %rdi
+   2.68%  ││  │  0x00007fae9baf33b8:   movq		0x80(%r14, %r11, 8), %rdx
+   3.20%  ││  │  0x00007fae9baf33c0:   movq		0x18(%r14, %r11, 8), %rax
+   0.69%  ││  │  0x00007fae9baf33c5:   movq		0x10(%r14, %r11, 8), %rbx
+   0.16%  ││  │  0x00007fae9baf33ca:   cmpq		%rbx, %rax
+   2.81%  ││  │  0x00007fae9baf33cd:   cmovlq		%rbx, %rax
+   3.17%  ││  │  0x00007fae9baf33d1:   movq		0x20(%r14, %r11, 8), %rbx
+   0.69%  ││  │  0x00007fae9baf33d6:   cmpq		%rbx, %rax
+   0.03%  ││  │  0x00007fae9baf33d9:   cmovlq		%rbx, %rax
+   2.35%  ││  │  0x00007fae9baf33dd:   movq		0x28(%r14, %r11, 8), %rbx
+   2.58%  ││  │  0x00007fae9baf33e2:   cmpq		%rbx, %rax
+   0.75%  ││  │  0x00007fae9baf33e5:   cmovlq		%rbx, %rax
+   0.20%  ││  │  0x00007fae9baf33e9:   movq		0x30(%r14, %r11, 8), %rbx
+   2.42%  ││  │  0x00007fae9baf33ee:   cmpq		%rbx, %rax
+   3.24%  ││  │  0x00007fae9baf33f1:   cmovlq		%rbx, %rax
+   0.82%  ││  │  0x00007fae9baf33f5:   movq		0x38(%r14, %r11, 8), %rbx
+   0.16%  ││  │  0x00007fae9baf33fa:   cmpq		%rbx, %rax
+   2.88%  ││  │  0x00007fae9baf33fd:   cmovlq		%rbx, %rax
+   3.04%  ││  │  0x00007fae9baf3401:   movq		0x40(%r14, %r11, 8), %rbx
+   0.72%  ││  │  0x00007fae9baf3406:   cmpq		%rbx, %rax
+   0.13%  ││  │  0x00007fae9baf3409:   cmovlq		%rbx, %rax
+   3.01%  ││  │  0x00007fae9baf340d:   movq		0x48(%r14, %r11, 8), %rbx
+   2.88%  ││  │  0x00007fae9baf3412:   cmpq		%rbx, %rax
+   0.69%  ││  │  0x00007fae9baf3415:   cmovlq		%rbx, %rax
+   0.07%  ││  │  0x00007fae9baf3419:   movq		0x50(%r14, %r11, 8), %rbx
+   3.20%  ││  │  0x00007fae9baf341e:   cmpq		%rbx, %rax
+   2.42%  ││  │  0x00007fae9baf3421:   cmovlq		%rbx, %rax
+   0.75%  ││  │  0x00007fae9baf3425:   movq		0x58(%r14, %r11, 8), %rbx
+   0.13%  ││  │  0x00007fae9baf342a:   cmpq		%rbx, %rax
+   2.48%  ││  │  0x00007fae9baf342d:   cmovlq		%rbx, %rax
+   2.42%  ││  │  0x00007fae9baf3431:   movq		0x60(%r14, %r11, 8), %rbx
+   1.14%  ││  │  0x00007fae9baf3436:   cmpq		%rbx, %rax
+   0.10%  ││  │  0x00007fae9baf3439:   cmovlq		%rbx, %rax
+   3.04%  ││  │  0x00007fae9baf343d:   movq		0x68(%r14, %r11, 8), %rbx
+   2.81%  ││  │  0x00007fae9baf3442:   cmpq		%rbx, %rax
+   0.85%  ││  │  0x00007fae9baf3445:   cmovlq		%rbx, %rax
+   0.20%  ││  │  0x00007fae9baf3449:   movq		0x70(%r14, %r11, 8), %rbx
+   2.55%  ││  │  0x00007fae9baf344e:   cmpq		%rbx, %rax
+   3.24%  ││  │  0x00007fae9baf3451:   cmovlq		%rbx, %rax
+   1.01%  ││  │  0x00007fae9baf3455:   movq		0x78(%r14, %r11, 8), %rbx;*laload {reexecute=0 rethrow=0 return_oop=0}
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          ││  │                                                            ;   {other}
+   0.03%  ││  │  0x00007fae9baf345a:   cmpq		%rbx, %rax
+   2.91%  ││  │  0x00007fae9baf345d:   cmovlq		%rbx, %rax
+   4.48%  ││  │  0x00007fae9baf3461:   cmpq		%rdx, %rax
+   2.55%  ││  │  0x00007fae9baf3464:   cmovlq		%rdx, %rax
+   2.75%  ││  │  0x00007fae9baf3468:   cmpq		%rdi, %rax
+   6.44%  ││  │  0x00007fae9baf346b:   cmovlq		%rdi, %rax
+   1.93%  ││  │  0x00007fae9baf346f:   cmpq		%rax, %r13
+   1.86%  ││  │  0x00007fae9baf3472:   cmovlq		%rax, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.42%  ││  │  0x00007fae9baf3476:   addl		$0x10, %r11d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@32 (line 1057)
+          ││  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.91%  ││  │  0x00007fae9baf347a:   nopw		(%rax, %rax)
+   0.85%  ││  │  0x00007fae9baf3480:   cmpl		%esi, %r11d
+          ╰│  │  0x00007fae9baf3483:   jl		0x7fae9baf33b0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@13 (line 1057)
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+           │  │  0x00007fae9baf3489:   movq		0x30(%r15), %rbx    ; ImmutableOopMap {r14=Oop xmm0=Oop xmm1=Oop xmm2=Oop xmm3=Oop }
+           │  │                                                            ;*goto {reexecute=1 rethrow=0 return_oop=0}
+           │  │                                                            ; - (reexecute) org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@35 (line 1057)
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%   │  │  0x00007fae9baf348d:   testl		%eax, (%rbx)        ;*goto {reexecute=0 rethrow=0 return_oop=0}
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@35 (line 1057)
+           │  │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+           │  │                                                            ;   {poll}
+           │  │  0x00007fae9baf348f:   cmpl		%r10d, %r11d
+           ╰  │  0x00007fae9baf3492:   jl		0x7fae9baf3364
+              │  0x00007fae9baf3498:   vmovq		%xmm0, %rbx
+              │  0x00007fae9baf349d:   vmovq		%xmm1, %rdi
+   0.07%      │  0x00007fae9baf34a2:   vmovq		%xmm2, %rdx
+              │  0x00007fae9baf34a7:   vmovq		%xmm3, %rax
+              │  0x00007fae9baf34ac:   cmpl		%r9d, %r11d
+            ╭ │  0x00007fae9baf34af:   jge		0x7fae9baf34c8
+            │ │  0x00007fae9baf34b1:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+            │ │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@16 (line 1058)
+            │ │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.07%    │↗│  0x00007fae9baf34b4:   movq		0x10(%r14, %r11, 8), %r10;*laload {reexecute=0 rethrow=0 return_oop=0}
+            │││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+            │││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%    │││  0x00007fae9baf34b9:   cmpq		%r10, %r13
+   0.62%    │││  0x00007fae9baf34bc:   cmovlq		%r10, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+            │││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+            │││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.65%    │││  0x00007fae9baf34c0:   incl		%r11d               ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+            │││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@32 (line 1057)
+            │││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%    │││  0x00007fae9baf34c3:   cmpl		%r9d, %r11d
+            │╰│  0x00007fae9baf34c6:   jl		0x7fae9baf34b4      ;*invokestatic consumeCompiler {reexecute=0 rethrow=0 return_oop=0}
+            │ │                                                            ; - org.openjdk.jmh.infra.Blackhole::consume@7 (line 401)
+            │ │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@40 (line 1061)
+            │ │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+            ↘ │  0x00007fae9baf34c8:   movzbl		0x94(%rax), %r10d   ;*getfield isDone {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@27 (line 123)
+              │  0x00007fae9baf34d0:   movq		0x30(%r15), %r11
+   0.07%      │  0x00007fae9baf34d4:   incq		%rbp                ; ImmutableOopMap {rbx=Oop rdi=Oop rdx=Oop rax=Oop }
+              │                                                            ;*ifeq {reexecute=1 rethrow=0 return_oop=0}
+              │                                                            ; - (reexecute) org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@30 (line 123)
+              │  0x00007fae9baf34d7:   testl		%eax, (%r11)        ;   {poll}
+              │  0x00007fae9baf34da:   nopw		(%rax, %rax)
+              │  0x00007fae9baf34e0:   testl		%r10d, %r10d
+              │  0x00007fae9baf34e3:   jne		0x7fae9baf3329      ;*aload_1 {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@33 (line 124)
+   0.10%      │  0x00007fae9baf34e9:   movl		0xc(%rdi), %r9d     ;*getfield SIZE {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@10 (line 1057)
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+              │  0x00007fae9baf34ed:   testl		%r9d, %r9d
+              │  0x00007fae9baf34f0:   jle		0x7fae9baf3551      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@13 (line 1057)
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%      │  0x00007fae9baf34f6:   movl		0x44(%rdi), %r10d   ;*getfield in1L {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@17 (line 1058)
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+              │  0x00007fae9baf34fa:   movl		0xc(%r12, %r10, 8), %r11d; implicit exception: dispatches to 0x00007fae9baf3565
+   0.03%      │  0x00007fae9baf34ff:   nop		
+              │  0x00007fae9baf3500:   testl		%r11d, %r11d
+              │  0x00007fae9baf3503:   jbe		0x7fae9baf3565
+              │  0x00007fae9baf3509:   movslq		%r9d, %rsi
+              │  0x00007fae9baf350c:   movslq		%r11d, %r11
+   0.07%      │  0x00007fae9baf350f:   leaq		-1(%rsi), %r13
+              │  0x00007fae9baf3513:   cmpq		%r11, %r13
+              │  0x00007fae9baf3516:   jae		0x7fae9baf3565
+   0.07%      │  0x00007fae9baf3518:   movq		0x10(%r12, %r10, 8), %r13;*laload {reexecute=0 rethrow=0 return_oop=0}
+              │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+              │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+              │  0x00007fae9baf351d:   addq		$-0xf, %rsi
+   0.07%      │  0x00007fae9baf3521:   leaq		(%r12, %r10, 8), %r14
+              │  0x00007fae9baf3525:   cmpq		$-0x80000000, %rsi
+              │  0x00007fae9baf352c:   movq		$18446744071562067968, %r10
+              │  0x00007fae9baf3533:   cmovlq		%r10, %rsi
+              │  0x00007fae9baf3537:   movl		%esi, %r10d
+              │  0x00007fae9baf353a:   nopw		(%rax, %rax)
+              │  0x00007fae9baf3540:   cmpl		$1, %r10d
+              │  0x00007fae9baf3544:   jle		0x7fae9baf3590
+              │  0x00007fae9baf3546:   movl		$1, %r11d
+              ╰  0x00007fae9baf354c:   jmp		0x7fae9baf3378
+                 0x00007fae9baf3551:   movabsq		$9223372036854775808, %r13
+....................................................................................................
+  97.09%  <total for region 1>
+#+end_src
+**** base
+#+begin_src bash
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 521 
+
+             0x00007f47c3af7000:   cmpl		$0x3e80, %esi
+   0.07%     0x00007f47c3af7006:   cmoval		%ecx, %esi
+             0x00007f47c3af7009:   addl		%r11d, %esi
+             0x00007f47c3af700c:   vmovq		%rdi, %xmm0
+             0x00007f47c3af7011:   vmovq		%rdx, %xmm1
+             0x00007f47c3af7016:   vmovq		%rax, %xmm2
+             0x00007f47c3af701b:   nopl		(%rax, %rax)        ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                       ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@16 (line 1058)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          ↗  0x00007f47c3af7020:   movq		0x88(%r14, %r11, 8), %rdx
+   0.03%  │  0x00007f47c3af7028:   movq		0x80(%r14, %r11, 8), %rax
+   3.51%  │  0x00007f47c3af7030:   movq		0x10(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f47c3af7035:   cmpq		%rdi, %r13
+          │  0x00007f47c3af7038:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.95%  │  0x00007f47c3af703c:   movq		0x18(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7041:   cmpq		%rdi, %r13
+   2.72%  │  0x00007f47c3af7044:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.38%  │  0x00007f47c3af7048:   movq		0x20(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af704d:   cmpq		%rdi, %r13
+   3.21%  │  0x00007f47c3af7050:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.79%  │  0x00007f47c3af7054:   movq		0x28(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7059:   cmpq		%rdi, %r13
+   3.48%  │  0x00007f47c3af705c:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.15%  │  0x00007f47c3af7060:   movq		0x30(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7065:   cmpq		%rdi, %r13
+   2.95%  │  0x00007f47c3af7068:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.57%  │  0x00007f47c3af706c:   movq		0x38(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7071:   cmpq		%rdi, %r13
+   3.28%  │  0x00007f47c3af7074:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.92%  │  0x00007f47c3af7078:   movq		0x40(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f47c3af707d:   cmpq		%rdi, %r13
+   3.05%  │  0x00007f47c3af7080:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.11%  │  0x00007f47c3af7084:   movq		0x48(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7089:   cmpq		%rdi, %r13
+   2.85%  │  0x00007f47c3af708c:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.85%  │  0x00007f47c3af7090:   movq		0x50(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af7095:   cmpq		%rdi, %r13
+   3.34%  │  0x00007f47c3af7098:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.89%  │  0x00007f47c3af709c:   movq		0x58(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af70a1:   cmpq		%rdi, %r13
+   2.82%  │  0x00007f47c3af70a4:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.56%  │  0x00007f47c3af70a8:   movq		0x60(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af70ad:   cmpq		%rdi, %r13
+   2.75%  │  0x00007f47c3af70b0:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.92%  │  0x00007f47c3af70b4:   movq		0x68(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af70b9:   cmpq		%rdi, %r13
+   3.18%  │  0x00007f47c3af70bc:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.46%  │  0x00007f47c3af70c0:   movq		0x70(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   0.07%  │  0x00007f47c3af70c5:   cmpq		%rdi, %r13
+   2.66%  │  0x00007f47c3af70c8:   cmovlq		%rdi, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.61%  │  0x00007f47c3af70cc:   movq		0x78(%r14, %r11, 8), %rdi;*laload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@22 (line 1058)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af70d1:   cmpq		%rdi, %r13
+   3.21%  │  0x00007f47c3af70d4:   cmovlq		%rdi, %r13
+   4.26%  │  0x00007f47c3af70d8:   cmpq		%rax, %r13          ;   {other}
+   1.44%  │  0x00007f47c3af70db:   cmovlq		%rax, %r13
+   2.85%  │  0x00007f47c3af70df:   cmpq		%rdx, %r13
+   2.56%  │  0x00007f47c3af70e2:   cmovlq		%rdx, %r13          ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@28 (line 1059)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.08%  │  0x00007f47c3af70e6:   addl		$0x10, %r11d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@32 (line 1057)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+          │  0x00007f47c3af70ea:   cmpl		%esi, %r11d
+          ╰  0x00007f47c3af70ed:   jl		0x7f47c3af7020      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                       ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@13 (line 1057)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
+             0x00007f47c3af70f3:   movq		0x30(%r15), %rdi    ; ImmutableOopMap {rbx=Oop r14=Oop xmm0=Oop xmm1=Oop xmm2=Oop }
+                                                                       ;*goto {reexecute=1 rethrow=0 return_oop=0}
+....................................................................................................
+  96.52%  <total for region 1>
+#+end_src
+** double max simple
+*** perfasm xeon
+**** patch
+#+begin_src bash
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 560 
+
+             0x00007f2dafaf51b0:   movl		%r10d, %esi
+             0x00007f2dafaf51b3:   subl		%r8d, %esi
+             0x00007f2dafaf51b6:   cmpl		%r8d, %r10d
+             0x00007f2dafaf51b9:   cmovll		%ecx, %esi
+             0x00007f2dafaf51bc:   cmpl		$0x3e80, %esi
+             0x00007f2dafaf51c2:   cmoval		%eax, %esi
+             0x00007f2dafaf51c5:   addl		%r8d, %esi
+             0x00007f2dafaf51c8:   nopl		(%rax, %rax)        ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                       ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   1.18%     0x00007f2dafaf51d0:   vmovsd		0x88(%r13, %r8, 8), %xmm17
+             0x00007f2dafaf51d8:   vmovsd		0x80(%r13, %r8, 8), %xmm18
+             0x00007f2dafaf51e0:   vmovsd		0x78(%r13, %r8, 8), %xmm19
+             0x00007f2dafaf51e8:   vmovsd		0x70(%r13, %r8, 8), %xmm15
+   1.01%     0x00007f2dafaf51ef:   vmovsd		0x68(%r13, %r8, 8), %xmm0
+             0x00007f2dafaf51f6:   vmovsd		0x60(%r13, %r8, 8), %xmm1
+   0.03%     0x00007f2dafaf51fd:   vmovsd		0x58(%r13, %r8, 8), %xmm2
+             0x00007f2dafaf5204:   vmovsd		0x18(%r13, %r8, 8), %xmm3
+   1.18%     0x00007f2dafaf520b:   vmovsd		0x10(%r13, %r8, 8), %xmm4
+             0x00007f2dafaf5212:   vmovsd		0x20(%r13, %r8, 8), %xmm5
+             0x00007f2dafaf5219:   vmovsd		0x28(%r13, %r8, 8), %xmm6
+             0x00007f2dafaf5220:   vmovsd		0x30(%r13, %r8, 8), %xmm7
+   1.21%     0x00007f2dafaf5227:   vmovsd		0x38(%r13, %r8, 8), %xmm8
+             0x00007f2dafaf522e:   vmovsd		0x40(%r13, %r8, 8), %xmm9
+             0x00007f2dafaf5235:   vmovsd		0x48(%r13, %r8, 8), %xmm10
+             0x00007f2dafaf523c:   vmovsd		0x50(%r13, %r8, 8), %xmm11
+   1.14%     0x00007f2dafaf5243:   vblendvpd		%xmm4, %xmm4, %xmm3, %xmm13
+   1.28%     0x00007f2dafaf5249:   vblendvpd		%xmm4, %xmm3, %xmm4, %xmm14
+   0.72%     0x00007f2dafaf524f:   vmaxpd		%xmm14, %xmm13, %xmm12
+             0x00007f2dafaf5254:   vcmpunordpd		%xmm13, %xmm13, %xmm14
+             0x00007f2dafaf525a:   vblendvpd		%xmm14, %xmm13, %xmm12, %xmm3
+   0.98%     0x00007f2dafaf5260:   vblendvpd		%xmm5, %xmm5, %xmm3, %xmm12
+   1.37%     0x00007f2dafaf5266:   vblendvpd		%xmm5, %xmm3, %xmm5, %xmm13
+   1.31%     0x00007f2dafaf526c:   vmaxpd		%xmm13, %xmm12, %xmm4;   {other}
+             0x00007f2dafaf5271:   vcmpunordpd		%xmm12, %xmm12, %xmm13
+             0x00007f2dafaf5277:   vblendvpd		%xmm13, %xmm12, %xmm4, %xmm3
+   0.92%     0x00007f2dafaf527d:   vblendvpd		%xmm6, %xmm6, %xmm3, %xmm5
+   0.75%     0x00007f2dafaf5283:   vblendvpd		%xmm6, %xmm3, %xmm6, %xmm12
+   1.37%     0x00007f2dafaf5289:   vmaxpd		%xmm12, %xmm5, %xmm4
+             0x00007f2dafaf528e:   vcmpunordpd		%xmm5, %xmm5, %xmm12
+             0x00007f2dafaf5293:   vblendvpd		%xmm12, %xmm5, %xmm4, %xmm3
+   1.11%     0x00007f2dafaf5299:   vblendvpd		%xmm7, %xmm7, %xmm3, %xmm5
+   1.24%     0x00007f2dafaf529f:   vblendvpd		%xmm7, %xmm3, %xmm7, %xmm6
+   1.11%     0x00007f2dafaf52a5:   vmaxpd		%xmm6, %xmm5, %xmm4
+             0x00007f2dafaf52aa:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf52af:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm3
+   1.01%     0x00007f2dafaf52b5:   vblendvpd		%xmm8, %xmm8, %xmm3, %xmm5
+   1.01%     0x00007f2dafaf52bb:   vblendvpd		%xmm8, %xmm3, %xmm8, %xmm6
+   1.24%     0x00007f2dafaf52c1:   vmaxpd		%xmm6, %xmm5, %xmm4
+             0x00007f2dafaf52c6:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf52cb:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm3
+   1.24%     0x00007f2dafaf52d1:   vblendvpd		%xmm9, %xmm9, %xmm3, %xmm5
+   1.31%     0x00007f2dafaf52d7:   vblendvpd		%xmm9, %xmm3, %xmm9, %xmm6
+   0.62%     0x00007f2dafaf52dd:   vmaxpd		%xmm6, %xmm5, %xmm4
+             0x00007f2dafaf52e2:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf52e7:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm3
+   1.31%     0x00007f2dafaf52ed:   vblendvpd		%xmm10, %xmm10, %xmm3, %xmm5
+   1.11%     0x00007f2dafaf52f3:   vblendvpd		%xmm10, %xmm3, %xmm10, %xmm6
+   1.57%     0x00007f2dafaf52f9:   vmaxpd		%xmm6, %xmm5, %xmm4
+             0x00007f2dafaf52fe:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf5303:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm3
+   1.21%     0x00007f2dafaf5309:   vblendvpd		%xmm11, %xmm11, %xmm3, %xmm5
+   0.79%     0x00007f2dafaf530f:   vblendvpd		%xmm11, %xmm3, %xmm11, %xmm6
+   1.05%     0x00007f2dafaf5315:   vmaxpd		%xmm6, %xmm5, %xmm4
+   0.03%     0x00007f2dafaf531a:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf531f:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm3
+   1.80%     0x00007f2dafaf5325:   vblendvpd		%xmm2, %xmm2, %xmm3, %xmm5
+   1.54%     0x00007f2dafaf532b:   vblendvpd		%xmm2, %xmm3, %xmm2, %xmm6
+   1.34%     0x00007f2dafaf5331:   vmaxpd		%xmm6, %xmm5, %xmm4
+   0.13%     0x00007f2dafaf5336:   vcmpunordpd		%xmm5, %xmm5, %xmm6
+             0x00007f2dafaf533b:   vblendvpd		%xmm6, %xmm5, %xmm4, %xmm2
+   2.36%     0x00007f2dafaf5341:   vblendvpd		%xmm1, %xmm1, %xmm2, %xmm4
+   1.86%     0x00007f2dafaf5347:   vblendvpd		%xmm1, %xmm2, %xmm1, %xmm5
+   1.28%     0x00007f2dafaf534d:   vmaxpd		%xmm5, %xmm4, %xmm3
+   0.95%     0x00007f2dafaf5352:   vcmpunordpd		%xmm4, %xmm4, %xmm5
+             0x00007f2dafaf5357:   vblendvpd		%xmm5, %xmm4, %xmm3, %xmm1
+   3.14%     0x00007f2dafaf535d:   vblendvpd		%xmm0, %xmm0, %xmm1, %xmm3
+   2.36%     0x00007f2dafaf5363:   vblendvpd		%xmm0, %xmm1, %xmm0, %xmm4
+   1.50%     0x00007f2dafaf5369:   vmaxpd		%xmm4, %xmm3, %xmm2 ;   {other}
+   1.24%     0x00007f2dafaf536e:   vcmpunordpd		%xmm3, %xmm3, %xmm4
+             0x00007f2dafaf5373:   vblendvpd		%xmm4, %xmm3, %xmm2, %xmm0
+   4.19%     0x00007f2dafaf5379:   vblendvpd		%xmm15, %xmm15, %xmm0, %xmm2
+   1.96%     0x00007f2dafaf537f:   vblendvpd		%xmm15, %xmm0, %xmm15, %xmm3
+   1.34%     0x00007f2dafaf5385:   vmaxpd		%xmm3, %xmm2, %xmm1
+   1.31%     0x00007f2dafaf538a:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+   0.07%     0x00007f2dafaf538f:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+   5.56%     0x00007f2dafaf5395:   vmovapd		%xmm19, %xmm4
+             0x00007f2dafaf539b:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+   1.60%     0x00007f2dafaf53a1:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+   1.41%     0x00007f2dafaf53a7:   vmaxpd		%xmm3, %xmm2, %xmm1
+   1.14%     0x00007f2dafaf53ac:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+   0.03%     0x00007f2dafaf53b1:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+   4.22%     0x00007f2dafaf53b7:   vmovapd		%xmm18, %xmm3
+             0x00007f2dafaf53bd:   vblendvpd		%xmm3, %xmm3, %xmm0, %xmm4
+   2.03%     0x00007f2dafaf53c3:   vblendvpd		%xmm3, %xmm0, %xmm3, %xmm2
+   1.14%     0x00007f2dafaf53c9:   vmaxpd		%xmm2, %xmm4, %xmm1
+   1.93%     0x00007f2dafaf53ce:   vcmpunordpd		%xmm4, %xmm4, %xmm2
+             0x00007f2dafaf53d3:   vblendvpd		%xmm2, %xmm4, %xmm1, %xmm0
+   4.94%     0x00007f2dafaf53d9:   vmovapd		%xmm17, %xmm4
+             0x00007f2dafaf53df:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+   1.50%     0x00007f2dafaf53e5:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+   1.24%     0x00007f2dafaf53eb:   vmaxpd		%xmm3, %xmm2, %xmm1
+   2.22%     0x00007f2dafaf53f0:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+             0x00007f2dafaf53f5:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+   4.78%     0x00007f2dafaf53fb:   vmovapd		%xmm16, %xmm2
+             0x00007f2dafaf5401:   vucomisd		%xmm0, %xmm2
+   0.46%     0x00007f2dafaf5405:   ja		0x7f2dafaf5427
+             0x00007f2dafaf5407:   jp		0x7f2dafaf5430
+             0x00007f2dafaf5409:   jb		0x7f2dafaf5444
+             0x00007f2dafaf540b:   vpxor		%xmm1, %xmm1, %xmm1
+             0x00007f2dafaf540f:   vucomisd		%xmm1, %xmm2
+          ╭  0x00007f2dafaf5413:   je		0x7f2dafaf541e
+          │  0x00007f2dafaf5415:   vmovapd		%xmm2, %xmm0
+          │  0x00007f2dafaf5419:   jmp		0x7f2dafaf5444
+          ↘  0x00007f2dafaf541e:   vpand		%xmm0, %xmm2, %xmm0
+             0x00007f2dafaf5422:   jmp		0x7f2dafaf5444
+   1.05%     0x00007f2dafaf5427:   vmovapd		%xmm2, %xmm0
+....................................................................................................
+  94.01%  <total for region 1>
+#+end_src
+
+**** base
+#+begin_src bash
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 540 
+
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+              0x00007f7127af59b4:   addq		$0x30, %rsp
+              0x00007f7127af59b8:   popq		%rbp
+              0x00007f7127af59b9:   cmpq		0x28(%r15), %rsp    ;   {poll_return}
+              0x00007f7127af59bd:   ja		0x7f7127af60b0
+              0x00007f7127af59c3:   retq		
+              0x00007f7127af59c4:   vmovq		%xmm16, %rbx
+              0x00007f7127af59ca:   vmovq		%xmm17, %rdi
+              0x00007f7127af59d0:   vmovq		%xmm18, %r11
+              0x00007f7127af59d6:   vmovq		%xmm19, %rdx
+   0.07%      0x00007f7127af59dc:   movl		%r10d, %esi
+              0x00007f7127af59df:   subl		%r8d, %esi
+              0x00007f7127af59e2:   cmpl		%r8d, %r10d
+              0x00007f7127af59e5:   cmovll		%ecx, %esi
+   0.07%      0x00007f7127af59e8:   cmpl		$0x3e80, %esi
+              0x00007f7127af59ee:   cmoval		%eax, %esi
+              0x00007f7127af59f1:   addl		%r8d, %esi
+   0.03%      0x00007f7127af59f4:   vmovq		%rbx, %xmm16
+              0x00007f7127af59fa:   vmovq		%rdi, %xmm17
+              0x00007f7127af5a00:   vmovq		%r11, %xmm18
+              0x00007f7127af5a06:   vmovq		%rdx, %xmm19
+   0.03%      0x00007f7127af5a0c:   nopl		(%rax)              ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   4.91%      0x00007f7127af5a10:   vmovsd		0x88(%r13, %r8, 8), %xmm20
+   0.43%      0x00007f7127af5a18:   vmovsd		0x80(%r13, %r8, 8), %xmm21
+              0x00007f7127af5a20:   vmovsd		0x78(%r13, %r8, 8), %xmm22
+              0x00007f7127af5a28:   vmovsd		0x70(%r13, %r8, 8), %xmm23
+   4.25%      0x00007f7127af5a30:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.20%      0x00007f7127af5a37:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+   0.07%      0x00007f7127af5a3e:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   0.07%      0x00007f7127af5a45:   vmovsd		0x10(%r13, %r8, 8), %xmm4
+   3.99%      0x00007f7127af5a4c:   vmovsd		0x18(%r13, %r8, 8), %xmm5
+   0.07%      0x00007f7127af5a53:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   0.10%      0x00007f7127af5a5a:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+              0x00007f7127af5a61:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   4.55%      0x00007f7127af5a68:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   0.10%      0x00007f7127af5a6f:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   0.10%      0x00007f7127af5a76:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   0.07%      0x00007f7127af5a7d:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   4.15%      0x00007f7127af5a84:   vucomisd		%xmm4, %xmm0
+   0.03%      0x00007f7127af5a88:   ja		0x7f7127af5ac5
+   0.29%  ╭   0x00007f7127af5a8a:   jp		0x7f7127af5aad
+          │   0x00007f7127af5a8c:   jb		0x7f7127af5ac1
+          │   0x00007f7127af5a8e:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007f7127af5a93:   vucomisd		%xmm15, %xmm0
+          │╭  0x00007f7127af5a98:   je		0x7f7127af5a9f
+          ││  0x00007f7127af5a9a:   jmp		0x7f7127af5ac5
+          │↘  0x00007f7127af5a9f:   vpand		%xmm4, %xmm0, %xmm0
+          │   0x00007f7127af5aa3:   jmp		0x7f7127af5ac5
+          │   0x00007f7127af5aa8:   jmp		0x7f7127af5ac5
+          ↘   0x00007f7127af5aad:   movabsq		$0x7ff8000000000000, %r11
+              0x00007f7127af5ab7:   vmovq		%r11, %xmm0         ;   {other}
+....................................................................................................
+  23.55%  <total for region 1>
+#+end_src
+*** xeon
+patch:
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ CONF=release CLASS=TestDoubleMax make run
+rm -f *.log
+/home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:-UseSuperWord -XX:CompileCommand=compileonly,TestDoubleMax::test -XX:CompileCommand=dontinline,*::*dontinline* /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+[0.001s][info][os] Use of CLOCK_MONOTONIC is supported
+[0.001s][info][os] Use of pthread_condattr_setclock is supported
+[0.001s][info][os] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[0.001s][info][os] HotSpot is running with glibc 2.40, NPTL 2.40
+[0.001s][info][os] Glibc stack size guard page adjustment is not needed
+[0.001s][info][os] SafePoint Polling address, bad (protected) page:0x00007fb0760b3000, good (unprotected) page:0x00007fb0760b4000
+[0.002s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libjava.so
+[0.003s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libjava.so was successful
+CompileCommand: compileonly TestDoubleMax.test bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+[0.050s][info][os] Initialized VM with process ID 8472
+[0.053s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libsimdsort.so
+[0.053s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libsimdsort.so was successful
+[0.065s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnio.so
+[0.066s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnio.so was successful
+[0.079s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnet.so
+[0.079s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnet.so was successful
+Validate
+Warmup
+Running
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Throughput: 35 ops/ms
+Validate
+#+end_src
+
+base:
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ CONF=release CLASS=TestDoubleMax make run
+rm -f *.log
+pushd /home/g/src/jdk-reassoc-reduct-chain
+CONF=release-linux-x86_64 make hotspot
+cp /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/support/modules_libs/java.base/server/libjvm.so /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/server
+popd
+touch /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/bin/java
+~/src/jdk-reassoc-reduct-chain ~/src/colata/reassoc-reduct-chain-8351409
+make[1]: Entering directory '/home/g/src/jdk-reassoc-reduct-chain'
+Building target 'hotspot' in configuration 'release-linux-x86_64'
+Updating support/modules_libs/java.base/server/libjvm.so due to 1 file(s)
+Finished building target 'hotspot' in configuration 'release-linux-x86_64'
+make[1]: Leaving directory '/home/g/src/jdk-reassoc-reduct-chain'
+~/src/colata/reassoc-reduct-chain-8351409
+/home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:-UseSuperWord -XX:CompileCommand=compileonly,TestDoubleMax::test -XX:CompileCommand=dontinline,*::*dontinline* /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+[0.001s][info][os] Use of CLOCK_MONOTONIC is supported
+[0.001s][info][os] Use of pthread_condattr_setclock is supported
+[0.001s][info][os] Relative timed-wait using pthread_cond_timedwait is associated with CLOCK_MONOTONIC
+[0.001s][info][os] HotSpot is running with glibc 2.40, NPTL 2.40
+[0.001s][info][os] Glibc stack size guard page adjustment is not needed
+[0.001s][info][os] SafePoint Polling address, bad (protected) page:0x00007f1c1f25b000, good (unprotected) page:0x00007f1c1f25c000
+[0.002s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libjava.so
+[0.002s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libjava.so was successful
+CompileCommand: compileonly TestDoubleMax.test bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+[0.051s][info][os] Initialized VM with process ID 9089
+[0.053s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libsimdsort.so
+[0.053s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libsimdsort.so was successful
+[0.066s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnio.so
+[0.066s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnio.so was successful
+[0.080s][info][os] attempting shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnet.so
+[0.080s][info][os] shared library load of /home/g/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/jdk/lib/libnet.so was successful
+Validate
+Warmup
+Running
+Throughput: 138 ops/ms
+Throughput: 138 ops/ms
+Throughput: 138 ops/ms
+Throughput: 138 ops/ms
+Throughput: 137 ops/ms
+Throughput: 137 ops/ms
+Throughput: 137 ops/ms
+Throughput: 137 ops/ms
+Throughput: 138 ops/ms
+Throughput: 137 ops/ms
+Validate
+#+end_src
+*** mac
+patch:
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ CLASS=TestDoubleMax make run
+rm -f *.log
+pushd /Users/g/src/jdk-reassoc-reduct-chain
+CONF=fast-darwin-arm64 make hotspot
+cp /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server
+rm -drf /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server/libjvm.dylib.dSYM
+cp -r /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib.dSYM /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server || true
+popd
+touch /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/bin/java
+~/src/jdk-reassoc-reduct-chain ~/src/colata/reassoc-reduct-chain-8351409
+make[1]: Entering directory '/Users/g/src/jdk-reassoc-reduct-chain'
+Building target 'hotspot' in configuration 'fast-darwin-arm64'
+Updating support/modules_libs/java.base/server/libjvm.dylib due to 1 file(s)
+Finished building target 'hotspot' in configuration 'fast-darwin-arm64'
+make[1]: Leaving directory '/Users/g/src/jdk-reassoc-reduct-chain'
+cp: cannot stat '/Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib.dSYM': No such file or directory
+~/src/colata/reassoc-reduct-chain-8351409
+/Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:-UseSuperWord -XX:CompileCommand=compileonly,TestDoubleMax::test -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 /Users/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+[0.008s][info][os] Use of CLOCK_MONOTONIC is supported
+[0.008s][info][os] Use of pthread_condattr_setclock is not supported
+[0.008s][info][os] Relative timed-wait using pthread_cond_timedwait is associated with the default clock
+[0.008s][info][os] SafePoint Polling address, bad (protected) page:0x00000001020e4000, good (unprotected) page:0x00000001020e8000
+[0.011s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib
+[0.012s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib was successful
+CompileCommand: compileonly TestDoubleMax.test bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+[0.085s][info][os] Initialized VM with process ID 30790
+[0.103s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib
+[0.105s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib was successful
+[0.122s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib
+[0.123s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib was successful
+Validate
+Warmup
+Running
+Throughput: 1283 ops/ms
+Throughput: 1123 ops/ms
+Throughput: 1106 ops/ms
+Throughput: 1102 ops/ms
+Throughput: 1114 ops/ms
+Throughput: 1048 ops/ms
+Throughput: 1070 ops/ms
+Throughput: 999 ops/ms
+Throughput: 1111 ops/ms
+Throughput: 1154 ops/ms
+Validate
+#+end_src
+base:
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ CLASS=TestDoubleMax make run
+rm -f *.log
+pushd /Users/g/src/jdk-reassoc-reduct-chain
+CONF=fast-darwin-arm64 make hotspot
+cp /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server
+rm -drf /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server/libjvm.dylib.dSYM
+cp -r /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib.dSYM /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/server || true
+popd
+touch /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/bin/java
+~/src/jdk-reassoc-reduct-chain ~/src/colata/reassoc-reduct-chain-8351409
+make[1]: Entering directory '/Users/g/src/jdk-reassoc-reduct-chain'
+Building target 'hotspot' in configuration 'fast-darwin-arm64'
+Updating support/modules_libs/java.base/server/libjvm.dylib due to 1 file(s)
+Finished building target 'hotspot' in configuration 'fast-darwin-arm64'
+make[1]: Leaving directory '/Users/g/src/jdk-reassoc-reduct-chain'
+cp: cannot stat '/Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/support/modules_libs/java.base/server/libjvm.dylib.dSYM': No such file or directory
+~/src/colata/reassoc-reduct-chain-8351409
+/Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:-UseSuperWord -XX:CompileCommand=compileonly,TestDoubleMax::test -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 /Users/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+[0.007s][info][os] Use of CLOCK_MONOTONIC is supported
+[0.007s][info][os] Use of pthread_condattr_setclock is not supported
+[0.007s][info][os] Relative timed-wait using pthread_cond_timedwait is associated with the default clock
+[0.007s][info][os] SafePoint Polling address, bad (protected) page:0x000000010019c000, good (unprotected) page:0x00000001001a0000
+[0.010s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib
+[0.011s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libjava.dylib was successful
+CompileCommand: compileonly TestDoubleMax.test bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+[0.080s][info][os] Initialized VM with process ID 31648
+[0.098s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib
+[0.099s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnio.dylib was successful
+[0.117s][info][os] attempting shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib
+[0.117s][info][os] shared library load of /Users/g/src/jdk-reassoc-reduct-chain/build/fast-darwin-arm64/jdk/lib/libnet.dylib was successful
+Validate
+Warmup
+Running
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 221 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Throughput: 223 ops/ms
+Validate
+#+end_src
 ** benchmark no superword
 Performance Down:
 #+begin_src bash
@@ -40,7 +893,6 @@ VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  56
 VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.708   151.154  ops/ms   -50%
 VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  476.948   184.426  ops/ms   -61%
 VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.951   141.869  ops/ms   -61%
-VectorReduction2.NoSuperword.intXorDotProduct       2048       0  thrpt    3  785.716   743.180  ops/ms    -5%
 VectorReduction2.NoSuperword.shortXorBig            2048       0  thrpt    3  305.049   174.546  ops/ms   -43%
 VectorReduction2.NoSuperword.shortXorDotProduct     2048       0  thrpt    3  622.019   540.479  ops/ms   -13%
 #+end_src
