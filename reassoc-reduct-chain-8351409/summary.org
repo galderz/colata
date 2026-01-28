@@ -21,6 +21,541 @@ Can reassociate to non-power-of-2 chains.
 - [ ] add a todo/question on the possibility of having the chain via the second input (check AddNode::commute and see what that does)
 - [ ] find a benchmark that would showcase this scenario
 - [X] see if an IR test can be developed, though IR node shape is not a feature
+* 28.1.26
+** darwin superword short max
+Why does superword improve?
+Maybe superword does not happen, even if enabled on darwin?
+*** base
+#+begin_src bash
+HEAD -> topic.reassoc-reduct-chain.base, origin/topic.reassoc-reduct-chain.base
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,TestShortMax::test -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseSuperWord /Users/g/src/colata/reassoc-reduct-chain-8351409/TestShortMax.java
+Throughput: 221 ops/ms
+#+end_src
+*** patch
+#+begin_src bash
+HEAD -> topic.reassoc-reduct-chain, origin/topic.reassoc-reduct-chain
+   -Xbatch -Xlog:os -XX:-BackgroundCompilation -XX:CompileCommand=compileonly,TestShortMax::test -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseSuperWord /Users/g/src/colata/reassoc-reduct-chain-8351409/TestShortMax.java
+Throughput: 589 ops/ms
+#+end_src
+* 27.1.26
+Why are there regressions when superword is enabled?
+
+Why xeon produces different set of instructions?
+Patch:
+#+begin_src asm
+  0x00007f303cadde44:   vblendvpd		%xmm1, %xmm1, %xmm0, %xmm13
+  0x00007f303cadde4a:   vblendvpd		%xmm1, %xmm0, %xmm1, %xmm14
+  0x00007f303cadde50:   vmaxpd		%xmm14, %xmm13, %xmm12
+  0x00007f303cadde55:   vcmpunordpd		%xmm13, %xmm13, %xmm14
+                                                            ;   {other}
+  0x00007f303cadde5b:   vblendvpd		%xmm14, %xmm13, %xmm12, %xmm0
+#+end_src
+Base:
+#+begin_src asm
+  0x00007f2ae0addf42:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0addf46:   ja		0x7f2ae0addf83
+  0x00007f2ae0addf48:   jp		0x7f2ae0addf6b
+  0x00007f2ae0addf4a:   jb		0x7f2ae0addf7f
+  0x00007f2ae0addf4c:   vpxor		%xmm15, %xmm15, %xmm15
+  0x00007f2ae0addf51:   vucomisd		%xmm15, %xmm0
+  0x00007f2ae0addf56:   je		0x7f2ae0addf5d
+  0x00007f2ae0addf58:   jmp		0x7f2ae0addf83      ;   {other}
+  0x00007f2ae0addf5d:   vpand		%xmm1, %xmm0, %xmm0
+  0x00007f2ae0addf61:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf66:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf6b:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0addf75:   vmovq		%rbx, %xmm0
+  0x00007f2ae0addf7a:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf7f:   vmovapd		%xmm1, %xmm0
+#+end_src
+** darwin
+*** base
+#+begin_src asm
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N67 strip mined) Freq: 1.04898e+08
+  0x00000001128171f0:   add		x15, x16, w14, sxtw #3;*daload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@14 (line 21)
+  0x00000001128171f4:   ldr		d16, [x15, #0x10]
+  0x00000001128171f8:   ldr		d17, [x15, #0x18]
+  0x00000001128171fc:   ldr		d18, [x15, #0x20]
+  0x0000000112817200:   ldr		d19, [x15, #0x28]
+  0x0000000112817204:   fmax		d16, d0, d16
+  0x0000000112817208:   ldr		d20, [x15, #0x30]
+  0x000000011281720c:   fmax		d16, d16, d17
+  0x0000000112817210:   ldr		d17, [x15, #0x38]
+  0x0000000112817214:   fmax		d16, d16, d18
+  0x0000000112817218:   ldr		d18, [x15, #0x40]
+  0x000000011281721c:   fmax		d16, d16, d19
+  0x0000000112817220:   ldr		d19, [x15, #0x48]
+  0x0000000112817224:   fmax		d16, d16, d20
+  0x0000000112817228:   ldr		d20, [x15, #0x50]
+  0x000000011281722c:   fmax		d16, d16, d17
+  0x0000000112817230:   ldr		d21, [x15, #0x58]
+  0x0000000112817234:   fmax		d16, d16, d18
+  0x0000000112817238:   ldr		d17, [x15, #0x60]
+  0x000000011281723c:   fmax		d16, d16, d19
+  0x0000000112817240:   ldr		d18, [x15, #0x68]
+  0x0000000112817244:   fmax		d16, d16, d20
+  0x0000000112817248:   ldr		d19, [x15, #0x70]
+  0x000000011281724c:   fmax		d16, d16, d21
+  0x0000000112817250:   ldr		d20, [x15, #0x78]
+  0x0000000112817254:   fmax		d16, d16, d17
+  0x0000000112817258:   ldr		d21, [x15, #0x80]
+  0x000000011281725c:   fmax		d16, d16, d18
+  0x0000000112817260:   ldr		d17, [x15, #0x88]
+  0x0000000112817264:   fmax		d16, d16, d19
+  0x0000000112817268:   fmax		d16, d16, d20
+  0x000000011281726c:   fmax		d16, d16, d21
+  0x0000000112817270:   add		w14, w14, #0x10     ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+  0x0000000112817274:   fmax		d0, d16, d17        ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x0000000112817278:   cmp		w14, w10
+  0x000000011281727c:   b.lt		#0x1128171f0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+#+end_src
+*** patch
+#+begin_src asm
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N67 strip mined) Freq: 1.04898e+08
+  0x0000000113ecb1f0:   add		x15, x16, w14, sxtw #3;*daload {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@14 (line 21)
+  0x0000000113ecb1f4:   ldr		d17, [x15, #0x18]
+  0x0000000113ecb1f8:   ldr		d16, [x15, #0x10]
+  0x0000000113ecb1fc:   ldr		d18, [x15, #0x20]
+  0x0000000113ecb200:   ldr		d19, [x15, #0x28]
+  0x0000000113ecb204:   ldr		d20, [x15, #0x30]
+  0x0000000113ecb208:   fmax		d16, d16, d17
+  0x0000000113ecb20c:   ldr		d17, [x15, #0x38]
+  0x0000000113ecb210:   fmax		d16, d16, d18
+  0x0000000113ecb214:   ldr		d18, [x15, #0x40]
+  0x0000000113ecb218:   fmax		d16, d16, d19
+  0x0000000113ecb21c:   ldr		d19, [x15, #0x48]
+  0x0000000113ecb220:   fmax		d16, d16, d20
+  0x0000000113ecb224:   ldr		d20, [x15, #0x50]
+  0x0000000113ecb228:   fmax		d16, d16, d17
+  0x0000000113ecb22c:   ldr		d21, [x15, #0x58]
+  0x0000000113ecb230:   fmax		d16, d16, d18
+  0x0000000113ecb234:   ldr		d17, [x15, #0x60]
+  0x0000000113ecb238:   fmax		d16, d16, d19
+  0x0000000113ecb23c:   ldr		d18, [x15, #0x68]
+  0x0000000113ecb240:   fmax		d16, d16, d20
+  0x0000000113ecb244:   ldr		d19, [x15, #0x70]
+  0x0000000113ecb248:   fmax		d16, d16, d21
+  0x0000000113ecb24c:   ldr		d20, [x15, #0x78]
+  0x0000000113ecb250:   fmax		d16, d16, d17
+  0x0000000113ecb254:   ldr		d21, [x15, #0x80]
+  0x0000000113ecb258:   fmax		d16, d16, d18
+  0x0000000113ecb25c:   ldr		d17, [x15, #0x88]
+  0x0000000113ecb260:   fmax		d16, d16, d19
+  0x0000000113ecb264:   fmax		d16, d16, d20
+  0x0000000113ecb268:   fmax		d16, d16, d21
+  0x0000000113ecb26c:   fmax		d16, d16, d17
+  0x0000000113ecb270:   add		w14, w14, #0x10     ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+  0x0000000113ecb274:   fmax		d0, d0, d16         ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x0000000113ecb278:   cmp		w14, w10
+  0x0000000113ecb27c:   b.lt		#0x113ecb1f0        ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+#+end_src
+** xeon
+*** base
+#+begin_src asm
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N72 strip mined) Freq: 1.04898e+08
+  0x00007f2ae0added0:   vmovsd		0x88(%rsi, %r11, 8), %xmm16
+  0x00007f2ae0added8:   vmovsd		0x80(%rsi, %r11, 8), %xmm17
+  0x00007f2ae0addee0:   vmovsd		0x10(%rsi, %r11, 8), %xmm1
+  0x00007f2ae0addee7:   vmovsd		0x18(%rsi, %r11, 8), %xmm2
+  0x00007f2ae0addeee:   vmovsd		0x20(%rsi, %r11, 8), %xmm3
+  0x00007f2ae0addef5:   vmovsd		0x28(%rsi, %r11, 8), %xmm4
+  0x00007f2ae0addefc:   vmovsd		0x30(%rsi, %r11, 8), %xmm5
+  0x00007f2ae0addf03:   vmovsd		0x38(%rsi, %r11, 8), %xmm6
+  0x00007f2ae0addf0a:   vmovsd		0x40(%rsi, %r11, 8), %xmm7
+  0x00007f2ae0addf11:   vmovsd		0x48(%rsi, %r11, 8), %xmm8
+  0x00007f2ae0addf18:   vmovsd		0x50(%rsi, %r11, 8), %xmm9
+  0x00007f2ae0addf1f:   vmovsd		0x58(%rsi, %r11, 8), %xmm10
+  0x00007f2ae0addf26:   vmovsd		0x60(%rsi, %r11, 8), %xmm11
+  0x00007f2ae0addf2d:   vmovsd		0x68(%rsi, %r11, 8), %xmm12
+  0x00007f2ae0addf34:   vmovsd		0x70(%rsi, %r11, 8), %xmm13
+  0x00007f2ae0addf3b:   vmovsd		0x78(%rsi, %r11, 8), %xmm14
+  0x00007f2ae0addf42:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0addf46:   ja		0x7f2ae0addf83
+  0x00007f2ae0addf48:   jp		0x7f2ae0addf6b
+  0x00007f2ae0addf4a:   jb		0x7f2ae0addf7f
+  0x00007f2ae0addf4c:   vpxor		%xmm15, %xmm15, %xmm15
+  0x00007f2ae0addf51:   vucomisd		%xmm15, %xmm0
+  0x00007f2ae0addf56:   je		0x7f2ae0addf5d
+  0x00007f2ae0addf58:   jmp		0x7f2ae0addf83      ;   {other}
+  0x00007f2ae0addf5d:   vpand		%xmm1, %xmm0, %xmm0
+  0x00007f2ae0addf61:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf66:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf6b:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0addf75:   vmovq		%rbx, %xmm0
+  0x00007f2ae0addf7a:   jmp		0x7f2ae0addf83
+  0x00007f2ae0addf7f:   vmovapd		%xmm1, %xmm0
+  0x00007f2ae0addf83:   vucomisd		%xmm2, %xmm0
+  0x00007f2ae0addf87:   ja		0x7f2ae0addfc2
+  0x00007f2ae0addf89:   jp		0x7f2ae0addfaa
+  0x00007f2ae0addf8b:   jb		0x7f2ae0addfbe
+  0x00007f2ae0addf8d:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0addf91:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0addf95:   je		0x7f2ae0addf9c
+  0x00007f2ae0addf97:   jmp		0x7f2ae0addfc2
+  0x00007f2ae0addf9c:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007f2ae0addfa0:   jmp		0x7f2ae0addfc2
+  0x00007f2ae0addfa5:   jmp		0x7f2ae0addfc2
+  0x00007f2ae0addfaa:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0addfb4:   vmovq		%rbx, %xmm0
+  0x00007f2ae0addfb9:   jmp		0x7f2ae0addfc2
+  0x00007f2ae0addfbe:   vmovapd		%xmm2, %xmm0
+  0x00007f2ae0addfc2:   vucomisd		%xmm3, %xmm0
+  0x00007f2ae0addfc6:   ja		0x7f2ae0ade001
+  0x00007f2ae0addfc8:   jp		0x7f2ae0addfe9
+  0x00007f2ae0addfca:   jb		0x7f2ae0addffd
+  0x00007f2ae0addfcc:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0addfd0:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0addfd4:   je		0x7f2ae0addfdb
+  0x00007f2ae0addfd6:   jmp		0x7f2ae0ade001
+  0x00007f2ae0addfdb:   vpand		%xmm3, %xmm0, %xmm0
+  0x00007f2ae0addfdf:   jmp		0x7f2ae0ade001
+  0x00007f2ae0addfe4:   jmp		0x7f2ae0ade001
+  0x00007f2ae0addfe9:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0addff3:   vmovq		%rbx, %xmm0
+  0x00007f2ae0addff8:   jmp		0x7f2ae0ade001
+  0x00007f2ae0addffd:   vmovapd		%xmm3, %xmm0
+  0x00007f2ae0ade001:   vucomisd		%xmm4, %xmm0
+  0x00007f2ae0ade005:   ja		0x7f2ae0ade040
+  0x00007f2ae0ade007:   jp		0x7f2ae0ade028
+  0x00007f2ae0ade009:   jb		0x7f2ae0ade03c
+  0x00007f2ae0ade00b:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade00f:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade013:   je		0x7f2ae0ade01a
+  0x00007f2ae0ade015:   jmp		0x7f2ae0ade040
+  0x00007f2ae0ade01a:   vpand		%xmm4, %xmm0, %xmm0
+  0x00007f2ae0ade01e:   jmp		0x7f2ae0ade040
+  0x00007f2ae0ade023:   jmp		0x7f2ae0ade040
+  0x00007f2ae0ade028:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade032:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade037:   jmp		0x7f2ae0ade040
+  0x00007f2ae0ade03c:   vmovapd		%xmm4, %xmm0
+  0x00007f2ae0ade040:   vucomisd		%xmm5, %xmm0
+  0x00007f2ae0ade044:   ja		0x7f2ae0ade07f
+  0x00007f2ae0ade046:   jp		0x7f2ae0ade067
+  0x00007f2ae0ade048:   jb		0x7f2ae0ade07b
+  0x00007f2ae0ade04a:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade04e:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade052:   je		0x7f2ae0ade059
+  0x00007f2ae0ade054:   jmp		0x7f2ae0ade07f
+  0x00007f2ae0ade059:   vpand		%xmm5, %xmm0, %xmm0 ;   {other}
+  0x00007f2ae0ade05d:   jmp		0x7f2ae0ade07f
+  0x00007f2ae0ade062:   jmp		0x7f2ae0ade07f
+  0x00007f2ae0ade067:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade071:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade076:   jmp		0x7f2ae0ade07f
+  0x00007f2ae0ade07b:   vmovapd		%xmm5, %xmm0
+  0x00007f2ae0ade07f:   vucomisd		%xmm6, %xmm0
+  0x00007f2ae0ade083:   ja		0x7f2ae0ade0be
+  0x00007f2ae0ade085:   jp		0x7f2ae0ade0a6
+  0x00007f2ae0ade087:   jb		0x7f2ae0ade0ba
+  0x00007f2ae0ade089:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade08d:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade091:   je		0x7f2ae0ade098
+  0x00007f2ae0ade093:   jmp		0x7f2ae0ade0be
+  0x00007f2ae0ade098:   vpand		%xmm6, %xmm0, %xmm0
+  0x00007f2ae0ade09c:   jmp		0x7f2ae0ade0be
+  0x00007f2ae0ade0a1:   jmp		0x7f2ae0ade0be
+  0x00007f2ae0ade0a6:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade0b0:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade0b5:   jmp		0x7f2ae0ade0be
+  0x00007f2ae0ade0ba:   vmovapd		%xmm6, %xmm0
+  0x00007f2ae0ade0be:   vucomisd		%xmm7, %xmm0
+  0x00007f2ae0ade0c2:   ja		0x7f2ae0ade0fd
+  0x00007f2ae0ade0c4:   jp		0x7f2ae0ade0e5
+  0x00007f2ae0ade0c6:   jb		0x7f2ae0ade0f9
+  0x00007f2ae0ade0c8:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade0cc:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade0d0:   je		0x7f2ae0ade0d7
+  0x00007f2ae0ade0d2:   jmp		0x7f2ae0ade0fd
+  0x00007f2ae0ade0d7:   vpand		%xmm7, %xmm0, %xmm0
+  0x00007f2ae0ade0db:   jmp		0x7f2ae0ade0fd
+  0x00007f2ae0ade0e0:   jmp		0x7f2ae0ade0fd
+  0x00007f2ae0ade0e5:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade0ef:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade0f4:   jmp		0x7f2ae0ade0fd
+  0x00007f2ae0ade0f9:   vmovapd		%xmm7, %xmm0
+  0x00007f2ae0ade0fd:   vucomisd		%xmm8, %xmm0
+  0x00007f2ae0ade102:   ja		0x7f2ae0ade13f
+  0x00007f2ae0ade104:   jp		0x7f2ae0ade126
+  0x00007f2ae0ade106:   jb		0x7f2ae0ade13a
+  0x00007f2ae0ade108:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade10c:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade110:   je		0x7f2ae0ade117
+  0x00007f2ae0ade112:   jmp		0x7f2ae0ade13f
+  0x00007f2ae0ade117:   vpand		%xmm8, %xmm0, %xmm0
+  0x00007f2ae0ade11c:   jmp		0x7f2ae0ade13f
+  0x00007f2ae0ade121:   jmp		0x7f2ae0ade13f
+  0x00007f2ae0ade126:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade130:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade135:   jmp		0x7f2ae0ade13f
+  0x00007f2ae0ade13a:   vmovapd		%xmm8, %xmm0
+  0x00007f2ae0ade13f:   vucomisd		%xmm9, %xmm0
+  0x00007f2ae0ade144:   ja		0x7f2ae0ade181
+  0x00007f2ae0ade146:   jp		0x7f2ae0ade168
+  0x00007f2ae0ade148:   jb		0x7f2ae0ade17c
+  0x00007f2ae0ade14a:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade14e:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade152:   je		0x7f2ae0ade159
+  0x00007f2ae0ade154:   jmp		0x7f2ae0ade181      ;   {other}
+  0x00007f2ae0ade159:   vpand		%xmm9, %xmm0, %xmm0
+  0x00007f2ae0ade15e:   jmp		0x7f2ae0ade181
+  0x00007f2ae0ade163:   jmp		0x7f2ae0ade181
+  0x00007f2ae0ade168:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade172:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade177:   jmp		0x7f2ae0ade181
+  0x00007f2ae0ade17c:   vmovapd		%xmm9, %xmm0
+  0x00007f2ae0ade181:   vucomisd		%xmm10, %xmm0
+  0x00007f2ae0ade186:   ja		0x7f2ae0ade1c3
+  0x00007f2ae0ade188:   jp		0x7f2ae0ade1aa
+  0x00007f2ae0ade18a:   jb		0x7f2ae0ade1be
+  0x00007f2ae0ade18c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade190:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade194:   je		0x7f2ae0ade19b
+  0x00007f2ae0ade196:   jmp		0x7f2ae0ade1c3
+  0x00007f2ae0ade19b:   vpand		%xmm10, %xmm0, %xmm0
+  0x00007f2ae0ade1a0:   jmp		0x7f2ae0ade1c3
+  0x00007f2ae0ade1a5:   jmp		0x7f2ae0ade1c3
+  0x00007f2ae0ade1aa:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade1b4:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade1b9:   jmp		0x7f2ae0ade1c3
+  0x00007f2ae0ade1be:   vmovapd		%xmm10, %xmm0
+  0x00007f2ae0ade1c3:   vucomisd		%xmm11, %xmm0
+  0x00007f2ae0ade1c8:   ja		0x7f2ae0ade205
+  0x00007f2ae0ade1ca:   jp		0x7f2ae0ade1ec
+  0x00007f2ae0ade1cc:   jb		0x7f2ae0ade200
+  0x00007f2ae0ade1ce:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade1d2:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade1d6:   je		0x7f2ae0ade1dd
+  0x00007f2ae0ade1d8:   jmp		0x7f2ae0ade205
+  0x00007f2ae0ade1dd:   vpand		%xmm11, %xmm0, %xmm0
+  0x00007f2ae0ade1e2:   jmp		0x7f2ae0ade205
+  0x00007f2ae0ade1e7:   jmp		0x7f2ae0ade205
+  0x00007f2ae0ade1ec:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade1f6:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade1fb:   jmp		0x7f2ae0ade205
+  0x00007f2ae0ade200:   vmovapd		%xmm11, %xmm0
+  0x00007f2ae0ade205:   vucomisd		%xmm12, %xmm0
+  0x00007f2ae0ade20a:   ja		0x7f2ae0ade247
+  0x00007f2ae0ade20c:   jp		0x7f2ae0ade22e
+  0x00007f2ae0ade20e:   jb		0x7f2ae0ade242
+  0x00007f2ae0ade210:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade214:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade218:   je		0x7f2ae0ade21f
+  0x00007f2ae0ade21a:   jmp		0x7f2ae0ade247
+  0x00007f2ae0ade21f:   vpand		%xmm12, %xmm0, %xmm0
+  0x00007f2ae0ade224:   jmp		0x7f2ae0ade247
+  0x00007f2ae0ade229:   jmp		0x7f2ae0ade247
+  0x00007f2ae0ade22e:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade238:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade23d:   jmp		0x7f2ae0ade247
+  0x00007f2ae0ade242:   vmovapd		%xmm12, %xmm0
+  0x00007f2ae0ade247:   vucomisd		%xmm13, %xmm0
+  0x00007f2ae0ade24c:   ja		0x7f2ae0ade289
+  0x00007f2ae0ade24e:   jp		0x7f2ae0ade270
+  0x00007f2ae0ade250:   jb		0x7f2ae0ade284
+  0x00007f2ae0ade252:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade256:   vucomisd		%xmm1, %xmm0;   {other}
+  0x00007f2ae0ade25a:   je		0x7f2ae0ade261
+  0x00007f2ae0ade25c:   jmp		0x7f2ae0ade289
+  0x00007f2ae0ade261:   vpand		%xmm13, %xmm0, %xmm0
+  0x00007f2ae0ade266:   jmp		0x7f2ae0ade289
+  0x00007f2ae0ade26b:   jmp		0x7f2ae0ade289
+  0x00007f2ae0ade270:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade27a:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade27f:   jmp		0x7f2ae0ade289
+  0x00007f2ae0ade284:   vmovapd		%xmm13, %xmm0
+  0x00007f2ae0ade289:   vucomisd		%xmm14, %xmm0
+  0x00007f2ae0ade28e:   ja		0x7f2ae0ade2cb
+  0x00007f2ae0ade290:   jp		0x7f2ae0ade2b2
+  0x00007f2ae0ade292:   jb		0x7f2ae0ade2c6
+  0x00007f2ae0ade294:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade298:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade29c:   je		0x7f2ae0ade2a3
+  0x00007f2ae0ade29e:   jmp		0x7f2ae0ade2cb
+  0x00007f2ae0ade2a3:   vpand		%xmm14, %xmm0, %xmm0
+  0x00007f2ae0ade2a8:   jmp		0x7f2ae0ade2cb
+  0x00007f2ae0ade2ad:   jmp		0x7f2ae0ade2cb
+  0x00007f2ae0ade2b2:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007f2ae0ade2bc:   vmovq		%rbx, %xmm0
+  0x00007f2ae0ade2c1:   jmp		0x7f2ae0ade2cb
+  0x00007f2ae0ade2c6:   vmovapd		%xmm14, %xmm0
+  0x00007f2ae0ade2cb:   vmovapd		%xmm17, %xmm2
+  0x00007f2ae0ade2d1:   vucomisd		%xmm2, %xmm0
+  0x00007f2ae0ade2d5:   ja		0x7f2ae0ade310
+  0x00007f2ae0ade2d7:   jp		0x7f2ae0ade2f8
+  0x00007f2ae0ade2d9:   jb		0x7f2ae0ade30c
+  0x00007f2ae0ade2db:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade2df:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade2e3:   je		0x7f2ae0ade2ea
+  0x00007f2ae0ade2e5:   jmp		0x7f2ae0ade310
+  0x00007f2ae0ade2ea:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007f2ae0ade2ee:   jmp		0x7f2ae0ade310
+  0x00007f2ae0ade2f3:   jmp		0x7f2ae0ade310
+  0x00007f2ae0ade2f8:   movabsq		$0x7ff8000000000000, %rdx
+  0x00007f2ae0ade302:   vmovq		%rdx, %xmm0
+  0x00007f2ae0ade307:   jmp		0x7f2ae0ade310
+  0x00007f2ae0ade30c:   vmovapd		%xmm2, %xmm0
+  0x00007f2ae0ade310:   vmovapd		%xmm16, %xmm2
+  0x00007f2ae0ade316:   vucomisd		%xmm2, %xmm0
+  0x00007f2ae0ade31a:   ja		0x7f2ae0ade355
+  0x00007f2ae0ade31c:   jp		0x7f2ae0ade33d
+  0x00007f2ae0ade31e:   jb		0x7f2ae0ade351
+  0x00007f2ae0ade320:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f2ae0ade324:   vucomisd		%xmm1, %xmm0
+  0x00007f2ae0ade328:   je		0x7f2ae0ade32f
+  0x00007f2ae0ade32a:   jmp		0x7f2ae0ade355
+  0x00007f2ae0ade32f:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007f2ae0ade333:   jmp		0x7f2ae0ade355
+  0x00007f2ae0ade338:   jmp		0x7f2ae0ade355
+  0x00007f2ae0ade33d:   movabsq		$0x7ff8000000000000, %rax
+  0x00007f2ae0ade347:   vmovq		%rax, %xmm0
+  0x00007f2ae0ade34c:   jmp		0x7f2ae0ade355
+  0x00007f2ae0ade351:   vmovapd		%xmm2, %xmm0        ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x00007f2ae0ade355:   addl		$0x10, %r11d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+                                                            ;   {other}
+  0x00007f2ae0ade359:   nop
+  0x00007f2ae0ade35a:   nop
+  0x00007f2ae0ade35b:   nop
+  0x00007f2ae0ade35c:   nop
+  0x00007f2ae0ade35d:   nop
+  0x00007f2ae0ade35e:   nop
+  0x00007f2ae0ade35f:   nop
+  0x00007f2ae0ade360:   cmpl		%edi, %r11d
+  0x00007f2ae0ade363:   jl		0x7f2ae0added0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+#+end_src
+*** patch
+#+begin_src asm
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N72 strip mined) Freq: 1.04898e+08
+  0x00007f303cadddd0:   vmovsd		0x88(%rsi, %r9, 8), %xmm16
+  0x00007f303cadddd8:   vmovsd		0x80(%rsi, %r9, 8), %xmm17
+  0x00007f303caddde0:   vmovsd		0x10(%rsi, %r9, 8), %xmm0
+  0x00007f303caddde7:   vmovsd		0x18(%rsi, %r9, 8), %xmm1
+  0x00007f303cadddee:   vmovsd		0x20(%rsi, %r9, 8), %xmm2
+  0x00007f303cadddf5:   vmovsd		0x28(%rsi, %r9, 8), %xmm3
+  0x00007f303cadddfc:   vmovsd		0x30(%rsi, %r9, 8), %xmm4
+  0x00007f303cadde03:   vmovsd		0x38(%rsi, %r9, 8), %xmm5
+  0x00007f303cadde0a:   vmovsd		0x40(%rsi, %r9, 8), %xmm6
+  0x00007f303cadde11:   vmovsd		0x48(%rsi, %r9, 8), %xmm7
+  0x00007f303cadde18:   vmovsd		0x50(%rsi, %r9, 8), %xmm8
+  0x00007f303cadde1f:   vmovsd		0x58(%rsi, %r9, 8), %xmm9
+  0x00007f303cadde26:   vmovsd		0x60(%rsi, %r9, 8), %xmm10
+  0x00007f303cadde2d:   vmovsd		0x68(%rsi, %r9, 8), %xmm11
+  0x00007f303cadde34:   vmovsd		0x70(%rsi, %r9, 8), %xmm19
+  0x00007f303cadde3c:   vmovsd		0x78(%rsi, %r9, 8), %xmm18
+  0x00007f303cadde44:   vblendvpd		%xmm1, %xmm1, %xmm0, %xmm13
+  0x00007f303cadde4a:   vblendvpd		%xmm1, %xmm0, %xmm1, %xmm14
+  0x00007f303cadde50:   vmaxpd		%xmm14, %xmm13, %xmm12
+  0x00007f303cadde55:   vcmpunordpd		%xmm13, %xmm13, %xmm14
+                                                            ;   {other}
+  0x00007f303cadde5b:   vblendvpd		%xmm14, %xmm13, %xmm12, %xmm0
+  0x00007f303cadde61:   vblendvpd		%xmm2, %xmm2, %xmm0, %xmm12
+  0x00007f303cadde67:   vblendvpd		%xmm2, %xmm0, %xmm2, %xmm13
+  0x00007f303cadde6d:   vmaxpd		%xmm13, %xmm12, %xmm1
+  0x00007f303cadde72:   vcmpunordpd		%xmm12, %xmm12, %xmm13
+  0x00007f303cadde78:   vblendvpd		%xmm13, %xmm12, %xmm1, %xmm0
+  0x00007f303cadde7e:   vblendvpd		%xmm3, %xmm3, %xmm0, %xmm2
+  0x00007f303cadde84:   vblendvpd		%xmm3, %xmm0, %xmm3, %xmm12
+  0x00007f303cadde8a:   vmaxpd		%xmm12, %xmm2, %xmm1
+  0x00007f303cadde8f:   vcmpunordpd		%xmm2, %xmm2, %xmm12
+  0x00007f303cadde94:   vblendvpd		%xmm12, %xmm2, %xmm1, %xmm0
+  0x00007f303cadde9a:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+  0x00007f303caddea0:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+  0x00007f303caddea6:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddeab:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddeb0:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddeb6:   vblendvpd		%xmm5, %xmm5, %xmm0, %xmm2
+  0x00007f303caddebc:   vblendvpd		%xmm5, %xmm0, %xmm5, %xmm3
+  0x00007f303caddec2:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddec7:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddecc:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303cadded2:   vblendvpd		%xmm6, %xmm6, %xmm0, %xmm2
+  0x00007f303cadded8:   vblendvpd		%xmm6, %xmm0, %xmm6, %xmm3
+  0x00007f303caddede:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddee3:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddee8:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddeee:   vblendvpd		%xmm7, %xmm7, %xmm0, %xmm2
+  0x00007f303caddef4:   vblendvpd		%xmm7, %xmm0, %xmm7, %xmm3
+  0x00007f303caddefa:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddeff:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf04:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddf0a:   vblendvpd		%xmm8, %xmm8, %xmm0, %xmm2
+  0x00007f303caddf10:   vblendvpd		%xmm8, %xmm0, %xmm8, %xmm3
+  0x00007f303caddf16:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddf1b:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf20:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddf26:   vblendvpd		%xmm9, %xmm9, %xmm0, %xmm2
+  0x00007f303caddf2c:   vblendvpd		%xmm9, %xmm0, %xmm9, %xmm3
+  0x00007f303caddf32:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddf37:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf3c:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddf42:   vblendvpd		%xmm10, %xmm10, %xmm0, %xmm2
+  0x00007f303caddf48:   vblendvpd		%xmm10, %xmm0, %xmm10, %xmm3
+  0x00007f303caddf4e:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddf53:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf58:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+                                                            ;   {other}
+  0x00007f303caddf5e:   vblendvpd		%xmm11, %xmm11, %xmm0, %xmm2
+  0x00007f303caddf64:   vblendvpd		%xmm11, %xmm0, %xmm11, %xmm3
+  0x00007f303caddf6a:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddf6f:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf74:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddf7a:   vmovapd		%xmm19, %xmm4
+  0x00007f303caddf80:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+  0x00007f303caddf86:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+  0x00007f303caddf8c:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddf91:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddf96:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddf9c:   vmovapd		%xmm18, %xmm4
+  0x00007f303caddfa2:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+  0x00007f303caddfa8:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+  0x00007f303caddfae:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddfb3:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddfb8:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddfbe:   vmovapd		%xmm17, %xmm4
+  0x00007f303caddfc4:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+  0x00007f303caddfca:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+  0x00007f303caddfd0:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddfd5:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddfda:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303caddfe0:   vmovapd		%xmm16, %xmm4
+  0x00007f303caddfe6:   vblendvpd		%xmm4, %xmm4, %xmm0, %xmm2
+  0x00007f303caddfec:   vblendvpd		%xmm4, %xmm0, %xmm4, %xmm3
+  0x00007f303caddff2:   vmaxpd		%xmm3, %xmm2, %xmm1
+  0x00007f303caddff7:   vcmpunordpd		%xmm2, %xmm2, %xmm3
+  0x00007f303caddffc:   vblendvpd		%xmm3, %xmm2, %xmm1, %xmm0
+  0x00007f303cade002:   vucomisd		%xmm0, %xmm15
+  0x00007f303cade006:   ja		0x7f303cade041
+  0x00007f303cade008:   jp		0x7f303cade029
+  0x00007f303cade00a:   jb		0x7f303cade03d
+  0x00007f303cade00c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007f303cade010:   vucomisd		%xmm1, %xmm15
+  0x00007f303cade014:   je		0x7f303cade01b
+  0x00007f303cade016:   jmp		0x7f303cade041
+  0x00007f303cade01b:   vpand		%xmm0, %xmm15, %xmm15
+  0x00007f303cade01f:   jmp		0x7f303cade041
+  0x00007f303cade024:   jmp		0x7f303cade041
+  0x00007f303cade029:   movabsq		$0x7ff8000000000000, %rdi
+  0x00007f303cade033:   vmovq		%rdi, %xmm15
+  0x00007f303cade038:   jmp		0x7f303cade041
+  0x00007f303cade03d:   vmovapd		%xmm0, %xmm15       ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x00007f303cade041:   addl		$0x10, %r9d         ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+  0x00007f303cade045:   cmpl		%ecx, %r9d
+  0x00007f303cade048:   jl		0x7f303cadddd0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+#+end_src
 * 22.1.26
 ** with superword
 *** performance up
@@ -199,13 +734,13 @@ Process finished with exit code 0
 *** perfasm xeon
 **** patch
 #+begin_src bash
-c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 562 
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 562
 
                  0x00007fae9baf3354:   addq		$0x30, %rsp
                  0x00007fae9baf3358:   popq		%rbp
                  0x00007fae9baf3359:   cmpq		0x28(%r15), %rsp    ;   {poll_return}
                  0x00007fae9baf335d:   ja		0x7fae9baf3630
-                 0x00007fae9baf3363:   retq		
+                 0x00007fae9baf3363:   retq
            ↗     0x00007fae9baf3364:   vmovq		%xmm0, %rbx
            │     0x00007fae9baf3369:   vmovq		%xmm1, %rdi
            │     0x00007fae9baf336e:   vmovq		%xmm2, %rdx
@@ -341,7 +876,7 @@ c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSupe
               │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::longMaxSimple@17 (line 1058)
               │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub@17 (line 121)
               │  0x00007fae9baf34fa:   movl		0xc(%r12, %r10, 8), %r11d; implicit exception: dispatches to 0x00007fae9baf3565
-   0.03%      │  0x00007fae9baf34ff:   nop		
+   0.03%      │  0x00007fae9baf34ff:   nop
               │  0x00007fae9baf3500:   testl		%r11d, %r11d
               │  0x00007fae9baf3503:   jbe		0x7fae9baf3565
               │  0x00007fae9baf3509:   movslq		%r9d, %rsi
@@ -370,7 +905,7 @@ c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSupe
 **** base
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 521 
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_longMaxSimple_jmhTest::longMaxSimple_thrpt_jmhStub, version 5, compile id 521
 
              0x00007f47c3af7000:   cmpl		$0x3e80, %esi
    0.07%     0x00007f47c3af7006:   cmoval		%ecx, %esi
@@ -502,7 +1037,7 @@ c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSupe
 **** patch
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 560 
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 560
 
              0x00007f2dafaf51b0:   movl		%r10d, %esi
              0x00007f2dafaf51b3:   subl		%r8d, %esi
@@ -628,14 +1163,14 @@ c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSupe
 **** base
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 540 
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 540
 
                                                                         ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
               0x00007f7127af59b4:   addq		$0x30, %rsp
               0x00007f7127af59b8:   popq		%rbp
               0x00007f7127af59b9:   cmpq		0x28(%r15), %rsp    ;   {poll_return}
               0x00007f7127af59bd:   ja		0x7f7127af60b0
-              0x00007f7127af59c3:   retq		
+              0x00007f7127af59c3:   retq
               0x00007f7127af59c4:   vmovq		%xmm16, %rbx
               0x00007f7127af59ca:   vmovq		%xmm17, %rdi
               0x00007f7127af59d0:   vmovq		%xmm18, %r11
