@@ -61,6 +61,10 @@ gvn_jvm_args += -XX:+TraceIterativeGVN
 
 super_jvm_args += -XX:+TraceSuperWord
 
+ifdef PHASE
+  jvm_args += loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"$(PHASE)"
+endif
+
 ifdef COMP_ARGS
   jvm_args += $(comp_jvm_args)
 endif
