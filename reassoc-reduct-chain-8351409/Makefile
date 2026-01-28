@@ -26,6 +26,9 @@ base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
 ifneq ($(CONF),release)
   base_jvm_args += -XX:VerifyIterativeGVN=1000
 endif
+ifndef BASE
+  base_jvm_args += -XX:+UseNewCode
+endif
 
 ifdef SUPERWORD
   base_jvm_args += -XX:+UseSuperWord
