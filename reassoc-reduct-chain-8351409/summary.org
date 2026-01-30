@@ -11,6 +11,22 @@ Can reassociate to non-power-of-2 chains.
 - [ ] Disable float Min/Max
 - [ ] Understand why superword affected
 * 30.1.26
+** xeon min/max long benchmark
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt      Base     Patch   Units   Diff
+VectorReduction2.NoSuperword.longMaxBig             2048       0  thrpt    3   327.435   307.119  ops/ms    -6%
+VectorReduction2.NoSuperword.longMaxDotProduct      2048       0  thrpt    3   406.023   606.387  ops/ms   +49%
+VectorReduction2.NoSuperword.longMaxSimple          2048       0  thrpt    3   463.940   980.875  ops/ms  +111%
+VectorReduction2.NoSuperword.longMinBig             2048       0  thrpt    3   324.709   330.053  ops/ms    +2%
+VectorReduction2.NoSuperword.longMinDotProduct      2048       0  thrpt    3   414.097   605.047  ops/ms   +46%
+VectorReduction2.NoSuperword.longMinSimple          2048       0  thrpt    3   461.952   825.363  ops/ms   +79%
+VectorReduction2.WithSuperword.longMaxBig           2048       0  thrpt    3   547.252   557.059  ops/ms    +2%
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  thrpt    3   948.265   944.391  ops/ms     0%
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  thrpt    3  1290.747  1290.617  ops/ms     0%
+VectorReduction2.WithSuperword.longMinBig           2048       0  thrpt    3   552.254   552.402  ops/ms     0%
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  thrpt    3   955.592   955.159  ops/ms     0%
+VectorReduction2.WithSuperword.longMinSimple        2048       0  thrpt    3  1290.704  1290.363  ops/ms     0%
+#+end_src
 ** darwin min/max long benchmark
 #+begin_src bash
 Benchmark                                         (SIZE)  (seed)   Mode  Cnt      Base     Patch   Units   Diff
