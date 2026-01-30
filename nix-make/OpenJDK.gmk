@@ -351,3 +351,8 @@ update-build-docs:
 > cd $(JDK_HOME)
 > CONF=$(conf_name) make update-build-docs
 .PHONY: update-build-docs
+
+results:
+> zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
+> zip -j results-benchmark-$(DATE).zip $(java_images_test_dir)/*.csv && realpath results-benchmark-$(DATE).zip
+.PHONY: results

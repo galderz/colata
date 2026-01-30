@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -ex
+
+CLEAN="false"
+EVENTS="cycles,instructions,branch-misses,br_mis_pred,inst_retired"
+
+if [ "$(uname)" = "Linux" ]; then
+  ASM_PROFILER="perfasm"
+else
+  ASM_PROFILER="xctraceasm"
+  DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+
+# Check for clean parameter
+if [[ "$1" == "--clean=true" ]]; then
+    read -p "Are you sure you want to clean first? (yes/no): " RESPONSE
+    if [[ "$RESPONSE" == "yes" ]]; then
+        CLEAN="true"
+    else
+        echo "Exiting because you don't want to apply the changes."
+        exit 1
+    fi
+fi
+
+benchmark_all()
+{
+    local branch=$1
+    local extra_args=$2
+    local rff_prefix=$3
+
+    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.\\\(?:No\\\|With\\\)Superword\.long\\\(?:Min\\\|Max\\\)\" MICRO=\"OPTIONS=-rff ${rff_prefix}-vr2.csv ${extra_args}\" CONF=release LOG=warn make test
+    # log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.long\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -rff ${rff_prefix}-mmv.csv ${extra_args}\" CONF=release LOG=warn make test
+}
+
+benchmark_branch()
+{
+    local branch=$1
+    local extra_args=$2
+    local rff_suffix=$3
+    local common_args="-bm thrpt -tu ms"
+
+    pushd $HOME/src/jdk-reassoc-reduct-chain
+    git checkout ${branch}
+    popd
+
+    # Tracking regression needs to
+    if [[ $CLEAN == "true" ]]; then
+        CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
+    fi
+
+    if [[ $branch != *base ]]; then
+        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "patch-${rff_suffix}"
+    else
+        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "base-${rff_suffix}"
+    fi
+}
+
+log()
+{
+    echo "$*"
+    eval "$*"
+}
+
+if [[ $CLEAN == "true" ]]; then
+  CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
+fi
+
+# Clean .csv files from previous runs
+CONF=release make clean-csv
+
+# DisableIntrinsic requires UnlockDiagnosticVMOptions
+# UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
+
+if [ "$(uname)" = "Linux" ]; then
+  benchmark_branch "topic.reassoc-reduct-chain.roland" "-prof ${ASM_PROFILER}" "perfasm"
+  benchmark_branch "topic.reassoc-reduct-chain.roland" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+fi
+benchmark_branch "topic.reassoc-reduct-chain.roland" "" "noprof"
+if [ "$(uname)" = "Linux" ]; then
+  benchmark_branch "topic.reassoc-reduct-chain.roland.base" "-prof ${ASM_PROFILER}" "perfasm"
+  benchmark_branch "topic.reassoc-reduct-chain.roland.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+fi
+benchmark_branch "topic.reassoc-reduct-chain.roland.base" "" "noprof"
+
+CONF=release DATE=$(date +%Y%m%d-%H%M%S) make results
