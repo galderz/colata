@@ -10,4 +10,6 @@ tests=(
     "test/hotspot/jtreg/compiler/igvn/TestMinMaxIdentity.java"
 )
 
-TEST="${tests[*]}" make jtreg jtreg-format
+TEST="${tests[*]}" make jtreg
+TEST="${tests[*]}" JAVA_OPTIONS="-XX:UseAVX=0" make jtreg
+make jtreg-format
