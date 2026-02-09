@@ -7,9 +7,8 @@ Still gets considerable performance improvement.
 Improvement of binary tree only on big enough unrolls (see 2, 4, 8, 16).
 Can reassociate to non-power-of-2 chains.
 * Next steps
-- [ ] Disable double Min/Max
-- [ ] Disable float Min/Max
-- [ ] Understand why superword affected
+- [ ] merge two tests into 1 and use different @run to make sure both are run
+- [ ] refactor to a different class
 * 30.1.26
 ** xeon min/max long benchmark
 #+begin_src bash
