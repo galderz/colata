@@ -10,4 +10,8 @@ tests=(
     "test/hotspot/jtreg/compiler/valhalla/inlinetypes/TestBufferLost.java"
 )
 
+# Run individual tests first
 TEST="${tests[*]}" make jtreg
+
+# Run full valhalla testsuite
+TEST=compiler/valhalla/inlinetypes make test
