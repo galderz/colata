@@ -199,7 +199,7 @@ remove-worktree:
 .PHONY: remove-worktree
 
 clion:
-> $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
+> $(boot_jdk_java) $(TOPDIR)/nix-make/Clion.java $(JDK_HOME) $(conf_name)
 .PHONY: clion
 
 idea:

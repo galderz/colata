@@ -66,8 +66,8 @@ public class CLion {
         configuration.setAttribute("EMULATE_TERMINAL", "false");
         configuration.setAttribute("PASS_PARENT_ENVS_2", "true");
         configuration.setAttribute("PROJECT_NAME", confName);
-        configuration.setAttribute("TARGET_NAME", "Build JDK");
-        configuration.setAttribute("CONFIG_NAME", "Build JDK");
+        configuration.setAttribute("TARGET_NAME", "Build JDK Nix");
+        configuration.setAttribute("CONFIG_NAME", "Build JDK Nix");
         configuration.setAttribute("RUN_PATH", "$PROJECT_DIR$/jdk/bin/java");
 
         Element method = doc.createElement("method");
@@ -104,6 +104,16 @@ public class CLion {
                         </clean>
                       </configuration>
                     </target>
+                    <target id="9a634b33-babd-436e-be27-50ca5f4f3dc9" name="Build JDK Nix" defaultType="TOOL">
+                      <configuration id="e525ec4e-220d-4a58-bca9-b11892d7eaa6" name="Build JDK Nix">
+                        <build type="TOOL">
+                          <tool actionId="Tool_External Tools_nix make slow" />
+                        </build>
+                        <clean type="TOOL">
+                          <tool actionId="Tool_External Tools_nix clean slow" />
+                        </clean>
+                      </configuration>
+                    </target>
                   </component>
                 </project>
                 """;
@@ -126,6 +136,20 @@ public class CLion {
                     <exec>
                       <option name="COMMAND" value="make" />
                       <option name="PARAMETERS" value="CONF=%1$s clean" />
+                      <option name="WORKING_DIRECTORY" value="%2$s" />
+                    </exec>
+                  </tool>
+                  <tool name="nix make slow" showInMainMenu="false" showInEditor="false" showInProject="false" showInSearchPopup="false" disabled="false" useConsole="true" showConsoleOnStdOut="false" showConsoleOnStdErr="false" synchronizeAfterRun="true">
+                    <exec>
+                      <option name="COMMAND" value="nix-shell" />
+                      <option name="PARAMETERS" value="/Users/g/src/colata/mac.nix --run &quot;CONF=%1$s /nix/store/p15ia8pn2wxzdqaf07nrwdspfwsyrzyn-gnumake-4.4.1/bin/make&quot;" />
+                      <option name="WORKING_DIRECTORY" value="%2$s" />
+                    </exec>
+                  </tool>
+                  <tool name="nix clean slow" showInMainMenu="false" showInEditor="false" showInProject="false" showInSearchPopup="false" disabled="false" useConsole="true" showConsoleOnStdOut="false" showConsoleOnStdErr="false" synchronizeAfterRun="true">
+                    <exec>
+                      <option name="COMMAND" value="nix-shell" />
+                      <option name="PARAMETERS" value="/Users/g/src/colata/mac.nix --run &quot;CONF=%1$s /nix/store/p15ia8pn2wxzdqaf07nrwdspfwsyrzyn-gnumake-4.4.1/bin/make clean&quot;" />
                       <option name="WORKING_DIRECTORY" value="%2$s" />
                     </exec>
                   </tool>
