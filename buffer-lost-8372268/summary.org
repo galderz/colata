@@ -1,4 +1,49 @@
 * 11.2.26
+Eventually found the WhiteBox.class file:
+#+begin_src bash
+[nix-shell:~/src/jdk-buffer-lost]$ find . -iname *WhiteBox.class*
+./build/slow-linux-aarch64/support/test/lib/wb_classes/jdk/test/whitebox/WhiteBox.class
+./build/slow-linux-aarch64/support/test/lib/test-lib_classes/jdk/test/whitebox/WhiteBox.class
+./build/slow-linux-aarch64/jdk/modules/jdk.jfr/jdk/jfr/internal/test/WhiteBox.class
+./build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/extraPropDefns/bootClasses/jdk/test/whitebox/WhiteBox.class
+./build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/compiler/valhalla/inlinetypes/TestArrays_id0/jdk/test/whitebox/WhiteBox.class
+./build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d/jdk/test/whitebox/WhiteBox.class
+./JTwork/extraPropDefns/bootClasses/jdk/test/whitebox/WhiteBox.class
+./JTwork/classes/compiler/valhalla/inlinetypes/TestArrays_id0.d/jdk/test/whitebox/WhiteBox.class
+
+[nix-shell:~/src/jdk-buffer-lost/build/slow-linux-aarch64/support/test/lib/wb_classes]$ /home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/jdk/bin/java -DReproduce=true -cp /home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg/compiler/valhalla/inlinetypes:/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d/test/lib:/home/g/src/jdk-buffer-lost/test/lib:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg:/home/g/opt/jtreg/build/images/jtreg/lib/javatest.jar:/home/g/opt/jtreg/build/images/jtreg/lib/jtreg.jar -Djava.library.path=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/test/hotspot/jtreg/native -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:MaxRAMPercentage=12.5 -Dtest.boot.jdk=/nix/store/fz5li5g32nzdfniq696pc7rvhmjsl8mz-temurin-bin-25.0.0 -Djava.io.tmpdir=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/tmp -Dir.framework.server.port=34805 --enable-preview --add-exports java.base/jdk.internal.value=ALL-UNNAMED --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:+IgnoreUnrecognizedVMOptions -XX:-UseACmpProfile -XX:+AlwaysIncrementalInline -XX:FlatArrayElementMaxOops=5 -XX:+UseArrayFlattening -XX:-UseArrayLoadStoreProfile -XX:+UseFieldFlattening -XX:+InlineTypePassFieldsAsArgs -XX:+InlineTypeReturnedAsFields -XX:-BackgroundCompilation -XX:CompileCommand=quiet -DWarmup=251 compiler.lib.ir_framework.test.TestVM compiler.valhalla.inlinetypes.TestArrays compiler.valhalla.inlinetypes.MyValue2 compiler.valhalla.inlinetypes.MyValue1 compiler.valhalla.inlinetypes.MyValue2Inline
+...
+
+#  Internal Error (/home/g/src/jdk-buffer-lost/src/hotspot/share/code/codeCache.inline.hpp:48), pid=89222, tid=89223
+#  assert(cb != nullptr) failed: must be
+#+end_src
+
+Can't reproduce:
+#+begin_src bash
+[nix-shell:~/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/scratch]$ /home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/jdk/bin/java -DReproduce=true -cp /home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg/compiler/valhalla/inlinetypes:/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d/test/lib:/home/g/src/jdk-buffer-lost/test/lib:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg:/home/g/opt/jtreg/build/images/jtreg/lib/javatest.jar:/home/g/opt/jtreg/build/images/jtreg/lib/jtreg.jar -Djava.library.path=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/test/hotspot/jtreg/native -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:MaxRAMPercentage=12.5 -Dtest.boot.jdk=/nix/store/fz5li5g32nzdfniq696pc7rvhmjsl8mz-temurin-bin-25.0.0 -Djava.io.tmpdir=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/tmp -Dir.framework.server.port=34805 --enable-preview --add-exports java.base/jdk.internal.value=ALL-UNNAMED --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:+IgnoreUnrecognizedVMOptions -XX:-UseACmpProfile -XX:+AlwaysIncrementalInline -XX:FlatArrayElementMaxOops=5 -XX:+UseArrayFlattening -XX:-UseArrayLoadStoreProfile -XX:+UseFieldFlattening -XX:+InlineTypePassFieldsAsArgs -XX:+InlineTypeReturnedAsFields -XX:-BackgroundCompilation -XX:CompileCommand=quiet -DWarmup=251 compiler.lib.ir_framework.test.TestVM compiler.valhalla.inlinetypes.TestArrays compiler.valhalla.inlinetypes.MyValue2 compiler.valhalla.inlinetypes.MyValue1 compiler.valhalla.inlinetypes.MyValue2Inline
+
+##########################################################
+ - Did you call a test-related interface method from
+   TestFramework in main() of your test? Make sure to
+   only call setup/run methods and no checks or
+   assertions from main() of your test!
+ - Are you rerunning the test VM (TestVM class)
+   directly after a JTreg run? Make sure to start it
+   from within JTwork/scratch and with the flag
+   -DReproduce=true!
+##########################################################
+
+Exception in thread "main" java.lang.UnsatisfiedLinkError: 'void jdk.test.whitebox.WhiteBox.registerNatives()'
+	at jdk.test.whitebox.WhiteBox.registerNatives(Native Method)
+	at jdk.test.whitebox.WhiteBox.<clinit>(WhiteBox.java:59)
+	at compiler.lib.ir_framework.test.TestVM.<clinit>(TestVM.java:53)
+#+end_src
+
+Try with rr on linux/aarch64:
+#+begin_src bash
+/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/jdk/bin/java -DReproduce=true -cp /home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg/compiler/valhalla/inlinetypes:/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/classes/0/compiler/valhalla/inlinetypes/TestArrays_id0.d/test/lib:/home/g/src/jdk-buffer-lost/test/lib:/home/g/src/jdk-buffer-lost/test/hotspot/jtreg:/home/g/opt/jtreg/build/images/jtreg/lib/javatest.jar:/home/g/opt/jtreg/build/images/jtreg/lib/jtreg.jar -Djava.library.path=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/images/test/hotspot/jtreg/native -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:MaxRAMPercentage=12.5 -Dtest.boot.jdk=/nix/store/fz5li5g32nzdfniq696pc7rvhmjsl8mz-temurin-bin-25.0.0 -Djava.io.tmpdir=/home/g/src/jdk-buffer-lost/build/slow-linux-aarch64/test-support/jtreg_test_hotspot_jtreg_compiler_valhalla_inlinetypes_TestArrays_java_id0/tmp -Dir.framework.server.port=42871 --enable-preview --add-exports java.base/jdk.internal.value=ALL-UNNAMED --add-exports java.base/jdk.internal.vm.annotation=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:+IgnoreUnrecognizedVMOptions -XX:-UseACmpProfile -XX:+AlwaysIncrementalInline -XX:FlatArrayElementMaxOops=5 -XX:+UseArrayFlattening -XX:-UseArrayLoadStoreProfile -XX:+UseFieldFlattening -XX:+InlineTypePassFieldsAsArgs -XX:+InlineTypeReturnedAsFields -XX:-BackgroundCompilation -XX:CompileCommand=quiet -DWarmup=251 compiler.lib.ir_framework.test.TestVM compiler.valhalla.inlinetypes.TestArrays compiler.valhalla.inlinetypes.MyValue1 compiler.valhalla.inlinetypes.MyValue2 compiler.valhalla.inlinetypes.MyValue2Inline
+#+end_src
+
 Try with ~-XX:+PrintAdapterHandlers -XX:+PrintStubCode~ you get the code:
 
 Try add ~-XX:+PrintAdapterHandlers~:
