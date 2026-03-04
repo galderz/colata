@@ -9,6 +9,70 @@ Can reassociate to non-power-of-2 chains.
 * Next steps
 - [ ] merge two tests into 1 and use different @run to make sure both are run
 - [ ] refactor to a different class
+* 3.3.26
+Compiler single-thread linux, after merge master:
+#+begin_src bash
+Test results: passed: 2,123; failed: 2; skipped: 1; excluded: 8; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
+
+Compiler single-thread linux:
+#+begin_src bash
+Test results: passed: 2,094; failed: 1; excluded: 7; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
+
+Compiler multi-thread macos:
+#+begin_src bash
+Test results: passed: 2,063; failed: 10; error: 29; did not match keywords: 6; did not meet platform requirements: 93
+#+end_src
+
+Failures:
+#+begin_src bash
+JT Harness : Tests that failed
+
+compiler/c2/Test8004741.java: Missing compiled exception handle table entry for multidimensional array allocation
+compiler/c2/irTests/TestDuplicateBackedge.java: Local variable independently used by multiple loops can interfere with loop optimizations
+compiler/compilercontrol/InlineMatcherTest.java: Testing of compiler/InlineMatcher
+compiler/compilercontrol/jcmd/ClearDirectivesFileStackTest.java: Tests jcmd to be able to clear directives added via options
+compiler/compilercontrol/matcher/MethodMatcherTest.java: Tests CompilerCommand's method matcher
+compiler/cpuflags/TestAESIntrinsicsOnSupportedConfig.java:
+compiler/debug/TestStressCM.java: Tests that, when compiling with StressLCM or StressGCM, using the same seed yields the same code motion trace.
+compiler/jvmci/TestUncaughtErrorInCompileMethod.java: Tests handling of an exception thrown by HotSpotJVMCIRuntime.compileMethod.
+compiler/jvmci/compilerToVM/IterateFramesNative.java:
+compiler/oracle/MethodMatcherTest.java: Testing of compiler/MethodMatcher
+#+end_src
+
+Errors:
+#+begin_src bash
+compiler/calls/NativeCalls.java: check that native methods get compiled and printed
+compiler/calls/TestDirtyInt.java:
+compiler/calls/fromCompiled/CompiledInvokeDynamic2NativeTest.java: check calls from compiled to native using InvokeDynamic
+compiler/calls/fromCompiled/CompiledInvokeInterface2NativeTest.java: check calls from compiled to native using InvokeInterface
+compiler/calls/fromCompiled/CompiledInvokeSpecial2NativeTest.java: check calls from compiled to native using InvokeSpecial
+compiler/calls/fromCompiled/CompiledInvokeStatic2NativeTest.java: check calls from compiled to native using InvokeStatic
+compiler/calls/fromCompiled/CompiledInvokeVirtual2NativeTest.java: check calls from compiled to native using InvokeVirtual
+compiler/calls/fromInterpreted/InterpretedInvokeDynamic2NativeTest.java: check calls from interpreted to native using InvokeDynamic
+compiler/calls/fromInterpreted/InterpretedInvokeInterface2NativeTest.java: check calls from interpreted to native using InvokeInterface
+compiler/calls/fromInterpreted/InterpretedInvokeSpecial2NativeTest.java: check calls from interpreted to native using InvokeSpecial
+compiler/calls/fromInterpreted/InterpretedInvokeStatic2NativeTest.java: check calls from interpreted to native using InvokeStatic
+compiler/calls/fromInterpreted/InterpretedInvokeVirtual2NativeTest.java: check calls from interpreted to native using InvokeVirtual
+compiler/calls/fromNative/NativeInvokeSpecial2CompiledTest.java: check calls from native to compiled using InvokeSpecial
+compiler/calls/fromNative/NativeInvokeSpecial2InterpretedTest.java: check calls from native to interpreted using InvokeSpecial
+compiler/calls/fromNative/NativeInvokeSpecial2NativeTest.java: check calls from native to native using InvokeSpecial
+compiler/calls/fromNative/NativeInvokeStatic2CompiledTest.java: check calls from native to compiled using InvokeStatic
+compiler/calls/fromNative/NativeInvokeStatic2InterpretedTest.java: check calls from native to interpreted using InvokeStatic
+compiler/calls/fromNative/NativeInvokeStatic2NativeTest.java: check calls from native to native using InvokeStatic
+compiler/calls/fromNative/NativeInvokeVirtual2CompiledTest.java: check calls from native to compiled using InvokeVirtual
+compiler/calls/fromNative/NativeInvokeVirtual2InterpretedTest.java: check calls from native to interpreted using InvokeVirtual
+compiler/calls/fromNative/NativeInvokeVirtual2NativeTest.java: check calls from native to native using InvokeVirtual
+compiler/floatingpoint/ScalarFPtoIntCastTest.java: Test scalar float/double to integral cast
+compiler/floatingpoint/TestFloatJNIArgs.java#id0: Regression test for passing float args to a jni function.
+compiler/floatingpoint/TestFloatJNIArgs.java#id1: Regression test for passing float args to a jni function.
+compiler/floatingpoint/TestFloatSyncJNIArgs.java: Regression test for passing float args to a synchronized jni function.
+compiler/floatingpoint/TestSubnormalDouble.java: DSO created with -ffast-math breaks Java floating-point arithmetic
+compiler/floatingpoint/TestSubnormalFloat.java: DSO created with -ffast-math breaks Java floating-point arithmetic
+compiler/jsr292/cr8026328/Test8026328.java:
+compiler/jvmci/jdk.vm.ci.code.test/src/jdk/vm/ci/code/test/NativeCallTest.java:
+#+end_src
 * 30.1.26
 ** xeon min/max long benchmark
 #+begin_src bash
