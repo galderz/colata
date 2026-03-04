@@ -15,19 +15,22 @@ REMOTE_BRANCH ?= master
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
+compile_jdk = $(JDK_HOME)/build/release-$(os_cpu)/images/jdk
 gtest_src = $(opt)/googletest
 java = $(java_home)/bin/java
 javac = $(java_home)/bin/javac
 javap = $(java_home)/bin/javap
 java_build_dir = $(JDK_HOME)/build/$(conf_name)
 java_images_test_dir = $(java_build_dir)/images/test
+java_images_jdk_dir = $(java_build_dir)/images/jdk
 java_libs_dir = $(java_home)/lib/server
 java_home = $(java_build_dir)/jdk
 jmh = $(JDK_HOME)/build/jmh/jars/.jmh
-jtreg_src = $(opt)/jtreg
-jtreg_readme = $(jtreg_src)/README.md
 jtreg_bin = $(jtreg_home)/bin/jtreg
+jtreg_dir = $(JDK_HOME)/test/hotspot/jtreg
 jtreg_home = $(jtreg_src)/build/images/jtreg
+jtreg_readme = $(jtreg_src)/README.md
+jtreg_src = $(opt)/jtreg
 lldbinit = $(TOPDIR)/make/.lldbinit
 modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
 os = $(shell uname | tr A-Z a-z)
@@ -70,7 +73,8 @@ ifdef CPU
 else
   cpu = $(shell uname -m | tr A-Z a-z)
 endif
-conf_name = $(CONF)-$(os)-$(cpu)
+conf_name = $(CONF)-$(os_cpu)
+os_cpu = $(os)-$(cpu)
 
 ifeq ($(os),darwin)
   # Use JMH snapshot to access xctraceasm profiler
@@ -161,6 +165,10 @@ jtreg: clear-logs test-image
 jtreg-format:
 > $(TOPDIR)/nix-make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch $(java)
 .PHONY: jtreg-format
+
+jtreg-compiler:
+> JTREG_JAVA=$(BOOT_JDK_HOME) $(jtreg_bin) -ignore:quiet -conc:16 -dir:$(jtreg_dir) -compilejdk:$(compile_jdk) -testjdk:$(java_images_jdk_dir) -va -javaoptions:"-server" compiler
+.PHONY: jtreg-compiler
 
 $(benchmarks_jar): test-image
 
