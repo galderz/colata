@@ -9,6 +9,177 @@ Can reassociate to non-power-of-2 chains.
 * Next steps
 - [ ] merge two tests into 1 and use different @run to make sure both are run
 - [ ] refactor to a different class
+* PR draft
+The following PR reassociates reduction chains for long Min/Max nodes to improve performance of unrolled loops.
+
+The PR includes a IR test with 2 double run targets that uses commoning to verify that an hand-crafted IR shape gets reassociated successfully.
+Special thanks to Roland for coming up with this idea.
+One of the run target runs template generated tests for different long Min/Max combinations.
+This test can easily be extended to support other combos (e.g. int Min/Max) and in fact that's how other AddNode implementations where validated (see research and exploration section below).
+The other run target focuses on edge cases where testing with one combination is enough.
+
+I've run tier1-3 testing on x86_64 successfully.
+
+On linux/x86_64 (xeon cascade lake with AVX-512), the following performance changes can be observed which are all in line with the expectations.
+When supeword is disabled, long Min/Max uses cmov-like constructs whose performance can suffer with reduction chains.
+Reassociating these reduction chains can help increase instruction parallelism.
+When superword is enabled, vectorized instructions are used instead which do not have these kind of issues.
+With vectorized instructions no performance degradation is observed:
+
+```
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt      Base     Patch   Units   Diff
+VectorReduction2.NoSuperword.longMaxBig             2048       0  thrpt    3   327.294   332.937  ops/ms    +2%
+VectorReduction2.NoSuperword.longMaxDotProduct      2048       0  thrpt    3   407.075   606.364  ops/ms   +49%
+VectorReduction2.NoSuperword.longMaxSimple          2048       0  thrpt    3   463.908   981.046  ops/ms  +111%
+VectorReduction2.NoSuperword.longMinBig             2048       0  thrpt    3   328.965   332.599  ops/ms    +1%
+VectorReduction2.NoSuperword.longMinDotProduct      2048       0  thrpt    3   413.531   605.659  ops/ms   +46%
+VectorReduction2.NoSuperword.longMinSimple          2048       0  thrpt    3   462.035   827.100  ops/ms   +79%
+VectorReduction2.WithSuperword.longMaxBig           2048       0  thrpt    3   553.067   557.778  ops/ms    +1%
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  thrpt    3   955.036   955.756  ops/ms     0%
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  thrpt    3  1290.280  1289.330  ops/ms     0%
+VectorReduction2.WithSuperword.longMinBig           2048       0  thrpt    3   557.842   551.939  ops/ms    -1%
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  thrpt    3   955.173   957.976  ops/ms     0%
+VectorReduction2.WithSuperword.longMinSimple        2048       0  thrpt    3  1289.225  1289.278  ops/ms     0%
+```
+
+On darwin/aarch64 (M4 Pro), the following performance changes can be observed.
+When superword is disabled, we see performance increase just like in the x86_64 case.
+When superword is enabled, some cases improve performance (DotProduct and Big), while simple doesn't.
+This is all down to which case ends up using vectorized instructions and which doesn't.
+With simple it uses vectorized instructions and therefore it does not matter.
+With DotProduct and Big vectorized instructions do not kick in, instead falling back on csel instructions,
+where the reassociation improves performance.
+
+```
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt      Base     Patch   Units   Diff
+VectorReduction2.NoSuperword.longMaxBig             2048       0  thrpt    3   984.284  1139.901  ops/ms   +16%
+VectorReduction2.NoSuperword.longMaxDotProduct      2048       0  thrpt    3   988.834  2769.988  ops/ms  +180%
+VectorReduction2.NoSuperword.longMaxSimple          2048       0  thrpt    3  1038.441  2453.584  ops/ms  +136%
+VectorReduction2.NoSuperword.longMinBig             2048       0  thrpt    3   986.379  1119.829  ops/ms   +14%
+VectorReduction2.NoSuperword.longMinDotProduct      2048       0  thrpt    3   994.116  2716.402  ops/ms  +173%
+VectorReduction2.NoSuperword.longMinSimple          2048       0  thrpt    3  1066.788  2474.358  ops/ms  +132%
+VectorReduction2.WithSuperword.longMaxBig           2048       0  thrpt    3   985.207  1138.712  ops/ms   +16%
+VectorReduction2.WithSuperword.longMaxDotProduct    2048       0  thrpt    3  1015.995  2764.902  ops/ms  +172%
+VectorReduction2.WithSuperword.longMaxSimple        2048       0  thrpt    3  1198.067  1218.214  ops/ms    +2%
+VectorReduction2.WithSuperword.longMinBig           2048       0  thrpt    3   986.060  1139.496  ops/ms   +16%
+VectorReduction2.WithSuperword.longMinDotProduct    2048       0  thrpt    3  1027.164  2770.078  ops/ms  +170%
+VectorReduction2.WithSuperword.longMinSimple        2048       0  thrpt    3  1216.627  1217.272  ops/ms     0%
+```
+
+Future work after this PR would include:
+
+- JDK-8352082: Reassociate int Min/Max loop reduction chains.
+  Earlier prototype shows that reassociation can be applied to this case without observable performance degradation in existing VectorReduction2 benchmarks.
+
+- Expand MinMaxVector benchmark to double/float min/max and evaluate if branching can be detrimental in 50% and/or 80% branching probability.
+
+# Research and Exploration
+
+## Simple vs Tree Reassociation
+
+After some experimentation with branching (see jira issue), the reassociation idea came from Quan Anh Mai and Emanuel Peter.
+Emanuel wondered if a reassociation tree  would work better than a simple reassociation suggeston made by Quan.
+I started by benchmarking manually unrolled java code of each shape and run the the assembly on uica.uops.info.
+The uops tool indicated that simple reassociation would provide significant improvements, and the tree version would improve things slightly more for cases where unroll factors were high (say 8 or 16).
+I also validated that the uops performance results matched exactly what the hardware achieved.
+
+I built 2 prototypes for both reassociation methods applied to long Max node.
+The tree reassociation one seemed to be the winner, but in the end I backed out of the tree prototype for several reasons:
+
+- Simple reassociation already improved things considerably compared to baseline.
+
+- Tree reassociation had bigger risk of register pressure due to increased parallel usage of registers versus the simple one.
+The simple reassociation case can also have register pressure issues (see below for example) but the potential effects are smaller here.
+
+- The benefits were just additional 10-20% throughput in higher unroll factors, but the complexity of the code was much higher.
+
+- Tree reassociation could only support power-of-2 chains while the simple reassociation case does not have this limitation.
+
+## For all reassociative AddNodes
+
+Once I decided to stick with the simple reassociation prototype, I decided to apply the reassociation logic not just to long Max node, but to all AddNode subclasses that can commutative and can reassociate.
+The work on this PR is limited to long Min/Max, but the aim of this exercise was to try to catch bugs in existing implementation, and see if I could learn more about any potential downsides of this work.
+
+So, I expanded the implementation to cover these AddNode subclasses:
+
+```
+- [X] AddINode
+- [X] AddLNode
+- [X] MaxDNode
+- [X] MaxFNode
+- [X] MaxINode
+- [X] MaxLNode
+- [X] MinDNode
+- [X] MinFNode
+- [X] MinINode
+- [X] MinLNode
+- [X] XorINode
+- [X] XorLNode
+- [X] OrINode
+- [X] OrLNode
+```
+
+The following AddNodes were left out:
+
+```
+- [-] MaxHFNode (complicated chain)
+- [-] MinHFNode (complicated chain)
+- [-] AddDNode (not associative)
+- [-] AddFNode (not associative)
+- [-] AddHFNode (not associative)
+```
+
+Functional testing worked well, but when I run some benchmarks I found that in the following cases the performance was dropping on x86_64:
+
+```
+Benchmark                                           (SIZE)  (seed)   Mode  Cnt       Base      Patch   Units   Diff
+VectorReduction2.NoSuperword.charXorBig               2048       0  thrpt    3    311.586    201.493  ops/ms   -35%
+VectorReduction2.NoSuperword.charXorDotProduct        2048       0  thrpt    3    621.947    540.394  ops/ms   -13%
+VectorReduction2.NoSuperword.doubleMaxBig             2048       0  thrpt    3    240.742    149.100  ops/ms   -38%
+VectorReduction2.NoSuperword.doubleMaxDotProduct      2048       0  thrpt    3    346.652    171.615  ops/ms   -50%
+VectorReduction2.NoSuperword.doubleMaxSimple          2048       0  thrpt    3    708.471    173.243  ops/ms   -76%
+VectorReduction2.NoSuperword.doubleMinBig             2048       0  thrpt    3    227.311    153.924  ops/ms   -32%
+VectorReduction2.NoSuperword.doubleMinDotProduct      2048       0  thrpt    3    520.809    180.773  ops/ms   -65%
+VectorReduction2.NoSuperword.doubleMinSimple          2048       0  thrpt    3    379.364    141.065  ops/ms   -63%
+VectorReduction2.NoSuperword.floatMaxBig              2048       0  thrpt    3    241.157    148.102  ops/ms   -39%
+VectorReduction2.NoSuperword.floatMaxDotProduct       2048       0  thrpt    3    333.993    170.167  ops/ms   -49%
+VectorReduction2.NoSuperword.floatMaxSimple           2048       0  thrpt    3    566.528    174.842  ops/ms   -69%
+VectorReduction2.NoSuperword.floatMinBig              2048       0  thrpt    3    299.708    151.154  ops/ms   -50%
+VectorReduction2.NoSuperword.floatMinDotProduct       2048       0  thrpt    3    476.948    184.426  ops/ms   -61%
+VectorReduction2.NoSuperword.floatMinSimple           2048       0  thrpt    3    360.951    141.869  ops/ms   -61%
+VectorReduction2.NoSuperword.shortXorBig              2048       0  thrpt    3    305.049    174.546  ops/ms   -43%
+VectorReduction2.NoSuperword.shortXorDotProduct       2048       0  thrpt    3    622.019    540.479  ops/ms   -13%
+VectorReduction2.WithSuperword.charMaxBig             2048       0  thrpt    3    320.193    288.223  ops/ms   -10%
+VectorReduction2.WithSuperword.charMinBig             2048       0  thrpt    3    319.897    288.153  ops/ms   -10%
+VectorReduction2.WithSuperword.charOrBig              2048       0  thrpt    3    361.109    327.742  ops/ms    -9%
+VectorReduction2.WithSuperword.charXorBig             2048       0  thrpt    3    311.954    201.986  ops/ms   -35%
+VectorReduction2.WithSuperword.charXorDotProduct      2048       0  thrpt    3    621.685    539.482  ops/ms   -13%
+VectorReduction2.WithSuperword.shortMaxBig            2048       0  thrpt    3    308.113    196.756  ops/ms   -36%
+VectorReduction2.WithSuperword.shortMinBig            2048       0  thrpt    3    308.262    196.788  ops/ms   -36%
+VectorReduction2.WithSuperword.shortOrBig             2048       0  thrpt    3    356.743    292.456  ops/ms   -18%
+VectorReduction2.WithSuperword.shortXorBig            2048       0  thrpt    3    305.427    174.760  ops/ms   -43%
+VectorReduction2.WithSuperword.shortXorDotProduct     2048       0  thrpt    3    621.842    540.086  ops/ms   -13%
+```
+
+The above performance regressions fall into 2 categories:
+
+### Double/Float Min/Max
+
+These regressions happened only on x86_64 whereas on darwin/aarch64 the performance was improving.
+I ended up finding `maxD_reduction_reg` and related functions which used `VLoopReductions::is_reduction(n)` which look for a reduction chain loop shape.
+If they find it, they generated code converts the loop to a series of compare+branches.
+With the change of IR shape, `VLoopReductions::is_reduction(n)` doesn't return true and instead generates a chain of branchless instructions with vmaxpd et al.
+The performance is dropping because from previous past experience with `VectorReduction2`, I know that this benchmark produces data that where one side of the min/max branch is almost always taken.
+In that scenario, branching wins max/cmov like constructs.
+
+NOTE: I do wonder if `MinMaxVector` benchmark was extended for float/double, we might start to see issues with this platform dependant code when say the branching probability is 50% or even 80%.
+
+### `charXorBig` and eveyone else
+
+Every other regression is due to register spilling.
+In the baseline assembly I observed that the array base was stable accross the loop,
+but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
+All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
 * 3.3.26
 Compiler single-thread linux, after merge master:
 #+begin_src bash
