@@ -18,8 +18,9 @@ base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
 base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
 
-ifdef IDEAL
-  jvm_args += -XX:+PrintIdeal
+# e.g. PRINT=BEFORE_LOOP_UNROLLING
+ifdef PRINT
+  jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"$(PRINT)"
 endif
 
 jvm_args += $(base_jvm_args)
