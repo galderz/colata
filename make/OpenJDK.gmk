@@ -137,13 +137,13 @@ build-jdk:
 .PHONY: build-jdk
 
 install-jmh:
-> $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
+> $(TOPDIR)/make/install-jmh.sh $(JDK_HOME)
 .PHONY: install-jmh
 
 # todo depend on individual jars and run when any of those updated
 $(jmh):
 ifeq ($(JMH_SNAPSHOT),true)
-> $(TOPDIR)/nix-make/install-jmh.sh $(JDK_HOME)
+> $(TOPDIR)/make/install-jmh.sh $(JDK_HOME)
 else
 > pushd $(JDK_HOME)
 > sh make/devkit/createJMHBundle.sh
@@ -163,7 +163,7 @@ jtreg: clear-logs test-image
 .PHONY: jtreg
 
 jtreg-format:
-> $(TOPDIR)/nix-make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch $(java)
+> $(TOPDIR)/make/jtreg-format.sh $(JDK_HOME)/JTwork/scratch $(java)
 .PHONY: jtreg-format
 
 jtreg-compiler:
@@ -207,7 +207,7 @@ remove-worktree:
 .PHONY: remove-worktree
 
 clion:
-> $(boot_jdk_java) $(TOPDIR)/nix-make/Clion.java $(JDK_HOME) $(conf_name)
+> $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
 .PHONY: clion
 
 idea:
@@ -219,7 +219,7 @@ devkit:
 > mkdir -p /tmp/usr-bin-tar
 > ln -sf /usr/bin/tar /tmp/usr-bin-tar/
 > mkdir -p $(JDK_HOME)/build/devkit
-> PATH=/tmp/usr-bin-tar:$$PATH bash $(TOPDIR)/nix-make/createMacosxDevkit.sh /Applications/XCode.app $(JDK_HOME)/build/devkit
+> PATH=/tmp/usr-bin-tar:$$PATH bash $(TOPDIR)/make/createMacosxDevkit.sh /Applications/XCode.app $(JDK_HOME)/build/devkit
 .PHONY: devkit
 
 store-devkit:
@@ -229,7 +229,7 @@ store-devkit:
 
 boot-jdk:
 > mkdir -p $(opt)
-> $(TOPDIR)/nix-make/download-jdk.sh $(BOOT_JDK_VERSION) $(opt)
+> $(TOPDIR)/make/download-jdk.sh $(BOOT_JDK_VERSION) $(opt)
 .PHONY: boot-jdk
 
 lldb: $(java)
@@ -246,7 +246,7 @@ print-properties: $(java)
 .PHONY: print-properties
 
 run-use: configure clean-jdk
-> $(TOPDIR)/nix-make/run-use.sh $(CURDIR)
+> $(TOPDIR)/make/run-use.sh $(CURDIR)
 .PHONY: run-use
 
 test-image: build-jdk
@@ -270,7 +270,7 @@ test-compiler: build-jdk
 .PHONY: test-compiler
 
 collect-failed-tests:
-> $(TOPDIR)/nix-make/collect-failed-tests.sh $(java_build_dir)/test-support
+> $(TOPDIR)/make/collect-failed-tests.sh $(java_build_dir)/test-support
 .PHONY: collect-failed-tests
 
 $(jtreg_bin): $(shell find $(jtreg_src)/src -type f -name '*.java')
@@ -286,13 +286,13 @@ $(gtest_src):
 > pushd $(opt)
 > git clone -b v1.14.0 https://github.com/google/googletest
 > popd
-> $(TOPDIR)/nix-make/patch-gtest.sh $(gtest_src)
+> $(TOPDIR)/make/patch-gtest.sh $(gtest_src)
 
 igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
 > JAVA_HOME=$(IGV_JDK_HOME) mvn clean install -DskipTests
 > popd
-> $(TOPDIR)/nix-make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(IGV_JDK_HOME)
+> $(TOPDIR)/make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(IGV_JDK_HOME)
 .PHONY: igv
 
 clear-logs:
@@ -335,7 +335,7 @@ tools:
 .PHONY: tools
 
 aws-type:
-> $(TOPDIR)/nix-make/aws-type.sh
+> $(TOPDIR)/make/aws-type.sh
 .PHONY: aws-type
 
 print-java-home:
