@@ -17,7 +17,7 @@ import java.util.*;
  *     return Float.intBitsToFloat(rawValue);
  * }
  */
-class Test
+class MoveIntToFloat
 {
     static final int ITER = 10_000;
 
