@@ -30,6 +30,7 @@ pkgs.mkShell {
     fontconfig
     freetype
     gdb
+    temurin-bin-21
     unzip
     xorg.libXtst
     xorg.libXt
@@ -46,6 +47,7 @@ pkgs.mkShell {
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
+  IGV_JDK_HOME="${pkgs.temurin-bin-21}";
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
