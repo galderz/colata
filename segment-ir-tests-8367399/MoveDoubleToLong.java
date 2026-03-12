@@ -5,16 +5,16 @@ import java.util.*;
  * $ make PRINT=BEFORE_LOOP_UNROLLING
  *  1211  MoveD2L  === _ 1577  [[ 1210 ]]  !orig=873 !jvms: VarHandleSegmentAsDoubles::set @ bci:39 (line 79) VarHandleSegmentAsDoubles::set @ bci:12 (line 69) VarHandleGuards::guard_LJD_V @ bci:51 (line 657) AbstractMemorySegmentImpl::set @ bci:10 (line 818) Test::test @ bci:22 (line 28)
  *
- * VarHandleSegmentAsDoubles::get
+ * VarHandleSegmentAsDoubles::set
  * @ForceInline
- * static double get(VarHandle ob, Object obb, long base, long offset) {
+ * static void set(VarHandle ob, Object obb, long base, long offset, double value) {
  *     SegmentVarHandle handle = (SegmentVarHandle)ob;
- *     AbstractMemorySegmentImpl bb = handle.checkSegment(obb, base, true);
- *     long rawValue = SCOPED_MEMORY_ACCESS.getLongUnaligned(bb.sessionImpl(),
+ *     AbstractMemorySegmentImpl bb = handle.checkSegment(obb, base, false);
+ *     SCOPED_MEMORY_ACCESS.putLongUnaligned(bb.sessionImpl(),
  *             bb.unsafeGetBase(),
  *             offset(bb, base, offset),
+ *             Double.doubleToRawLongBits(value),
  *             handle.be);
- *     return Double.longBitsToDouble(rawValue);
  * }
  */
 class MoveDoubleToLong
