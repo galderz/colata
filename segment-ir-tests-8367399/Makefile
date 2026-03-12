@@ -23,6 +23,10 @@ ifdef PRINT
   jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"$(PRINT)"
 endif
 
+ifdef PRINT_IDEAL
+  jvm_args += -XX:+PrintIdeal
+endif
+
 jvm_args += $(base_jvm_args)
 
 run: print-branch-commit clear-logs $(java)
