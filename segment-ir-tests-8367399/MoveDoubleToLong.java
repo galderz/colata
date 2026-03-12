@@ -17,7 +17,7 @@ import java.util.*;
  *     return Double.longBitsToDouble(rawValue);
  * }
  */
-class Test
+class MoveDoubleToLong
 {
     static final int ITER = 10_000;
 
