@@ -110,7 +110,6 @@ endif
 configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
 > pushd $(JDK_HOME)
 > bash configure \
->   --enable-headless-only \
 >   --disable-precompiled-headers \
 >   --with-boot-jdk=$(BOOT_JDK_HOME) \
 >   --with-conf-name=$(conf_name) \
