@@ -1,0 +1,52 @@
+diff --git a/src/hotspot/os_cpu/bsd_aarch64/os_bsd_aarch64.cpp b/src/hotspot/os_cpu/bsd_aarch64/os_bsd_aarch64.cpp
+index 7702dbd17ad..eec3555e43e 100644
+--- a/src/hotspot/os_cpu/bsd_aarch64/os_bsd_aarch64.cpp
++++ b/src/hotspot/os_cpu/bsd_aarch64/os_bsd_aarch64.cpp
+@@ -502,39 +502,14 @@ static inline void atomic_copy64(const volatile void *src, volatile void *dst) {
+ 
+ extern "C" {
+   int SpinPause() {
+-    // We don't use StubRoutines::aarch64::spin_wait stub in order to
+-    // avoid a costly call to os::current_thread_enable_wx() on MacOS.
+-    // We should return 1 if SpinPause is implemented, and since there
+-    // will be a sequence of 11 instructions for NONE and YIELD and 12
+-    // instructions for NOP and ISB, SpinPause will always return 1.
+-    uint64_t br_dst;
+-    const int instructions_per_case = 2;
+-    int64_t off = VM_Version::spin_wait_desc().inst() * instructions_per_case * Assembler::instruction_size;
+-
+-    assert(VM_Version::spin_wait_desc().inst() >= SpinWait::NONE &&
+-           VM_Version::spin_wait_desc().inst() <= SpinWait::YIELD, "must be");
+-    assert(-1 == SpinWait::NONE,  "must be");
+-    assert( 0 == SpinWait::NOP,   "must be");
+-    assert( 1 == SpinWait::ISB,   "must be");
+-    assert( 2 == SpinWait::YIELD, "must be");
+-
+-    asm volatile(
+-        "  adr  %[d], 20          \n" // 20 == PC here + 5 instructions => address
+-                                      // to entry for case SpinWait::NOP
+-        "  add  %[d], %[d], %[o]  \n"
+-        "  br   %[d]              \n"
+-        "  b    SpinPause_return  \n" // case SpinWait::NONE  (-1)
+-        "  nop                    \n" // padding
+-        "  nop                    \n" // case SpinWait::NOP   ( 0)
+-        "  b    SpinPause_return  \n"
+-        "  isb                    \n" // case SpinWait::ISB   ( 1)
+-        "  b    SpinPause_return  \n"
+-        "  yield                  \n" // case SpinWait::YIELD ( 2)
+-        "SpinPause_return:        \n"
+-        : [d]"=&r"(br_dst)
+-        : [o]"r"(off)
+-        : "memory");
+-    return 1;
++      switch (VM_Version::spin_wait_desc().inst()) {
++      case SpinWait::NONE:  break;
++      case SpinWait::NOP:   asm volatile("nop" : : : "memory"); break;
++      case SpinWait::ISB:   asm volatile("isb" : : : "memory"); break;
++      case SpinWait::YIELD: asm volatile("yield" : : : "memory"); break;
++      default: break;
++      }
++      return 1;
+   }
+ 
+   void _Copy_conjoint_jshorts_atomic(const jshort* from, jshort* to, size_t count) {
