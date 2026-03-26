@@ -4,8 +4,8 @@ JDK_HOME ?= $(HOME)/src/jdk
 NO_WARNINGS_ERRORS := true
 
 TOPDIR = ..
-include $(TOPDIR)/nix-make/MakeBase.gmk
-include $(TOPDIR)/nix-make/OpenJDK.gmk
+include $(TOPDIR)/make/MakeBase.gmk
+include $(TOPDIR)/make/OpenJDK.gmk
 
 default: run
 
