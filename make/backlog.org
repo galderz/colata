@@ -6,3 +6,4 @@
 ** Vectorization
 - [ ] 8367399: C2 SuperWord: add IR rules for MemorySegment cases from JDK-8329077 https://bugs.openjdk.org/browse/JDK-8367399
 - [ ] 8366531: Add vector size checks for IRNode.VECTOR_REINTERPRET https://bugs.openjdk.org/browse/JDK-8366531
+- [ ] 8380928: C2 SuperWord: PopulateIndex for NEON/aarch64 https://bugs.openjdk.org/browse/JDK-8380928
