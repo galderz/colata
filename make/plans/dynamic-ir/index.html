@@ -397,8 +397,8 @@ function parseIR(text) {
       const pm = extra.match(/^(Control|I_O|Memory|FramePtr|ReturnAdr)/);
       if (pm) sublabel = pm[1].replace('I_O', 'I/O');
       else { const pm2 = extra.match(/^Parm(\d+):\s*(\w+)/); if (pm2) sublabel = `Parm${pm2[1]} (${pm2[2]})`; }
-    } else if (type === 'Con') {
-      const cm = extra.match(/#(-?[\d.]+|top)/); if (cm) sublabel = `#${cm[1]}`;
+    } else if (type.startsWith('Con')) {
+      const cm = extra.match(/#(?:\w+:)?(-?[\d.]+|top)/); if (cm) sublabel = `#${cm[1]}`;
     }
 
     // Java line
@@ -422,7 +422,7 @@ function isStructural(fromId, toId, nodes) {
   const ft = nodes[fromId]?.type, tt = nodes[toId]?.type;
   if (ft === 'Root' && tt === 'Start') return true;
   if (ft === 'Start' && tt === 'Root') return true;
-  if (ft === 'Root' && tt === 'Con') return true;
+  if (ft === 'Root' && tt.startsWith('Con')) return true;
   return false;
 }
 
@@ -505,8 +505,8 @@ function computeValue(node, dataInputValues, paramValues) {
     if (node.extra.startsWith('ReturnAdr')) return 'ra';
     return node.sublabel || '?';
   }
-  if (t === 'Con') {
-    const m = node.extra.match(/#(-?[\d.]+)/);
+  if (t.startsWith('Con')) {
+    const m = node.extra.match(/#(?:\w+:)?(-?[\d.]+)/);
     return m ? +m[1] : node.sublabel || '#?';
   }
   if (t === 'Return') {
