@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>C2 IR Visualizer - Tests</title>
+<style>
+  body { font-family: 'SF Mono', 'Fira Code', monospace; background: #1a1b26; color: #c0caf5; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 12px; }
+  #summary { font-size: 14px; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
+  #summary.pass { background: #1a3c2e; border: 1px solid #9ece6a; }
+  #summary.fail { background: #3c1a1a; border: 1px solid #f7768e; }
+  .suite { margin-bottom: 16px; }
+  .suite-name { font-size: 13px; font-weight: 600; color: #7aa2f7; margin-bottom: 4px; }
+  .test { font-size: 12px; padding: 3px 8px; border-radius: 3px; margin: 2px 0; }
+  .test.pass { color: #9ece6a; }
+  .test.fail { color: #f7768e; background: #2a1a1a; }
+  .error { font-size: 11px; color: #ff9e64; margin-left: 20px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>C2 IR Visualizer - Tests</h1>
+<div id="summary"></div>
+<div id="results"></div>
+
+<script src="ir-core.js"></script>
+<script>
+// ══════════════════════════════════════════════
+//  MINIMAL TEST HARNESS
+// ══════════════════════════════════════════════
+let _pass = 0, _fail = 0;
+const _suites = [];
+let _currentSuite = null;
+
+function suite(name) {
+  _currentSuite = { name, tests: [] };
+  _suites.push(_currentSuite);
+}
+
+function test(name, fn) {
+  try {
+    fn();
+    _pass++;
+    _currentSuite.tests.push({ name, ok: true });
+  } catch (e) {
+    _fail++;
+    _currentSuite.tests.push({ name, ok: false, error: e.message });
+  }
+}
+
+function assertEqual(actual, expected, msg) {
+  if (actual !== expected) {
+    throw new Error(`${msg || 'assertEqual'}\n  expected: ${JSON.stringify(expected)}\n  actual:   ${JSON.stringify(actual)}`);
+  }
+}
+
+function assertDeepEqual(actual, expected, msg) {
+  const a = JSON.stringify(actual), b = JSON.stringify(expected);
+  if (a !== b) {
+    throw new Error(`${msg || 'assertDeepEqual'}\n  expected: ${b}\n  actual:   ${a}`);
+  }
+}
+
+function assertTrue(val, msg) {
+  if (!val) throw new Error(msg || `expected truthy, got ${val}`);
+}
+
+function assertFalse(val, msg) {
+  if (val) throw new Error(msg || `expected falsy, got ${val}`);
+}
+
+// ══════════════════════════════════════════════
+//  TEST DATA
+// ══════════════════════════════════════════════
+const SIMPLE_IR = `  0  Root  === 0 24  [[ 0 1 3 ]] inner
+  1  Con  === 0  [[ ]]  #top
+  3  Start  === 3 0  [[ 3 5 6 7 8 9 10 11 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:int, 6:int}
+  5  Parm  === 3  [[ 24 ]] Control !jvms: First::test @ bci:-1 (line 21)
+  6  Parm  === 3  [[ 24 ]] I_O !jvms: First::test @ bci:-1 (line 21)
+  7  Parm  === 3  [[ 24 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: First::test @ bci:-1 (line 21)
+  8  Parm  === 3  [[ 24 ]] FramePtr !jvms: First::test @ bci:-1 (line 21)
+  9  Parm  === 3  [[ 24 ]] ReturnAdr !jvms: First::test @ bci:-1 (line 21)
+ 10  Parm  === 3  [[ 23 ]] Parm0: int !jvms: First::test @ bci:-1 (line 21)
+ 11  Parm  === 3  [[ 23 ]] Parm1: int !jvms: First::test @ bci:-1 (line 21)
+ 23  AddI  === _ 10 11  [[ 24 ]]  !jvms: First::test @ bci:2 (line 21)
+ 24  Return  === 5 6 7 8 9 returns 23  [[ 0 ]]`;
+
+const COMPLEX_IR = `  0  Root  === 0 66  [[ 0 1 3 52 50 ]] inner
+  1  Con  === 0  [[ ]]  #top
+  3  Start  === 3 0  [[ 3 5 6 7 8 9 10 11 ]]  #{0:control, 1:abIO, 2:memory}
+  5  Parm  === 3  [[ 66 ]] Control !jvms: Inline::test @ bci:-1 (line 21)
+  6  Parm  === 3  [[ 66 ]] I_O !jvms: Inline::test @ bci:-1 (line 21)
+  7  Parm  === 3  [[ 66 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: Inline::test @ bci:-1 (line 21)
+  8  Parm  === 3  [[ 66 ]] FramePtr !jvms: Inline::test @ bci:-1 (line 21)
+  9  Parm  === 3  [[ 66 ]] ReturnAdr !jvms: Inline::test @ bci:-1 (line 21)
+ 10  Parm  === 3  [[ 51 ]] Parm0: int !jvms: Inline::test @ bci:-1 (line 21)
+ 11  Parm  === 3  [[ 64 ]] Parm1: int !jvms: Inline::test @ bci:-1 (line 21)
+ 50  ConI  === 0  [[ 51 ]]  #int:303
+ 51  MulI  === _ 10 50  [[ 65 ]]  !jvms: Inline::test @ bci:13 (line 21)
+ 52  ConI  === 0  [[ 64 ]]  #int:53
+ 64  MulI  === _ 11 52  [[ 65 ]]  !jvms: Inline::multiply @ bci:2 (line 26) Inline::test @ bci:17 (line 21)
+ 65  AddI  === _ 51 64  [[ 66 ]]  !jvms: Inline::test @ bci:20 (line 21)
+ 66  Return  === 5 6 7 8 9 returns 65  [[ 0 ]]`;
+
+// ══════════════════════════════════════════════
+//  parseIR
+// ══════════════════════════════════════════════
+suite('parseIR');
+
+test('parses correct number of nodes from simple IR', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertEqual(Object.keys(nodes).length, 12);
+});
+
+test('parses node types correctly', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertEqual(nodes[0].type, 'Root');
+  assertEqual(nodes[1].type, 'Con');
+  assertEqual(nodes[3].type, 'Start');
+  assertEqual(nodes[23].type, 'AddI');
+  assertEqual(nodes[24].type, 'Return');
+});
+
+test('parses inputs with underscore placeholder', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertDeepEqual(nodes[23].inputs, [null, 10, 11]);
+  assertDeepEqual(nodes[23].inputIds, [10, 11]);
+});
+
+test('parses Return node returnValIdx from "returns" keyword', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  // Return === 5 6 7 8 9 returns 23 -> inputs=[5,6,7,8,9,23], returnValIdx=5
+  assertEqual(nodes[24].returnValIdx, 5);
+});
+
+test('(regression) ConI parses #int:N sublabel', () => {
+  const nodes = parseIR(COMPLEX_IR);
+  assertEqual(nodes[50].type, 'ConI');
+  assertEqual(nodes[50].sublabel, '#303');
+  assertEqual(nodes[52].sublabel, '#53');
+});
+
+test('Con parses #top sublabel', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertEqual(nodes[1].sublabel, '#top');
+});
+
+test('Parm sublabels are set correctly', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertEqual(nodes[5].sublabel, 'Control');
+  assertEqual(nodes[6].sublabel, 'I/O');
+  assertEqual(nodes[7].sublabel, 'Memory');
+  assertEqual(nodes[8].sublabel, 'FramePtr');
+  assertEqual(nodes[9].sublabel, 'ReturnAdr');
+  assertEqual(nodes[10].sublabel, 'Parm0 (int)');
+  assertEqual(nodes[11].sublabel, 'Parm1 (int)');
+});
+
+test('outputs are parsed correctly', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertDeepEqual(nodes[3].outputs, [3, 5, 6, 7, 8, 9, 10, 11]);
+  assertDeepEqual(nodes[23].outputs, [24]);
+});
+
+test('javaLine and method are extracted', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertEqual(nodes[23].javaLine, 21);
+  assertEqual(nodes[23].method, 'First::test');
+});
+
+test('malformed lines are skipped', () => {
+  const nodes = parseIR('not valid\n\n  0  Root  === 0  [[ 0 ]] inner\ngarbage');
+  assertEqual(Object.keys(nodes).length, 1);
+  assertEqual(nodes[0].type, 'Root');
+});
+
+test('empty output list is parsed', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  assertDeepEqual(nodes[1].outputs, []);
+});
+
+// ══════════════════════════════════════════════
+//  isStructural
+// ══════════════════════════════════════════════
+suite('isStructural');
+
+test('self-loop is structural', () => {
+  assertTrue(isStructural(0, 0, { 0: { type: 'Root' } }));
+});
+
+test('Root -> Start is structural', () => {
+  const n = { 0: { type: 'Root' }, 3: { type: 'Start' } };
+  assertTrue(isStructural(0, 3, n));
+});
+
+test('Start -> Root is structural', () => {
+  const n = { 0: { type: 'Root' }, 3: { type: 'Start' } };
+  assertTrue(isStructural(3, 0, n));
+});
+
+test('Root -> Con is structural', () => {
+  assertTrue(isStructural(0, 1, { 0: { type: 'Root' }, 1: { type: 'Con' } }));
+});
+
+test('(regression) Root -> ConI is structural', () => {
+  assertTrue(isStructural(0, 50, { 0: { type: 'Root' }, 50: { type: 'ConI' } }));
+});
+
+test('Root -> ConL is structural', () => {
+  assertTrue(isStructural(0, 50, { 0: { type: 'Root' }, 50: { type: 'ConL' } }));
+});
+
+test('data edge Parm -> AddI is NOT structural', () => {
+  assertFalse(isStructural(10, 23, { 10: { type: 'Parm' }, 23: { type: 'AddI' } }));
+});
+
+test('data edge Start -> Parm is NOT structural', () => {
+  assertFalse(isStructural(3, 5, { 3: { type: 'Start' }, 5: { type: 'Parm' } }));
+});
+
+// ══════════════════════════════════════════════
+//  buildEdges
+// ══════════════════════════════════════════════
+suite('buildEdges');
+
+test('produces edges with no duplicates', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const keys = edges.map(e => e.key);
+  assertEqual(keys.length, new Set(keys).size);
+});
+
+test('marks structural and data edges', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const structural = edges.filter(e => e.structural);
+  const data = edges.filter(e => !e.structural);
+  assertTrue(structural.length > 0, 'should have structural edges');
+  assertTrue(data.length > 0, 'should have data edges');
+});
+
+test('(regression) Root -> ConI is marked structural', () => {
+  const nodes = parseIR(COMPLEX_IR);
+  const edges = buildEdges(nodes);
+  const rootToConI50 = edges.find(e => e.from === 0 && e.to === 50);
+  assertTrue(rootToConI50, 'edge Root->ConI#50 should exist');
+  assertTrue(rootToConI50.structural, 'Root->ConI should be structural');
+});
+
+test('skips self-loop edges', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const selfLoops = edges.filter(e => e.from === e.to);
+  assertEqual(selfLoops.length, 0);
+});
+
+// ══════════════════════════════════════════════
+//  nodeColorClass
+// ══════════════════════════════════════════════
+suite('nodeColorClass');
+
+test('Root and Start -> c-frame', () => {
+  assertEqual(nodeColorClass('Root'), 'c-frame');
+  assertEqual(nodeColorClass('Start'), 'c-frame');
+});
+
+test('Return -> c-return', () => {
+  assertEqual(nodeColorClass('Return'), 'c-return');
+});
+
+test('Parm and Proj -> c-proj', () => {
+  assertEqual(nodeColorClass('Parm'), 'c-proj');
+  assertEqual(nodeColorClass('Proj'), 'c-proj');
+  assertEqual(nodeColorClass('Phi'), 'c-proj');
+});
+
+test('arithmetic types -> c-arith', () => {
+  assertEqual(nodeColorClass('AddI'), 'c-arith');
+  assertEqual(nodeColorClass('MulI'), 'c-arith');
+  assertEqual(nodeColorClass('SubI'), 'c-arith');
+  assertEqual(nodeColorClass('DivL'), 'c-arith');
+  assertEqual(nodeColorClass('LShiftI'), 'c-arith');
+  assertEqual(nodeColorClass('ConvI2L'), 'c-arith');
+});
+
+test('(regression) ConI -> c-const', () => {
+  assertEqual(nodeColorClass('Con'), 'c-const');
+  assertEqual(nodeColorClass('ConI'), 'c-const');
+  assertEqual(nodeColorClass('ConL'), 'c-const');
+});
+
+test('comparison types -> c-cmp', () => {
+  assertEqual(nodeColorClass('CmpI'), 'c-cmp');
+  assertEqual(nodeColorClass('Bool'), 'c-cmp');
+});
+
+test('memory types -> c-mem', () => {
+  assertEqual(nodeColorClass('LoadI'), 'c-mem');
+  assertEqual(nodeColorClass('StoreP'), 'c-mem');
+});
+
+test('control types -> c-control', () => {
+  assertEqual(nodeColorClass('If'), 'c-control');
+  assertEqual(nodeColorClass('Region'), 'c-control');
+  assertEqual(nodeColorClass('Loop'), 'c-control');
+});
+
+test('unknown type -> c-default', () => {
+  assertEqual(nodeColorClass('SomethingWeird'), 'c-default');
+});
+
+// ══════════════════════════════════════════════
+//  computeValue
+// ══════════════════════════════════════════════
+suite('computeValue');
+
+test('Start returns {...}', () => {
+  assertEqual(computeValue({ type: 'Start', extra: '' }, [], {}), '{...}');
+});
+
+test('Root returns done', () => {
+  assertEqual(computeValue({ type: 'Root', extra: '' }, [], {}), 'done');
+});
+
+test('Parm Control returns ctrl', () => {
+  assertEqual(computeValue({ type: 'Parm', extra: 'Control', sublabel: 'Control' }, [], {}), 'ctrl');
+});
+
+test('Parm I_O returns io', () => {
+  assertEqual(computeValue({ type: 'Parm', extra: 'I_O', sublabel: 'I/O' }, [], {}), 'io');
+});
+
+test('Parm with paramValues returns the value', () => {
+  assertEqual(computeValue({ type: 'Parm', extra: 'Parm0: int', sublabel: 'Parm0 (int)' }, [], { 0: 42 }), 42);
+});
+
+test('Parm with missing paramValue returns ?', () => {
+  assertEqual(computeValue({ type: 'Parm', extra: 'Parm0: int', sublabel: 'Parm0 (int)' }, [], {}), '?');
+});
+
+test('Con #top returns sublabel', () => {
+  assertEqual(computeValue({ type: 'Con', extra: '#top', sublabel: '#top' }, [], {}), '#top');
+});
+
+test('(regression) ConI reads #int:N value', () => {
+  assertEqual(computeValue({ type: 'ConI', extra: '#int:303', sublabel: '#303' }, [], {}), 303);
+});
+
+test('ConI reads negative value', () => {
+  assertEqual(computeValue({ type: 'ConI', extra: '#int:-7', sublabel: '#-7' }, [], {}), -7);
+});
+
+test('AddI computes sum', () => {
+  assertEqual(computeValue({ type: 'AddI', extra: '' }, [undefined, 42, 84], {}), 126);
+});
+
+test('MulI computes product', () => {
+  assertEqual(computeValue({ type: 'MulI', extra: '' }, [undefined, 5, 303], {}), 1515);
+});
+
+test('SubI computes difference', () => {
+  assertEqual(computeValue({ type: 'SubI', extra: '' }, [undefined, 100, 42], {}), 58);
+});
+
+test('DivI truncates', () => {
+  assertEqual(computeValue({ type: 'DivI', extra: '' }, [undefined, 7, 2], {}), 3);
+});
+
+test('DivI division by zero returns symbol', () => {
+  assertEqual(computeValue({ type: 'DivI', extra: '' }, [undefined, 10, 0], {}), '÷0');
+});
+
+test('ModI computes remainder', () => {
+  assertEqual(computeValue({ type: 'ModI', extra: '' }, [undefined, 10, 3], {}), 1);
+});
+
+test('NegI negates', () => {
+  assertEqual(computeValue({ type: 'NegI', extra: '' }, [42], {}), -42);
+});
+
+test('Return formats with ret prefix', () => {
+  const node = { type: 'Return', extra: '', returnValIdx: 5, inputIds: [5,6,7,8,9,23] };
+  assertEqual(computeValue(node, ['ctrl','io','mem','fp','ra', 126], {}), 'ret 126');
+});
+
+test('unknown op returns null', () => {
+  assertEqual(computeValue({ type: 'UnknownOp', extra: '' }, [undefined, 1, 2], {}), null);
+});
+
+// ══════════════════════════════════════════════
+//  detectParams
+// ══════════════════════════════════════════════
+suite('detectParams');
+
+test('finds Parm0 and Parm1', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const params = detectParams(nodes);
+  assertEqual(params.length, 2);
+  assertEqual(params[0].index, 0);
+  assertEqual(params[0].nodeId, 10);
+  assertEqual(params[1].index, 1);
+  assertEqual(params[1].nodeId, 11);
+});
+
+test('skips Control/IO/Memory Parms', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const params = detectParams(nodes);
+  const ids = params.map(p => p.nodeId);
+  assertFalse(ids.includes(5), 'should not include Control parm');
+  assertFalse(ids.includes(6), 'should not include I_O parm');
+  assertFalse(ids.includes(7), 'should not include Memory parm');
+});
+
+test('results are sorted by index', () => {
+  const nodes = parseIR(COMPLEX_IR);
+  const params = detectParams(nodes);
+  assertTrue(params[0].index < params[1].index);
+});
+
+// ══════════════════════════════════════════════
+//  topoLevels
+// ══════════════════════════════════════════════
+suite('topoLevels');
+
+test('all nodes appear exactly once', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const flat = levels.flat();
+  assertEqual(flat.length, Object.keys(nodes).length);
+  assertEqual(new Set(flat).size, flat.length);
+});
+
+test('data dependencies are respected', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const levelOf = {};
+  levels.forEach((lev, i) => lev.forEach(id => levelOf[id] = i));
+  assertTrue(levelOf[23] > levelOf[10], 'AddI must come after Parm0');
+  assertTrue(levelOf[23] > levelOf[11], 'AddI must come after Parm1');
+  assertTrue(levelOf[24] > levelOf[23], 'Return must come after AddI');
+});
+
+test('complex IR: MulI after its inputs', () => {
+  const nodes = parseIR(COMPLEX_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const levelOf = {};
+  levels.forEach((lev, i) => lev.forEach(id => levelOf[id] = i));
+  assertTrue(levelOf[51] > levelOf[10], 'MulI#51 must come after Parm0');
+  assertTrue(levelOf[51] > levelOf[50], 'MulI#51 must come after ConI#50');
+  assertTrue(levelOf[65] > levelOf[51], 'AddI must come after MulI#51');
+  assertTrue(levelOf[65] > levelOf[64], 'AddI must come after MulI#64');
+});
+
+// ══════════════════════════════════════════════
+//  buildSteps (integration)
+// ══════════════════════════════════════════════
+suite('buildSteps');
+
+test('step 0 is initial with no active nodes', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const steps = buildSteps(nodes, edges, levels, { 0: 1, 1: 1 });
+  assertEqual(steps[0].name, 'Initial');
+  assertEqual(steps[0].activeNodes.length, 0);
+  assertEqual(Object.keys(steps[0].values).length, 0);
+});
+
+test('simple IR: a + b = correct result', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const steps = buildSteps(nodes, edges, levels, { 0: 42, 1: 84 });
+  const last = steps[steps.length - 1];
+  assertEqual(last.values[23], 126);
+  assertEqual(last.values[24], 'ret 126');
+});
+
+test('(regression) complex IR: a*303 + b*53', () => {
+  const nodes = parseIR(COMPLEX_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const steps = buildSteps(nodes, edges, levels, { 0: 2, 1: 3 });
+  const last = steps[steps.length - 1];
+  assertEqual(last.values[50], 303, 'ConI#50 = 303');
+  assertEqual(last.values[52], 53, 'ConI#52 = 53');
+  assertEqual(last.values[51], 606, 'MulI#51 = 2*303');
+  assertEqual(last.values[64], 159, 'MulI#64 = 3*53');
+  assertEqual(last.values[65], 765, 'AddI#65 = 606+159');
+  assertEqual(last.values[66], 'ret 765', 'Return = ret 765');
+});
+
+test('step count = levels + 1 (initial)', () => {
+  const nodes = parseIR(SIMPLE_IR);
+  const edges = buildEdges(nodes);
+  const levels = topoLevels(nodes, edges);
+  const steps = buildSteps(nodes, edges, levels, { 0: 1, 1: 1 });
+  assertEqual(steps.length, levels.length + 1);
+});
+
+// ══════════════════════════════════════════════
+//  calcBounds
+// ══════════════════════════════════════════════
+suite('calcBounds');
+
+test('single node', () => {
+  const b = calcBounds({ 1: { x: 100, y: 200, w: 90, h: 44 } });
+  assertEqual(b.x, 100 - 45 - 50);
+  assertEqual(b.y, 200 - 22 - 50);
+  assertEqual(b.w, 90 + 100);
+  assertEqual(b.h, 44 + 100 + 20);
+});
+
+test('two nodes', () => {
+  const b = calcBounds({
+    1: { x: 0, y: 0, w: 100, h: 50 },
+    2: { x: 200, y: 300, w: 100, h: 50 }
+  });
+  assertEqual(b.x, -50 - 50);
+  assertEqual(b.y, -25 - 50);
+  assertEqual(b.w, 300 + 100);
+  assertEqual(b.h, 350 + 100 + 20);
+});
+
+// ══════════════════════════════════════════════
+//  pointsToPath
+// ══════════════════════════════════════════════
+suite('pointsToPath');
+
+test('null/empty returns empty string', () => {
+  assertEqual(pointsToPath(null), '');
+  assertEqual(pointsToPath([]), '');
+});
+
+test('single point returns empty string', () => {
+  assertEqual(pointsToPath([{ x: 1, y: 1 }]), '');
+});
+
+test('two points -> M...L...', () => {
+  assertEqual(pointsToPath([{ x: 0, y: 0 }, { x: 10, y: 20 }]), 'M0 0 L10 20');
+});
+
+test('three points -> M...Q... (quadratic curve)', () => {
+  assertEqual(pointsToPath([{ x: 0, y: 0 }, { x: 5, y: 10 }, { x: 10, y: 20 }]), 'M0 0 Q5 10 10 20');
+});
+
+test('four points -> M...L...L...L...', () => {
+  assertEqual(
+    pointsToPath([{ x: 0, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }]),
+    'M0 0 L1 1 L2 2 L3 3'
+  );
+});
+
+// ══════════════════════════════════════════════
+//  escapeHtml
+// ══════════════════════════════════════════════
+suite('escapeHtml');
+
+test('escapes &, <, >', () => {
+  assertEqual(escapeHtml('<div>&</div>'), '&lt;div&gt;&amp;&lt;/div&gt;');
+});
+
+test('plain text unchanged', () => {
+  assertEqual(escapeHtml('hello world'), 'hello world');
+});
+
+test('empty string unchanged', () => {
+  assertEqual(escapeHtml(''), '');
+});
+
+// ══════════════════════════════════════════════
+//  RENDER RESULTS
+// ══════════════════════════════════════════════
+const summary = document.getElementById('summary');
+const results = document.getElementById('results');
+
+summary.className = _fail === 0 ? 'pass' : 'fail';
+summary.textContent = _fail === 0
+  ? `All ${_pass} tests passed`
+  : `${_fail} failed, ${_pass} passed (${_pass + _fail} total)`;
+
+for (const s of _suites) {
+  const div = document.createElement('div');
+  div.className = 'suite';
+  const title = document.createElement('div');
+  title.className = 'suite-name';
+  title.textContent = s.name;
+  div.appendChild(title);
+  for (const t of s.tests) {
+    const d = document.createElement('div');
+    d.className = `test ${t.ok ? 'pass' : 'fail'}`;
+    d.textContent = `${t.ok ? '\u2713' : '\u2717'} ${t.name}`;
+    div.appendChild(d);
+    if (!t.ok) {
+      const err = document.createElement('div');
+      err.className = 'error';
+      err.textContent = t.error;
+      div.appendChild(err);
+    }
+  }
+  results.appendChild(div);
+}
+</script>
+</body>
+</html>
