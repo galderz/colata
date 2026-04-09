@@ -578,6 +578,55 @@ function fitView() {
   setViewBox();
 }
 
+let _animId = null;
+function animateViewBox(target, duration) {
+  if (_animId) cancelAnimationFrame(_animId);
+  const from = { ..._vb };
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    // ease-out cubic
+    const e = 1 - Math.pow(1 - t, 3);
+    _vb.x = from.x + (target.x - from.x) * e;
+    _vb.y = from.y + (target.y - from.y) * e;
+    _vb.w = from.w + (target.w - from.w) * e;
+    _vb.h = from.h + (target.h - from.h) * e;
+    setViewBox();
+    if (t < 1) _animId = requestAnimationFrame(tick);
+    else _animId = null;
+  }
+  _animId = requestAnimationFrame(tick);
+}
+
+function zoomToNodes(nodeIds) {
+  if (!nodeIds || nodeIds.length === 0) { fitView(); return; }
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const id of nodeIds) {
+    const p = _positions[id];
+    if (!p) continue;
+    x1 = Math.min(x1, p.x - p.w / 2);
+    y1 = Math.min(y1, p.y - p.h / 2);
+    x2 = Math.max(x2, p.x + p.w / 2);
+    y2 = Math.max(y2, p.y + p.h / 2);
+  }
+  if (x1 === Infinity) return;
+  const pad = 80;
+  const tw = x2 - x1 + pad * 2;
+  const th = y2 - y1 + pad * 2;
+  // Keep a minimum zoom level so we don't zoom in too tight
+  const svg = document.getElementById('graph-svg');
+  const rect = svg.getBoundingClientRect();
+  const aspect = rect.width / rect.height;
+  let w = tw, h = th;
+  if (w / h < aspect) w = h * aspect;
+  else h = w / aspect;
+  // Don't zoom in more than 2x of the full graph
+  const minW = _bounds.w * 0.25, minH = _bounds.h * 0.25;
+  w = Math.max(w, minW); h = Math.max(h, minH);
+  const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+  animateViewBox({ x: cx - w / 2, y: cy - h / 2, w, h }, 350);
+}
+
 function initZoomPan() {
   const svg = document.getElementById('graph-svg');
   const container = document.getElementById('graph-container');
@@ -717,7 +766,9 @@ function goToStep(n) {
   _currentStep = Math.max(0, Math.min(_steps.length - 1, n));
   _searching = false;
   document.getElementById('search-input').value = '';
-  applyStep(_steps[_currentStep]);
+  const step = _steps[_currentStep];
+  applyStep(step);
+  zoomToNodes(step.activeNodes);
   updateButtons();
 }
 
