@@ -148,6 +148,7 @@
   .node-rect.n-active   { filter: drop-shadow(0 0 10px currentColor); stroke-width: 3; }
   .node-rect.n-done     { opacity: 0.85; }
   .node-rect.n-dim      { opacity: 0.25; }
+  .node-rect.n-exception { opacity: 0.12; stroke-dasharray: 4 3; }
   .node-rect.n-search   { filter: drop-shadow(0 0 14px var(--cyan)); stroke: var(--cyan) !important; stroke-width: 3; }
   .node-rect.n-search-dim { opacity: 0.08 !important; }
 
@@ -157,16 +158,19 @@
   }
   .node-label.n-active { fill: var(--active-label); }
   .node-label.n-dim { opacity: 0.25; }
+  .node-label.n-exception { opacity: 0.12; }
   .node-id {
     fill: var(--text-muted); font-family: inherit; font-size: 9px;
     text-anchor: start; pointer-events: none;
   }
   .node-id.n-dim { opacity: 0.25; }
+  .node-id.n-exception { opacity: 0.12; }
   .node-sub {
     fill: var(--text-muted); font-family: inherit; font-size: 9px;
     text-anchor: middle; pointer-events: none;
   }
   .node-sub.n-dim { opacity: 0.25; }
+  .node-sub.n-exception { opacity: 0.12; }
   .node-val {
     font-family: inherit; font-size: 10px; font-weight: 700;
     text-anchor: middle; dominant-baseline: central; pointer-events: none;
@@ -179,6 +183,7 @@
   .edge-path.e-active     { stroke: var(--yellow); opacity: 1; stroke-width: 2.5; }
   .edge-path.e-done       { stroke: var(--green); opacity: 0.5; }
   .edge-path.e-dim        { opacity: 0.08; }
+  .edge-path.e-exception  { opacity: 0.06; stroke-dasharray: 3 4; }
 </style>
 </head>
 <body>
@@ -238,8 +243,15 @@
 
   <details open>
     <summary>Parameters</summary>
-    <div class="content" id="params-container">
-      <div class="param-row" style="color:var(--text-muted);font-size:11px">Click Visualize to detect parameters</div>
+    <div class="content">
+      <div id="params-container">
+        <div class="param-row" style="color:var(--text-muted);font-size:11px">Click Visualize to detect parameters</div>
+      </div>
+      <div class="param-row" style="margin-top:8px">
+        <label style="font-size:12px;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="happy-path-toggle" checked> Happy path only
+        </label>
+      </div>
     </div>
   </details>
 
@@ -446,16 +458,18 @@ function applyStep(step) {
   if (_searching) return; // search mode overrides
   const activeSet = new Set(step.activeNodes);
   const doneSet = step.completedNodes;
+  const happyOnly = document.getElementById('happy-path-toggle').checked;
 
   for (const id of Object.keys(_nodes).map(Number)) {
-    const isA = activeSet.has(id), isD = doneSet.has(id);
-    const cls = isA ? 'n-active' : isD ? 'n-done' : 'n-dim';
+    const isExc = happyOnly && _exceptionNodes.has(id);
+    const isA = !isExc && activeSet.has(id), isD = !isExc && doneSet.has(id);
+    const cls = isExc ? 'n-exception' : isA ? 'n-active' : isD ? 'n-done' : 'n-dim';
 
     const rect = document.querySelector(`[data-nrect="${id}"]`);
-    if (rect) { rect.classList.remove('n-active','n-done','n-dim','n-search','n-search-dim'); rect.classList.add(cls); }
+    if (rect) { rect.classList.remove('n-active','n-done','n-dim','n-exception','n-search','n-search-dim'); rect.classList.add(cls); }
     for (const sel of ['data-nlbl','data-nid-lbl','data-nsub']) {
       const el = document.querySelector(`[${sel}="${id}"]`);
-      if (el) { el.classList.remove('n-active','n-dim'); if (isA) el.classList.add('n-active'); else if (!isD) el.classList.add('n-dim'); }
+      if (el) { el.classList.remove('n-active','n-dim','n-exception'); if (isExc) el.classList.add('n-exception'); else if (isA) el.classList.add('n-active'); else if (!isD) el.classList.add('n-dim'); }
     }
 
     // Value
@@ -481,9 +495,11 @@ function applyStep(step) {
     const path = document.querySelector(`[data-edge="${e.key}"]`);
     if (!path) continue;
     if (e.structural) continue;
+    const isExcEdge = happyOnly && (_exceptionNodes.has(e.from) || _exceptionNodes.has(e.to));
     const isA = step.activeEdges.has(e.key), isD = step.completedEdges.has(e.key);
-    path.classList.remove('e-active','e-done','e-dim','e-data');
-    if (isA) { path.classList.add('e-active'); path.setAttribute('marker-end','url(#arr-active)'); }
+    path.classList.remove('e-active','e-done','e-dim','e-exception','e-data');
+    if (isExcEdge) { path.classList.add('e-exception'); path.setAttribute('marker-end',''); }
+    else if (isA) { path.classList.add('e-active'); path.setAttribute('marker-end','url(#arr-active)'); }
     else if (isD) { path.classList.add('e-done'); path.setAttribute('marker-end','url(#arr-done)'); }
     else { path.classList.add('e-dim'); path.setAttribute('marker-end','url(#arr-data)'); }
   }
@@ -801,6 +817,7 @@ function togglePlay() {
 let _nodes = {}, _edges = [], _positions = {}, _edgePoints = {};
 let _bounds = {}, _steps = [], _currentStep = 0;
 let _detectedParams = [], _paramValues = {};
+let _exceptionNodes = new Set();
 
 function rebuildSteps() {
   // Collect param values from UI
@@ -808,7 +825,10 @@ function rebuildSteps() {
     const input = document.querySelector(`[data-pidx="${p.index}"]`);
     if (input) _paramValues[p.index] = +input.value;
   }
-  const levels = topoLevels(_nodes, _edges);
+  let levels = topoLevels(_nodes, _edges);
+  if (document.getElementById('happy-path-toggle').checked && _exceptionNodes.size > 0) {
+    levels = filterLevels(levels, _exceptionNodes);
+  }
   _steps = buildSteps(_nodes, _edges, levels, _paramValues);
   _currentStep = Math.min(_currentStep, _steps.length - 1);
   applyStep(_steps[_currentStep]);
@@ -819,6 +839,7 @@ function visualize() {
   const irText = document.getElementById('ir-textarea').value;
   _nodes = parseIR(irText);
   _edges = buildEdges(_nodes);
+  _exceptionNodes = classifyExceptionNodes(_nodes, _edges);
 
   const { positions, edgePoints } = layoutGraph(_nodes, _edges);
   _positions = positions;
@@ -830,7 +851,10 @@ function visualize() {
   _paramValues = {};
   _detectedParams.forEach((p, i) => { _paramValues[p.index] = (i + 1) * 42; });
 
-  const levels = topoLevels(_nodes, _edges);
+  let levels = topoLevels(_nodes, _edges);
+  if (document.getElementById('happy-path-toggle').checked && _exceptionNodes.size > 0) {
+    levels = filterLevels(levels, _exceptionNodes);
+  }
   _steps = buildSteps(_nodes, _edges, levels, _paramValues);
   _currentStep = 0;
 
@@ -861,6 +885,7 @@ document.getElementById('btn-last').addEventListener('click', () => goToStep(_st
 document.getElementById('btn-play').addEventListener('click', togglePlay);
 document.getElementById('btn-fit').addEventListener('click', fitView);
 document.getElementById('search-input').addEventListener('input', (e) => doSearch(e.target.value));
+document.getElementById('happy-path-toggle').addEventListener('change', rebuildSteps);
 
 document.getElementById('ir-textarea').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); visualize(); }

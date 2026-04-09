@@ -284,6 +284,56 @@ function pointsToPath(pts) {
   return d;
 }
 
+// ── Exception path classification ──
+function classifyExceptionNodes(nodes, edges) {
+  // Backward walk from a set of seed node IDs through data edges.
+  // Skips walking through Root/Start since they are structural framework nodes
+  // that connect to both happy and exception exit paths.
+  function backwardReachable(seedIds) {
+    const reached = new Set();
+    const stack = [...seedIds];
+    while (stack.length > 0) {
+      const id = stack.pop();
+      if (reached.has(id)) continue;
+      reached.add(id);
+      const node = nodes[id];
+      if (!node) continue;
+      if (node.type === 'Root' || node.type === 'Start') continue;
+      for (const inId of node.inputIds) {
+        if (inId === id) continue; // skip self-loop
+        if (!nodes[inId]) continue;
+        if (!reached.has(inId)) stack.push(inId);
+      }
+    }
+    return reached;
+  }
+
+  const returnIds = Object.values(nodes).filter(n => n.type === 'Return').map(n => n.id);
+  const rethrowIds = Object.values(nodes).filter(n => n.type === 'Rethrow').map(n => n.id);
+
+  if (rethrowIds.length === 0) return new Set();
+
+  const happyPath = backwardReachable(returnIds);
+  const exceptionPath = backwardReachable(rethrowIds);
+
+  const exceptionOnly = new Set();
+  for (const id of exceptionPath) {
+    if (!happyPath.has(id)) exceptionOnly.add(id);
+  }
+  return exceptionOnly;
+}
+
+// ── Level filtering ──
+function filterLevels(levels, excludeIds) {
+  if (!excludeIds || excludeIds.size === 0) return levels;
+  const result = [];
+  for (const level of levels) {
+    const filtered = level.filter(id => !excludeIds.has(id));
+    if (filtered.length > 0) result.push(filtered);
+  }
+  return result;
+}
+
 // ── HTML escaping ──
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
