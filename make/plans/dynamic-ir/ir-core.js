@@ -288,3 +288,24 @@ function pointsToPath(pts) {
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ── Theme ──
+function setTheme(theme, onAfterSet) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = theme === 'dark' ? '\u263E' : '\u2600';
+  try { localStorage.setItem('c2ir-theme', theme); } catch {}
+  if (onAfterSet) onAfterSet(theme);
+}
+
+function initTheme(onAfterSet) {
+  const saved = (() => { try { return localStorage.getItem('c2ir-theme'); } catch { return null; } })();
+  setTheme(saved || 'dark', onAfterSet);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      setTheme(current === 'dark' ? 'light' : 'dark', onAfterSet);
+    });
+  }
+}

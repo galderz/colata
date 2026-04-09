@@ -3,22 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <title>C2 IR Visualizer - Tests</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-  body { font-family: 'SF Mono', 'Fira Code', monospace; background: #1a1b26; color: #c0caf5; padding: 20px; }
-  h1 { font-size: 18px; margin-bottom: 12px; }
+  body { font-family: 'SF Mono', 'Fira Code', monospace; background: var(--bg); color: var(--text); padding: 20px; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  h1 { font-size: 18px; flex: 1; }
   #summary { font-size: 14px; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; }
-  #summary.pass { background: #1a3c2e; border: 1px solid #9ece6a; }
-  #summary.fail { background: #3c1a1a; border: 1px solid #f7768e; }
+  #summary.pass { background: var(--node-proj); border: 1px solid var(--green); color: var(--green); }
+  #summary.fail { background: var(--node-frame); border: 1px solid var(--red); color: var(--red); }
   .suite { margin-bottom: 16px; }
-  .suite-name { font-size: 13px; font-weight: 600; color: #7aa2f7; margin-bottom: 4px; }
+  .suite-name { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
   .test { font-size: 12px; padding: 3px 8px; border-radius: 3px; margin: 2px 0; }
-  .test.pass { color: #9ece6a; }
-  .test.fail { color: #f7768e; background: #2a1a1a; }
-  .error { font-size: 11px; color: #ff9e64; margin-left: 20px; white-space: pre-wrap; }
+  .test.pass { color: var(--green); }
+  .test.fail { color: var(--red); background: var(--node-frame); }
+  .error { font-size: 11px; color: var(--orange); margin-left: 20px; white-space: pre-wrap; }
 </style>
 </head>
 <body>
-<h1>C2 IR Visualizer - Tests</h1>
+<header>
+  <h1>C2 IR Visualizer - Tests</h1>
+  <button id="theme-toggle" title="Toggle light/dark theme"></button>
+</header>
 <div id="summary"></div>
 <div id="results"></div>
 
@@ -602,6 +607,8 @@ for (const s of _suites) {
   }
   results.appendChild(div);
 }
+
+initTheme();
 </script>
 </body>
 </html>

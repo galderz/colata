@@ -5,31 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C2 IR Visualizer</title>
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<link rel="stylesheet" href="theme.css">
 <style>
-  :root, [data-theme="dark"] {
-    --bg: #1a1b26; --surface: #24283b; --surface2: #2f3349; --border: #3b4261;
-    --text: #c0caf5; --text-muted: #737aa2; --accent: #7aa2f7; --green: #9ece6a;
-    --orange: #ff9e64; --red: #f7768e; --purple: #bb9af7; --cyan: #7dcfff;
-    --yellow: #e0af68; --teal: #73daca;
-    --node-frame: #1a2a3c; --node-control: #1a3a5c; --node-proj: #1a3c2e;
-    --node-arith: #3c2a1a; --node-cmp: #3c3a1a; --node-const: #2a2a2a;
-    --node-mem: #1a2a3a; --node-call: #3c1a2a; --node-return: #2a1a3c;
-    --node-default: #2a2a2a;
-    --minimap-bg: rgba(26,27,38,0.92); --shadow: rgba(0,0,0,0.4);
-    --active-label: #fff;
-  }
-  [data-theme="light"] {
-    --bg: #f5f5f7; --surface: #ffffff; --surface2: #eaeaef; --border: #d0d0d8;
-    --text: #1e1e2e; --text-muted: #6c6c80; --accent: #3b5fda; --green: #2e7d32;
-    --orange: #d4600a; --red: #c62828; --purple: #7b1fa2; --cyan: #0277bd;
-    --yellow: #a67c00; --teal: #00796b;
-    --node-frame: #fce4ec; --node-control: #e3f2fd; --node-proj: #e8f5e9;
-    --node-arith: #fff3e0; --node-cmp: #fffde7; --node-const: #f0f0f0;
-    --node-mem: #e0f7fa; --node-call: #fce4ec; --node-return: #f3e5f5;
-    --node-default: #f0f0f0;
-    --minimap-bg: rgba(245,245,247,0.92); --shadow: rgba(0,0,0,0.12);
-    --active-label: #1a1a2e;
-  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
@@ -42,12 +19,6 @@
   }
   header h1 { font-size: 15px; font-weight: 600; color: var(--accent); }
   header .sub { font-size: 12px; color: var(--text-muted); flex: 1; }
-  #theme-toggle {
-    padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; color: var(--text); font-size: 14px; cursor: pointer;
-    transition: all 0.15s; flex-shrink: 0;
-  }
-  #theme-toggle:hover { border-color: var(--accent); }
   .main { display: flex; flex: 1; overflow: hidden; }
 
   /* ── Sidebar ── */
@@ -857,25 +828,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ══════════════════════════════════════════════
-//  THEME
-// ══════════════════════════════════════════════
-function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-toggle').textContent = theme === 'dark' ? '\u263E' : '\u2600';
-  try { localStorage.setItem('c2ir-theme', theme); } catch {}
-  updateMinimap();
-}
-
-document.getElementById('theme-toggle').addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  setTheme(current === 'dark' ? 'light' : 'dark');
-});
-
-// ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
-const savedTheme = (() => { try { return localStorage.getItem('c2ir-theme'); } catch { return null; } })();
-setTheme(savedTheme || 'dark');
+initTheme(() => updateMinimap());
 initZoomPan();
 initMinimap();
 visualize();
