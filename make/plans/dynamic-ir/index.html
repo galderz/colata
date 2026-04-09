@@ -7,437 +7,194 @@
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
 <style>
   :root {
-    --bg: #1a1b26;
-    --surface: #24283b;
-    --surface2: #2f3349;
-    --border: #3b4261;
-    --text: #c0caf5;
-    --text-muted: #737aa2;
-    --accent: #7aa2f7;
-    --green: #9ece6a;
-    --orange: #ff9e64;
-    --red: #f7768e;
-    --purple: #bb9af7;
-    --cyan: #7dcfff;
-    --yellow: #e0af68;
+    --bg: #1a1b26; --surface: #24283b; --surface2: #2f3349; --border: #3b4261;
+    --text: #c0caf5; --text-muted: #737aa2; --accent: #7aa2f7; --green: #9ece6a;
+    --orange: #ff9e64; --red: #f7768e; --purple: #bb9af7; --cyan: #7dcfff;
+    --yellow: #e0af68; --teal: #73daca;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
   }
-
   header {
-    padding: 12px 20px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-shrink: 0;
+    padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px; flex-shrink: 0;
   }
+  header h1 { font-size: 15px; font-weight: 600; color: var(--accent); }
+  header .sub { font-size: 12px; color: var(--text-muted); }
+  .main { display: flex; flex: 1; overflow: hidden; }
 
-  header h1 {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  header .subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
-
+  /* ── Sidebar ── */
   .sidebar {
-    width: 380px;
-    min-width: 380px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    width: 400px; min-width: 400px; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden;
   }
-
-  .sidebar-section {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
+  details { border-bottom: 1px solid var(--border); }
+  details > summary {
+    padding: 8px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); cursor: pointer; user-select: none; list-style: none;
   }
-
-  .sidebar-section h2 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
+  details > summary::before { content: '▸ '; }
+  details[open] > summary::before { content: '▾ '; }
+  details > .content { padding: 8px 16px 12px; }
+  textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-family: inherit; font-size: 11px; padding: 8px; resize: vertical;
+    line-height: 1.5;
   }
-
-  .ir-source {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 16px;
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    padding: 6px 14px; background: var(--accent); border: none; border-radius: 4px;
+    color: var(--bg); font-family: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
   }
-
-  .ir-source h2 {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
+  .btn:hover { opacity: 0.85; }
+  .btn-sm {
+    padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-family: inherit; font-size: 11px; cursor: pointer;
   }
-
+  .param-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+  .param-row label { font-size: 12px; color: var(--text-muted); }
+  .param-row input[type=number] {
+    width: 70px; padding: 3px 6px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-family: inherit; font-size: 12px; text-align: center;
+  }
+  .param-row input:focus { outline: none; border-color: var(--accent); }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-muted); }
+  .legend-sw { width: 10px; height: 10px; border-radius: 2px; border: 1.5px solid; }
+  .ir-source-container { flex: 1; overflow-y: auto; padding: 8px 16px; }
+  .ir-source-container h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 6px; font-weight: 400;
+  }
   .ir-line {
-    font-size: 12px;
-    line-height: 1.8;
-    padding: 2px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
-    transition: background 0.2s, color 0.2s;
-    cursor: default;
+    font-size: 11px; line-height: 1.7; padding: 1px 5px; border-radius: 3px;
+    white-space: nowrap; transition: background 0.2s; cursor: default;
+  }
+  .ir-line.active { background: var(--accent); color: var(--bg); font-weight: 600; }
+  .ir-line.completed { color: var(--green); }
+  .ir-line.dimmed { color: var(--text-muted); opacity: 0.5; }
+  .java-line {
+    font-size: 11px; line-height: 1.7; padding: 1px 5px; border-radius: 3px;
+    white-space: pre; transition: background 0.2s; cursor: default;
+  }
+  .java-line .ln { color: var(--text-muted); display: inline-block; width: 28px; text-align: right; margin-right: 8px; }
+  .java-line.active { background: var(--orange); color: var(--bg); font-weight: 600; }
+
+  /* ── Graph Area ── */
+  .graph-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .toolbar {
+    padding: 6px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .toolbar input[type=text] {
+    width: 180px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-family: inherit; font-size: 12px;
+  }
+  .toolbar input:focus { outline: none; border-color: var(--accent); }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .info { font-size: 11px; color: var(--text-muted); }
+  .graph-container { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+  .graph-container.dragging { cursor: grabbing; }
+  .graph-container svg { width: 100%; height: 100%; }
+
+  /* Minimap */
+  #minimap {
+    position: absolute; bottom: 12px; right: 12px; border: 1px solid var(--border);
+    border-radius: 6px; background: rgba(26,27,38,0.85); cursor: crosshair;
   }
 
-  .ir-line.active {
-    background: var(--accent);
-    color: var(--bg);
-    font-weight: 600;
-  }
-
-  .ir-line.completed {
-    color: var(--green);
-  }
-
-  .ir-line.inactive {
-    color: var(--text-muted);
-  }
-
-  .param-inputs {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
-
-  .param-inputs label {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .param-inputs input {
-    width: 70px;
-    padding: 4px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    text-align: center;
-  }
-
-  .param-inputs input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .graph-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .graph-container {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .graph-container svg {
-    width: 100%;
-    height: 100%;
-  }
-
+  /* Controls */
   .controls {
-    padding: 12px 20px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex-shrink: 0;
+    padding: 10px 20px; background: var(--surface); border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0;
   }
-
   .controls button {
-    padding: 8px 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.15s;
-    min-width: 44px;
+    padding: 7px 14px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: inherit; font-size: 14px;
+    cursor: pointer; transition: all 0.15s; min-width: 40px;
+  }
+  .controls button:hover:not(:disabled) { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .step-info { padding: 4px 14px; min-width: 280px; text-align: center; }
+  .step-info .sn { color: var(--accent); font-weight: 600; font-size: 13px; }
+  .step-info .sd { color: var(--text-muted); font-size: 11px; margin-top: 2px; line-height: 1.4; }
+
+  /* Tooltip */
+  #tooltip {
+    display: none; position: fixed; padding: 6px 10px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 4px; color: var(--text);
+    font-size: 11px; max-width: 500px; white-space: pre-wrap; pointer-events: none; z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
 
-  .controls button:hover:not(:disabled) {
-    background: var(--accent);
-    color: var(--bg);
-    border-color: var(--accent);
-  }
-
-  .controls button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .step-info {
-    padding: 6px 16px;
-    font-size: 13px;
-    color: var(--text);
-    min-width: 240px;
-    text-align: center;
-  }
-
-  .step-info .step-num {
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .step-info .step-desc {
-    color: var(--text-muted);
-    font-size: 11px;
-    margin-top: 2px;
-  }
-
-  /* SVG node styles */
-  .node-group { cursor: pointer; }
-
+  /* ── SVG Styles ── */
   .node-rect {
-    rx: 6;
-    ry: 6;
-    stroke-width: 2;
-    transition: all 0.3s;
+    rx: 6; ry: 6; stroke-width: 2; transition: all 0.3s;
   }
+  .node-rect.c-frame    { fill: #1a2a3c; stroke: var(--red); }
+  .node-rect.c-control  { fill: #1a3a5c; stroke: var(--accent); }
+  .node-rect.c-proj     { fill: #1a3c2e; stroke: var(--green); }
+  .node-rect.c-arith    { fill: #3c2a1a; stroke: var(--orange); }
+  .node-rect.c-cmp      { fill: #3c3a1a; stroke: var(--yellow); }
+  .node-rect.c-const    { fill: #2a2a2a; stroke: var(--text-muted); }
+  .node-rect.c-mem      { fill: #1a2a3a; stroke: var(--cyan); }
+  .node-rect.c-call     { fill: #3c1a2a; stroke: var(--red); }
+  .node-rect.c-return   { fill: #2a1a3c; stroke: var(--purple); }
+  .node-rect.c-default  { fill: #2a2a2a; stroke: var(--text-muted); }
 
-  .node-rect.type-start { fill: #1a3a5c; stroke: var(--accent); }
-  .node-rect.type-parm { fill: #1a3c2e; stroke: var(--green); }
-  .node-rect.type-addi { fill: #3c2a1a; stroke: var(--orange); }
-  .node-rect.type-return { fill: #2a1a3c; stroke: var(--purple); }
-  .node-rect.type-root { fill: #3c1a2a; stroke: var(--red); }
-  .node-rect.type-con { fill: #2a2a2a; stroke: var(--text-muted); }
-
-  .node-rect.active {
-    filter: drop-shadow(0 0 12px currentColor);
-    stroke-width: 3;
-  }
-
-  .node-rect.completed { opacity: 0.9; }
-  .node-rect.inactive { opacity: 0.35; }
+  .node-rect.n-active   { filter: drop-shadow(0 0 10px currentColor); stroke-width: 3; }
+  .node-rect.n-done     { opacity: 0.85; }
+  .node-rect.n-dim      { opacity: 0.25; }
+  .node-rect.n-search   { filter: drop-shadow(0 0 14px var(--cyan)); stroke: var(--cyan) !important; stroke-width: 3; }
+  .node-rect.n-search-dim { opacity: 0.08 !important; }
 
   .node-label {
-    fill: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 13px;
-    font-weight: 600;
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
+    fill: var(--text); font-family: inherit; font-size: 12px; font-weight: 600;
+    text-anchor: middle; dominant-baseline: central; pointer-events: none;
   }
-
-  .node-label.inactive { opacity: 0.35; }
-  .node-label.active { fill: #fff; }
-
+  .node-label.n-active { fill: #fff; }
+  .node-label.n-dim { opacity: 0.25; }
   .node-id {
-    fill: var(--text-muted);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 10px;
-    text-anchor: middle;
-    pointer-events: none;
+    fill: var(--text-muted); font-family: inherit; font-size: 9px;
+    text-anchor: start; pointer-events: none;
   }
-
-  .node-id.inactive { opacity: 0.35; }
-
-  .node-value {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
+  .node-id.n-dim { opacity: 0.25; }
+  .node-sub {
+    fill: var(--text-muted); font-family: inherit; font-size: 9px;
+    text-anchor: middle; pointer-events: none;
   }
-
-  .node-sublabel {
-    fill: var(--text-muted);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 10px;
-    text-anchor: middle;
-    pointer-events: none;
+  .node-sub.n-dim { opacity: 0.25; }
+  .node-val {
+    font-family: inherit; font-size: 10px; font-weight: 700;
+    text-anchor: middle; dominant-baseline: central; pointer-events: none;
   }
-
-  .node-sublabel.inactive { opacity: 0.35; }
-
   .edge-path {
-    fill: none;
-    stroke-width: 1.5;
-    transition: all 0.3s;
+    fill: none; stroke-width: 1.5; transition: stroke 0.3s, opacity 0.3s, stroke-width 0.3s;
   }
-
-  .edge-path.data { stroke: var(--text-muted); opacity: 0.4; }
-  .edge-path.structural { stroke: var(--text-muted); opacity: 0.15; stroke-dasharray: 4 4; }
-  .edge-path.active { stroke: var(--yellow); opacity: 1; stroke-width: 2.5; }
-  .edge-path.completed { stroke: var(--green); opacity: 0.6; stroke-width: 1.5; }
-  .edge-path.inactive { opacity: 0.15; }
-
-  .edge-arrow {
-    transition: all 0.3s;
-  }
-
-  .edge-arrow.data { fill: var(--text-muted); opacity: 0.4; }
-  .edge-arrow.structural { fill: var(--text-muted); opacity: 0.15; }
-  .edge-arrow.active { fill: var(--yellow); opacity: 1; }
-  .edge-arrow.completed { fill: var(--green); opacity: 0.6; }
-  .edge-arrow.inactive { opacity: 0.15; }
-
-  .edge-value-bg {
-    fill: var(--bg);
-    rx: 3;
-    ry: 3;
-  }
-
-  .edge-value {
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 10px;
-    font-weight: 600;
-    fill: var(--yellow);
-    text-anchor: middle;
-    dominant-baseline: central;
-    pointer-events: none;
-  }
-
-  .legend {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  .legend-swatch {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    border: 1.5px solid;
-  }
-
-  kbd {
-    display: inline-block;
-    padding: 1px 5px;
-    font-size: 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    color: var(--text-muted);
-    margin-left: 4px;
-  }
+  .edge-path.e-data       { stroke: var(--text-muted); opacity: 0.35; }
+  .edge-path.e-structural { stroke: var(--text-muted); opacity: 0.12; stroke-dasharray: 4 3; }
+  .edge-path.e-active     { stroke: var(--yellow); opacity: 1; stroke-width: 2.5; }
+  .edge-path.e-done       { stroke: var(--green); opacity: 0.5; }
+  .edge-path.e-dim        { opacity: 0.08; }
 </style>
 </head>
 <body>
+
 <header>
   <h1>C2 IR Visualizer</h1>
-  <span class="subtitle">Machine-independent intermediate representation &mdash; step-through execution</span>
+  <span class="sub">Machine-independent intermediate representation &mdash; interactive step-through</span>
 </header>
-<div class="main">
-  <div class="sidebar">
-    <div class="sidebar-section">
-      <h2>Parameters</h2>
-      <div class="param-inputs">
-        <label>a = <input type="number" id="param-a" value="42"></label>
-        <label>b = <input type="number" id="param-b" value="43"></label>
-        <button id="apply-params" style="padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:inherit;font-size:11px;cursor:pointer;">Apply</button>
-      </div>
-    </div>
-    <div class="sidebar-section">
-      <h2>Legend</h2>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-swatch" style="background:#1a3a5c;border-color:var(--accent)"></div>Start</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#1a3c2e;border-color:var(--green)"></div>Parm</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#3c2a1a;border-color:var(--orange)"></div>AddI</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#2a1a3c;border-color:var(--purple)"></div>Return</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#3c1a2a;border-color:var(--red)"></div>Root</div>
-      </div>
-    </div>
-    <div class="sidebar-section">
-      <h2>Keyboard</h2>
-      <div style="font-size:11px;color:var(--text-muted);line-height:1.8">
-        <kbd>&larr;</kbd> Previous step &nbsp;
-        <kbd>&rarr;</kbd> Next step<br>
-        <kbd>Home</kbd> First step &nbsp;
-        <kbd>End</kbd> Last step
-      </div>
-    </div>
-    <div class="ir-source" id="ir-source">
-      <h2>IR Source</h2>
-    </div>
-  </div>
-  <div class="graph-area">
-    <div class="graph-container" id="graph-container">
-      <svg id="graph-svg">
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5"
-                  markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="context-fill"/>
-          </marker>
-          <marker id="arrow-active" viewBox="0 0 10 10" refX="10" refY="5"
-                  markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--yellow)"/>
-          </marker>
-          <marker id="arrow-completed" viewBox="0 0 10 10" refX="10" refY="5"
-                  markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--green)"/>
-          </marker>
-          <marker id="arrow-data" viewBox="0 0 10 10" refX="10" refY="5"
-                  markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)"/>
-          </marker>
-        </defs>
-        <g id="graph-root"></g>
-      </svg>
-    </div>
-    <div class="controls">
-      <button id="btn-first" title="First step (Home)">|&laquo;</button>
-      <button id="btn-prev" title="Previous step (&larr;)">&laquo;</button>
-      <div class="step-info" id="step-info">
-        <div class="step-num">Ready</div>
-        <div class="step-desc">Press &rarr; to begin</div>
-      </div>
-      <button id="btn-next" title="Next step (&rarr;)">&raquo;</button>
-      <button id="btn-last" title="Last step (End)">&raquo;|</button>
-    </div>
-  </div>
-</div>
 
-<script>
-// ── IR Text ──
-const IR_TEXT = `  0  Root  === 0 24  [[ 0 1 3 ]] inner
+<div class="main">
+<div class="sidebar">
+  <details id="ir-input-section" open>
+    <summary>IR Input</summary>
+    <div class="content">
+      <textarea id="ir-textarea" rows="12" spellcheck="false">  0  Root  === 0 24  [[ 0 1 3 ]] inner
   1  Con  === 0  [[ ]]  #top
   3  Start  === 3 0  [[ 3 5 6 7 8 9 10 11 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:int, 6:int}
   5  Parm  === 3  [[ 24 ]] Control !jvms: First::test @ bci:-1 (line 21)
@@ -448,486 +205,927 @@ const IR_TEXT = `  0  Root  === 0 24  [[ 0 1 3 ]] inner
  10  Parm  === 3  [[ 23 ]] Parm0: int !jvms: First::test @ bci:-1 (line 21)
  11  Parm  === 3  [[ 23 ]] Parm1: int !jvms: First::test @ bci:-1 (line 21)
  23  AddI  === _ 10 11  [[ 24 ]]  !jvms: First::test @ bci:2 (line 21)
- 24  Return  === 5 6 7 8 9 returns 23  [[ 0 ]]`;
+ 24  Return  === 5 6 7 8 9 returns 23  [[ 0 ]]</textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+        <button class="btn" id="btn-visualize">Visualize</button>
+        <span style="font-size:11px;color:var(--text-muted)">or Ctrl+Enter</span>
+      </div>
+    </div>
+  </details>
 
-// ── Parser ──
-function parseIR(text) {
-  const nodes = {};
-  const lines = text.trim().split('\n');
-
-  for (const line of lines) {
-    const match = line.match(/^\s*(\d+)\s+(\w+)\s+===\s+(.*?)\s*\[\[\s*(.*?)\s*\]\]\s*(.*)?$/);
-    if (!match) continue;
-
-    const id = parseInt(match[1]);
-    const type = match[2];
-    const inputStr = match[3].trim();
-    const outputStr = match[4].trim();
-    const extra = (match[5] || '').trim();
-
-    const inputs = inputStr.split(/\s+/)
-      .filter(t => t !== '_' && t !== 'returns' && /^\d+$/.test(t))
-      .map(Number);
-
-    const outputs = outputStr.split(/\s+/)
-      .filter(t => /^\d+$/.test(t))
-      .map(Number);
-
-    // Extract sublabel from extra info
-    let sublabel = '';
-    if (type === 'Parm') {
-      if (extra.startsWith('Control')) sublabel = 'Control';
-      else if (extra.startsWith('I_O')) sublabel = 'I/O';
-      else if (extra.startsWith('Memory')) sublabel = 'Memory';
-      else if (extra.startsWith('FramePtr')) sublabel = 'FramePtr';
-      else if (extra.startsWith('ReturnAdr')) sublabel = 'ReturnAdr';
-      else if (extra.startsWith('Parm0')) sublabel = 'Parm0 (a)';
-      else if (extra.startsWith('Parm1')) sublabel = 'Parm1 (b)';
-    } else if (type === 'Con') {
-      sublabel = '#top';
+  <details id="java-input-section">
+    <summary>Java Source (optional)</summary>
+    <div class="content">
+      <textarea id="java-textarea" rows="8" spellcheck="false" placeholder="Paste Java source for line-level highlighting...">public class First
+{
+    public static void main(String[] args)
+    {
+        System.out.println("Run");
+        for (int i = 0; i < 10_000; i++)
+        {
+            test(i, i + 1);
+        }
+        System.out.println("Done");
     }
 
-    nodes[id] = { id, type, inputs, outputs, extra, sublabel, line: line.trim() };
+    public static int test(int a, int b)
+    {
+        return a + b;
+    }
+}</textarea>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Parameters</summary>
+    <div class="content" id="params-container">
+      <div class="param-row" style="color:var(--text-muted);font-size:11px">Click Visualize to detect parameters</div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Legend &amp; Keys</summary>
+    <div class="content">
+      <div class="legend" style="margin-bottom:6px">
+        <div class="legend-item"><div class="legend-sw" style="background:#1a2a3c;border-color:var(--red)"></div>Root/Start</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#1a3a5c;border-color:var(--accent)"></div>Control</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#1a3c2e;border-color:var(--green)"></div>Proj/Parm</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#3c2a1a;border-color:var(--orange)"></div>Arithmetic</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#3c3a1a;border-color:var(--yellow)"></div>Compare</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#1a2a3a;border-color:var(--cyan)"></div>Memory</div>
+        <div class="legend-item"><div class="legend-sw" style="background:#2a1a3c;border-color:var(--purple)"></div>Return</div>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);line-height:1.8">
+        <b>&larr;/&rarr;</b> step &nbsp; <b>Home/End</b> first/last &nbsp; <b>Space</b> play/pause &nbsp; <b>F</b> fit &nbsp; <b>Scroll</b> zoom &nbsp; <b>Drag</b> pan
+      </div>
+    </div>
+  </details>
+
+  <div class="ir-source-container" id="source-panel">
+    <div id="java-source-display"></div>
+    <h3>IR Nodes</h3>
+    <div id="ir-source-display"></div>
+  </div>
+</div>
+
+<div class="graph-area">
+  <div class="toolbar">
+    <input type="text" id="search-input" placeholder="Search nodes (id, type)...">
+    <span class="spacer"></span>
+    <span class="info" id="graph-info"></span>
+    <button class="btn-sm" id="btn-fit" title="Fit graph (F)">Fit</button>
+  </div>
+  <div class="graph-container" id="graph-container">
+    <svg id="graph-svg">
+      <defs>
+        <marker id="arr-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--text-muted)" opacity="0.5"/>
+        </marker>
+        <marker id="arr-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--yellow)"/>
+        </marker>
+        <marker id="arr-done" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--green)" opacity="0.6"/>
+        </marker>
+      </defs>
+      <g id="graph-root"></g>
+    </svg>
+    <canvas id="minimap" width="180" height="120"></canvas>
+  </div>
+  <div class="controls">
+    <button id="btn-first" title="First (Home)">|&#9664;</button>
+    <button id="btn-prev" title="Previous (&larr;)">&#9664;</button>
+    <button id="btn-play" title="Play/Pause (Space)">&#9654;</button>
+    <button id="btn-next" title="Next (&rarr;)">&#9654;</button>
+    <button id="btn-last" title="Last (End)">&#9654;|</button>
+    <div class="step-info" id="step-info">
+      <div class="sn">Ready</div>
+      <div class="sd">Press Visualize or &rarr; to begin</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function nodeColorClass(type) {
+  if (type === 'Root' || type === 'Start') return 'c-frame';
+  if (type === 'Return' || type === 'Rethrow') return 'c-return';
+  if (type === 'Parm' || type === 'Proj' || type === 'Phi' || type === 'PhiD' ||
+      type.startsWith('Cast') || type.startsWith('CheckCast')) return 'c-proj';
+  if (type.startsWith('Add') || type.startsWith('Sub') || type.startsWith('Mul') ||
+      type.startsWith('Div') || type.startsWith('Mod') || type.startsWith('Neg') ||
+      type.startsWith('LShift') || type.startsWith('RShift') || type.startsWith('URShift') ||
+      type.startsWith('And') || type.startsWith('Or') || type.startsWith('Xor') ||
+      type.startsWith('Abs') || type.startsWith('Conv') || type.startsWith('Sqrt') ||
+      type.startsWith('Min') || type.startsWith('Max')) return 'c-arith';
+  if (type.startsWith('Cmp') || type === 'Bool') return 'c-cmp';
+  if (type.startsWith('Con')) return 'c-const';
+  if (type.startsWith('Load') || type.startsWith('Store') || type.startsWith('MemBar')) return 'c-mem';
+  if (type.startsWith('Call') || type.startsWith('Allocate')) return 'c-call';
+  if (type === 'If' || type === 'IfTrue' || type === 'IfFalse' || type === 'Region' ||
+      type === 'Loop' || type === 'CountedLoop' || type === 'CountedLoopEnd' ||
+      type === 'Jump' || type === 'Halt' || type === 'SafePoint' || type === 'NeverBranch' ||
+      type === 'RangeCheck' || type === 'Catch' || type === 'CatchProj') return 'c-control';
+  return 'c-default';
+}
+
+// ══════════════════════════════════════════════
+//  PARSER
+// ══════════════════════════════════════════════
+function parseIR(text) {
+  const nodes = {};
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    const m = line.match(/^(\d+)\s+(\w+)\s+===\s+(.*?)\s*\[\[\s*(.*?)\s*\]\]\s*(.*)?$/);
+    if (!m) continue;
+    const id = +m[1], type = m[2], extra = (m[5] || '').trim();
+
+    // Parse inputs, tracking 'returns' position
+    const inTokens = m[3].trim().split(/\s+/);
+    const inputs = []; let returnValIdx = -1, afterReturns = false;
+    for (const t of inTokens) {
+      if (t === 'returns') { afterReturns = true; continue; }
+      if (t === '_') { inputs.push(null); continue; } // placeholder
+      if (/^\d+$/.test(t)) { if (afterReturns && returnValIdx < 0) returnValIdx = inputs.length; inputs.push(+t); }
+    }
+    const inputIds = inputs.filter(x => x !== null);
+
+    const outputs = m[4].trim().split(/\s+/).filter(t => /^\d+$/.test(t)).map(Number);
+
+    // Sublabel
+    let sublabel = '';
+    if (type === 'Parm') {
+      const pm = extra.match(/^(Control|I_O|Memory|FramePtr|ReturnAdr)/);
+      if (pm) sublabel = pm[1].replace('I_O', 'I/O');
+      else { const pm2 = extra.match(/^Parm(\d+):\s*(\w+)/); if (pm2) sublabel = `Parm${pm2[1]} (${pm2[2]})`; }
+    } else if (type === 'Con') {
+      const cm = extra.match(/#(-?[\d.]+|top)/); if (cm) sublabel = `#${cm[1]}`;
+    }
+
+    // Java line
+    const jlm = extra.match(/\(line (\d+)\)/);
+    const javaLine = jlm ? +jlm[1] : null;
+
+    // Method name
+    const mm = extra.match(/!jvms:\s*(\S+)/);
+    const method = mm ? mm[1] : null;
+
+    nodes[id] = { id, type, inputIds, inputs, outputs, extra, sublabel, javaLine, method, returnValIdx, line };
   }
   return nodes;
 }
 
-// ── Build edges ──
+// ══════════════════════════════════════════════
+//  EDGES
+// ══════════════════════════════════════════════
+function isStructural(fromId, toId, nodes) {
+  if (fromId === toId) return true;
+  const ft = nodes[fromId]?.type, tt = nodes[toId]?.type;
+  if (ft === 'Root' && tt === 'Start') return true;
+  if (ft === 'Start' && tt === 'Root') return true;
+  if (ft === 'Root' && tt === 'Con') return true;
+  return false;
+}
+
 function buildEdges(nodes) {
-  const edges = [];
-  const structuralPairs = new Set();
-
-  // Self-loops and Root<->Start are structural
-  structuralPairs.add('0->0');
-  structuralPairs.add('3->3');
-  structuralPairs.add('0->3');
-  structuralPairs.add('0->1');
-
+  const edges = [], seen = new Set();
   for (const node of Object.values(nodes)) {
-    for (const inputId of node.inputs) {
-      if (inputId === node.id) continue; // skip self-loops
-      const key = `${inputId}->${node.id}`;
-      const isStructural = structuralPairs.has(key);
-      edges.push({
-        from: inputId,
-        to: node.id,
-        structural: isStructural,
-        key
-      });
+    for (const inId of node.inputIds) {
+      if (inId === node.id) continue;
+      if (!nodes[inId]) continue;
+      const key = `${inId}->${node.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push({ from: inId, to: node.id, key, structural: isStructural(inId, node.id, nodes) });
     }
   }
   return edges;
 }
 
-// ── Execution steps ──
-function buildExecutionSteps(nodes, paramA, paramB) {
-  return [
-    {
-      name: 'Initial State',
-      desc: 'Function test(a, b) is called. The graph represents the compiled computation.',
-      activeNodes: [],
-      activeEdges: [],
-      completedNodes: [],
-      completedEdges: [],
-      values: {}
-    },
-    {
-      name: 'Start',
-      desc: `Function entry. Start node produces projections for control flow, I/O, memory, frame pointer, return address, and parameters a=${paramA}, b=${paramB}.`,
-      activeNodes: [3],
-      activeEdges: [],
-      completedNodes: [],
-      completedEdges: [],
-      values: { 3: `{ctrl, io, mem, fp, ra, ${paramA}, ${paramB}}` }
-    },
-    {
-      name: 'Parm Projection',
-      desc: `Parm nodes project individual values from Start. Parm0 extracts a=${paramA}, Parm1 extracts b=${paramB}. Control, I/O, Memory, FramePtr, and ReturnAdr are also projected.`,
-      activeNodes: [5, 6, 7, 8, 9, 10, 11],
-      activeEdges: ['3->5', '3->6', '3->7', '3->8', '3->9', '3->10', '3->11'],
-      completedNodes: [3],
-      completedEdges: [],
-      values: { 3: `{ctrl, io, mem, fp, ra, ${paramA}, ${paramB}}`, 5: 'ctrl', 6: 'io', 7: 'mem', 8: 'fp', 9: 'ra', 10: `${paramA}`, 11: `${paramB}` }
-    },
-    {
-      name: 'AddI',
-      desc: `Integer addition: AddI computes Parm0 + Parm1 = ${paramA} + ${paramB} = ${paramA + paramB}.`,
-      activeNodes: [23],
-      activeEdges: ['10->23', '11->23'],
-      completedNodes: [3, 5, 6, 7, 8, 9, 10, 11],
-      completedEdges: ['3->5', '3->6', '3->7', '3->8', '3->9', '3->10', '3->11'],
-      values: { 10: `${paramA}`, 11: `${paramB}`, 23: `${paramA + paramB}` }
-    },
-    {
-      name: 'Return',
-      desc: `Return packages control, I/O, memory, frame pointer, return address, and the computed result ${paramA + paramB} for the caller.`,
-      activeNodes: [24],
-      activeEdges: ['5->24', '6->24', '7->24', '8->24', '9->24', '23->24'],
-      completedNodes: [3, 5, 6, 7, 8, 9, 10, 11, 23],
-      completedEdges: ['3->5', '3->6', '3->7', '3->8', '3->9', '3->10', '3->11', '10->23', '11->23'],
-      values: { 23: `${paramA + paramB}`, 24: `returns ${paramA + paramB}` }
-    },
-    {
-      name: 'Root',
-      desc: `Execution complete. Root receives the return. The function test(${paramA}, ${paramB}) produced ${paramA + paramB}.`,
-      activeNodes: [0],
-      activeEdges: ['24->0'],
-      completedNodes: [3, 5, 6, 7, 8, 9, 10, 11, 23, 24],
-      completedEdges: ['3->5', '3->6', '3->7', '3->8', '3->9', '3->10', '3->11', '10->23', '11->23', '5->24', '6->24', '7->24', '8->24', '9->24', '23->24'],
-      values: { 24: `returns ${paramA + paramB}`, 0: `done (${paramA + paramB})` }
+// ══════════════════════════════════════════════
+//  TOPOLOGICAL SORT
+// ══════════════════════════════════════════════
+function topoLevels(nodes, edges) {
+  const ids = Object.keys(nodes).map(Number);
+  const inDeg = {}, adj = {};
+  for (const id of ids) { inDeg[id] = 0; adj[id] = []; }
+  for (const e of edges) {
+    if (e.structural) continue;
+    adj[e.from].push(e.to);
+    inDeg[e.to]++;
+  }
+  const levels = [];
+  let q = ids.filter(id => inDeg[id] === 0);
+  const visited = new Set();
+  while (q.length > 0) {
+    levels.push([...q]);
+    q.forEach(id => visited.add(id));
+    const nq = [];
+    for (const id of q) {
+      for (const nb of adj[id]) {
+        inDeg[nb]--;
+        if (inDeg[nb] === 0) nq.push(nb);
+      }
     }
-  ];
+    q = nq;
+  }
+  // Nodes in cycles: add remaining
+  const remaining = ids.filter(id => !visited.has(id));
+  if (remaining.length) levels.push(remaining);
+  return levels;
 }
 
-// ── Layout with dagre ──
+// ══════════════════════════════════════════════
+//  PARAMETER DETECTION
+// ══════════════════════════════════════════════
+function detectParams(nodes) {
+  const params = [];
+  for (const n of Object.values(nodes)) {
+    if (n.type !== 'Parm') continue;
+    const m = n.extra.match(/^Parm(\d+):\s*(\w+)/);
+    if (m) params.push({ nodeId: n.id, index: +m[1], type: m[2] });
+  }
+  params.sort((a, b) => a.index - b.index);
+  return params;
+}
+
+// ══════════════════════════════════════════════
+//  VALUE COMPUTATION
+// ══════════════════════════════════════════════
+function computeValue(node, dataInputValues, paramValues) {
+  const t = node.type;
+  if (t === 'Start') return '{...}';
+  if (t === 'Root') return 'done';
+  if (t === 'Parm') {
+    const m = node.extra.match(/^Parm(\d+)/);
+    if (m) return paramValues[+m[1]] ?? '?';
+    if (node.extra.startsWith('Control')) return 'ctrl';
+    if (node.extra.startsWith('I_O')) return 'io';
+    if (node.extra.startsWith('Memory')) return 'mem';
+    if (node.extra.startsWith('FramePtr')) return 'fp';
+    if (node.extra.startsWith('ReturnAdr')) return 'ra';
+    return node.sublabel || '?';
+  }
+  if (t === 'Con') {
+    const m = node.extra.match(/#(-?[\d.]+)/);
+    return m ? +m[1] : node.sublabel || '#?';
+  }
+  if (t === 'Return') {
+    // Last numeric input (the return value)
+    const ri = node.returnValIdx >= 0 ? node.returnValIdx : node.inputIds.length - 1;
+    const rv = dataInputValues[ri];
+    return rv !== undefined ? `ret ${rv}` : 'ret ?';
+  }
+
+  // Arithmetic (binary)
+  const nums = dataInputValues.filter(v => typeof v === 'number');
+  if (nums.length >= 2) {
+    switch (t) {
+      case 'AddI': case 'AddL': return nums[0] + nums[1];
+      case 'SubI': case 'SubL': return nums[0] - nums[1];
+      case 'MulI': case 'MulL': return nums[0] * nums[1];
+      case 'DivI': case 'DivL': return nums[1] ? Math.trunc(nums[0]/nums[1]) : '÷0';
+      case 'ModI': case 'ModL': return nums[1] ? nums[0]%nums[1] : '%0';
+      case 'LShiftI': case 'LShiftL': return nums[0] << nums[1];
+      case 'RShiftI': case 'RShiftL': return nums[0] >> nums[1];
+      case 'URShiftI': case 'URShiftL': return nums[0] >>> nums[1];
+      case 'AndI': case 'AndL': return nums[0] & nums[1];
+      case 'OrI': case 'OrL': return nums[0] | nums[1];
+      case 'XorI': case 'XorL': return nums[0] ^ nums[1];
+    }
+  }
+  if (nums.length >= 2 && t.startsWith('Cmp')) {
+    const d = nums[0] - nums[1];
+    return d < 0 ? '<' : d > 0 ? '>' : '=';
+  }
+  // Unary
+  if (nums.length >= 1) {
+    switch (t) {
+      case 'NegI': case 'NegL': return -nums[0];
+      case 'AbsI': case 'AbsL': return Math.abs(nums[0]);
+      case 'ConvI2L': case 'ConvL2I': case 'CastII': case 'CastLL': return nums[0];
+    }
+  }
+  // Pass-through for projections with single numeric input
+  if (nums.length === 1 && (t === 'Proj' || t === 'Phi' || t.startsWith('CheckCast'))) return nums[0];
+  return null;
+}
+
+// ══════════════════════════════════════════════
+//  EXECUTION STEPS
+// ══════════════════════════════════════════════
+function buildSteps(nodes, edges, levels, paramValues) {
+  const steps = [];
+  const completedNodes = new Set(), completedEdges = new Set();
+  const nodeValues = {};
+
+  // Step 0: initial
+  steps.push({ name: 'Initial', desc: 'Graph structure. Press \u2192 to begin execution.', activeNodes: [], activeEdges: [], completedNodes: new Set(), completedEdges: new Set(), values: {} });
+
+  for (const level of levels) {
+    // Compute values for this level
+    const activeEdges = new Set();
+    for (const id of level) {
+      const node = nodes[id];
+      // Gather input values in order of node.inputs (the original input list, including nulls for '_')
+      const inputVals = node.inputs.map(inId => {
+        if (inId === null) return undefined;
+        return nodeValues[inId];
+      });
+
+      const val = computeValue(node, inputVals, paramValues);
+      if (val !== null && val !== undefined) nodeValues[id] = val;
+
+      // Active edges: data edges coming into this node
+      for (const e of edges) {
+        if (e.to === id && !e.structural) activeEdges.add(e.key);
+      }
+    }
+
+    const levelName = level.length === 1 ? `${nodes[level[0]].type} #${level[0]}` :
+      level.length <= 4 ? level.map(id => `${nodes[id].type}#${id}`).join(', ') :
+      `${nodes[level[0]].type} \u00d7${level.length}`;
+
+    const levelDesc = level.map(id => {
+      const n = nodes[id];
+      const v = nodeValues[id];
+      return v !== null && v !== undefined ? `#${id} ${n.type} = ${v}` : `#${id} ${n.type}`;
+    }).join(' | ');
+
+    steps.push({
+      name: levelName,
+      desc: levelDesc,
+      activeNodes: [...level],
+      activeEdges: activeEdges,
+      completedNodes: new Set(completedNodes),
+      completedEdges: new Set(completedEdges),
+      values: { ...nodeValues },
+      javaLines: level.map(id => nodes[id].javaLine).filter(Boolean)
+    });
+
+    level.forEach(id => completedNodes.add(id));
+    activeEdges.forEach(k => completedEdges.add(k));
+    // Also add edges between completed nodes
+    for (const e of edges) {
+      if (!e.structural && completedNodes.has(e.from) && completedNodes.has(e.to)) completedEdges.add(e.key);
+    }
+  }
+  return steps;
+}
+
+// ══════════════════════════════════════════════
+//  LAYOUT (dagre)
+// ══════════════════════════════════════════════
 function layoutGraph(nodes, edges) {
+  const count = Object.keys(nodes).length;
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: 'TB',
-    ranksep: 70,
-    nodesep: 30,
-    marginx: 40,
-    marginy: 40
+    ranksep: count > 50 ? 40 : count > 20 ? 55 : 70,
+    nodesep: count > 50 ? 18 : count > 20 ? 24 : 32,
+    marginx: 30, marginy: 30
   });
   g.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 120;
-  const nodeHeight = 52;
-
-  for (const node of Object.values(nodes)) {
-    let w = nodeWidth;
-    // Parm nodes can be narrower
-    if (node.type === 'Parm') w = 100;
-    g.setNode(String(node.id), { width: w, height: nodeHeight });
+  for (const n of Object.values(nodes)) {
+    const w = Math.max(90, n.type.length * 9 + 30);
+    g.setNode(String(n.id), { width: w, height: n.sublabel ? 52 : 44 });
   }
-
-  for (const edge of edges) {
-    if (!edge.structural) {
-      g.setEdge(String(edge.from), String(edge.to));
-    }
+  for (const e of edges) {
+    if (!e.structural) g.setEdge(String(e.from), String(e.to));
   }
-
   dagre.layout(g);
 
   const positions = {};
-  g.nodes().forEach(id => {
-    const n = g.node(id);
-    positions[parseInt(id)] = { x: n.x, y: n.y, w: n.width, h: n.height };
+  g.nodes().forEach(id => { const n = g.node(id); positions[+id] = { x: n.x, y: n.y, w: n.width, h: n.height }; });
+
+  const edgePoints = {};
+  g.edges().forEach(e => {
+    const ed = g.edge(e);
+    const key = `${e.v}->${e.w}`;
+    if (ed.points) edgePoints[key] = ed.points;
   });
 
-  return positions;
+  return { positions, edgePoints };
 }
 
-// ── SVG Helpers ──
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function createSVGElement(tag, attrs = {}) {
-  const el = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    el.setAttribute(k, v);
+// ══════════════════════════════════════════════
+//  GRAPH BOUNDS
+// ══════════════════════════════════════════════
+function calcBounds(positions) {
+  let x1=Infinity, y1=Infinity, x2=-Infinity, y2=-Infinity;
+  for (const p of Object.values(positions)) {
+    x1 = Math.min(x1, p.x - p.w/2); y1 = Math.min(y1, p.y - p.h/2);
+    x2 = Math.max(x2, p.x + p.w/2); y2 = Math.max(y2, p.y + p.h/2);
   }
+  const pad = 50;
+  return { x: x1-pad, y: y1-pad, w: x2-x1+pad*2, h: y2-y1+pad*2+20 };
+}
+
+// ══════════════════════════════════════════════
+//  SVG HELPERS
+// ══════════════════════════════════════════════
+function svgEl(tag, attrs={}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
   return el;
 }
 
-// ── Render ──
-function renderGraph(nodes, edges, positions) {
+function pointsToPath(pts) {
+  if (!pts || pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0].x} ${pts[0].y} L${pts[1].x} ${pts[1].y}`;
+  // Smooth curve through points
+  let d = `M${pts[0].x} ${pts[0].y}`;
+  if (pts.length === 3) {
+    d += ` Q${pts[1].x} ${pts[1].y} ${pts[2].x} ${pts[2].y}`;
+  } else {
+    for (let i = 1; i < pts.length; i++) d += ` L${pts[i].x} ${pts[i].y}`;
+  }
+  return d;
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function renderGraph() {
   const root = document.getElementById('graph-root');
   root.innerHTML = '';
+  const gEdges = svgEl('g'); const gNodes = svgEl('g');
+  root.appendChild(gEdges); root.appendChild(gNodes);
+  const tooltip = document.getElementById('tooltip');
 
-  const edgesGroup = createSVGElement('g', { id: 'edges-group' });
-  const nodesGroup = createSVGElement('g', { id: 'nodes-group' });
-  const valuesGroup = createSVGElement('g', { id: 'values-group' });
-  root.appendChild(edgesGroup);
-  root.appendChild(nodesGroup);
-  root.appendChild(valuesGroup);
-
-  // Draw edges
-  for (const edge of edges) {
-    const fromPos = positions[edge.from];
-    const toPos = positions[edge.to];
-    if (!fromPos || !toPos) continue;
-
-    // Compute edge endpoints at node borders
-    const fromX = fromPos.x;
-    const fromY = fromPos.y + fromPos.h / 2;
-    const toX = toPos.x;
-    const toY = toPos.y - toPos.h / 2;
-
-    // Simple path with a slight curve
-    const midY = (fromY + toY) / 2;
-    const d = `M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`;
-
-    const path = createSVGElement('path', {
-      d,
-      class: `edge-path ${edge.structural ? 'structural' : 'data'}`,
-      'data-edge': edge.key,
-      'marker-end': edge.structural ? '' : 'url(#arrow-data)'
-    });
-    edgesGroup.appendChild(path);
-
-    // Edge value label (hidden initially)
-    if (!edge.structural) {
-      const labelX = (fromX + toX) / 2;
-      const labelY = midY;
-      const bg = createSVGElement('rect', {
-        x: labelX - 20, y: labelY - 8, width: 40, height: 16,
-        class: 'edge-value-bg',
-        'data-edge-val-bg': edge.key,
-        style: 'display:none'
-      });
-      const text = createSVGElement('text', {
-        x: labelX, y: labelY,
-        class: 'edge-value',
-        'data-edge-val': edge.key,
-        style: 'display:none'
-      });
-      valuesGroup.appendChild(bg);
-      valuesGroup.appendChild(text);
+  // Edges
+  for (const e of _edges) {
+    const pts = _edgePoints[e.key];
+    let d;
+    if (pts) {
+      d = pointsToPath(pts);
+    } else {
+      const fp = _positions[e.from], tp = _positions[e.to];
+      if (!fp || !tp) continue;
+      const mx = (fp.x+tp.x)/2, my = (fp.y+tp.y)/2;
+      d = `M${fp.x} ${fp.y+fp.h/2} Q${mx} ${my} ${tp.x} ${tp.y-tp.h/2}`;
     }
+    const path = svgEl('path', {
+      d, class: `edge-path ${e.structural ? 'e-structural' : 'e-data'}`,
+      'data-edge': e.key,
+      'marker-end': e.structural ? '' : 'url(#arr-data)'
+    });
+    gEdges.appendChild(path);
   }
 
-  // Draw nodes
-  for (const node of Object.values(nodes)) {
-    const pos = positions[node.id];
+  // Nodes
+  for (const node of Object.values(_nodes)) {
+    const pos = _positions[node.id];
     if (!pos) continue;
+    const cc = nodeColorClass(node.type);
+    const g = svgEl('g', { transform: `translate(${pos.x},${pos.y})`, 'data-nid': node.id });
 
-    const typeClass = `type-${node.type.toLowerCase()}`;
-    const g = createSVGElement('g', {
-      class: 'node-group',
-      transform: `translate(${pos.x}, ${pos.y})`,
-      'data-node': node.id
-    });
-
-    const totalH = node.sublabel ? pos.h + 6 : pos.h;
-
-    const rect = createSVGElement('rect', {
-      x: -pos.w / 2, y: -totalH / 2,
-      width: pos.w, height: totalH,
-      class: `node-rect ${typeClass}`,
-      'data-node-rect': node.id
+    const rect = svgEl('rect', {
+      x: -pos.w/2, y: -pos.h/2, width: pos.w, height: pos.h,
+      class: `node-rect ${cc}`, 'data-nrect': node.id
     });
     g.appendChild(rect);
 
-    const idLabel = createSVGElement('text', {
-      x: -pos.w / 2 + 8, y: -totalH / 2 + 12,
-      class: 'node-id',
-      'data-node-id-label': node.id
-    });
-    idLabel.textContent = `#${node.id}`;
-    g.appendChild(idLabel);
+    const idLbl = svgEl('text', { x: -pos.w/2+6, y: -pos.h/2+11, class: 'node-id', 'data-nid-lbl': node.id });
+    idLbl.textContent = `#${node.id}`;
+    g.appendChild(idLbl);
 
-    const labelY = node.sublabel ? -4 : 0;
-    const label = createSVGElement('text', {
-      x: 0, y: labelY,
-      class: 'node-label',
-      'data-node-label': node.id
-    });
-    label.textContent = node.type;
-    g.appendChild(label);
+    const ly = node.sublabel ? -4 : 0;
+    const lbl = svgEl('text', { x: 0, y: ly, class: 'node-label', 'data-nlbl': node.id });
+    lbl.textContent = node.type;
+    g.appendChild(lbl);
 
     if (node.sublabel) {
-      const sub = createSVGElement('text', {
-        x: 0, y: labelY + 14,
-        class: 'node-sublabel',
-        'data-node-sublabel': node.id
-      });
+      const sub = svgEl('text', { x: 0, y: ly+13, class: 'node-sub', 'data-nsub': node.id });
       sub.textContent = node.sublabel;
       g.appendChild(sub);
     }
 
-    // Value badge (hidden initially)
-    const valueBadge = createSVGElement('text', {
-      x: 0, y: totalH / 2 + 14,
-      class: 'node-value',
-      'data-node-value': node.id,
-      style: 'display:none'
+    const val = svgEl('text', { x: 0, y: pos.h/2+13, class: 'node-val', 'data-nval': node.id, style: 'display:none' });
+    g.appendChild(val);
+
+    // Tooltip
+    g.addEventListener('mouseenter', (ev) => {
+      tooltip.textContent = node.line;
+      tooltip.style.display = 'block';
+      tooltip.style.left = ev.clientX + 12 + 'px';
+      tooltip.style.top = ev.clientY + 12 + 'px';
     });
-    g.appendChild(valueBadge);
+    g.addEventListener('mousemove', (ev) => {
+      tooltip.style.left = ev.clientX + 12 + 'px';
+      tooltip.style.top = ev.clientY + 12 + 'px';
+    });
+    g.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
 
-    nodesGroup.appendChild(g);
-  }
-
-  // Fit viewBox
-  fitViewBox(positions);
-}
-
-function fitViewBox(positions) {
-  const svg = document.getElementById('graph-svg');
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-  for (const pos of Object.values(positions)) {
-    minX = Math.min(minX, pos.x - pos.w / 2);
-    minY = Math.min(minY, pos.y - pos.h / 2);
-    maxX = Math.max(maxX, pos.x + pos.w / 2);
-    maxY = Math.max(maxY, pos.y + pos.h / 2);
-  }
-
-  const pad = 60;
-  svg.setAttribute('viewBox',
-    `${minX - pad} ${minY - pad} ${maxX - minX + pad * 2} ${maxY - minY + pad * 2 + 30}`);
-}
-
-// ── Render IR source ──
-function renderIRSource(nodes) {
-  const container = document.getElementById('ir-source');
-  // Keep the h2
-  container.innerHTML = '<h2>IR Source</h2>';
-
-  for (const node of Object.values(nodes)) {
-    const div = document.createElement('div');
-    div.className = 'ir-line inactive';
-    div.setAttribute('data-ir-node', node.id);
-    div.textContent = node.line;
-    container.appendChild(div);
+    gNodes.appendChild(g);
   }
 }
 
-// ── Update display for a step ──
-function applyStep(step, nodes, edges) {
-  const allNodeIds = Object.keys(nodes).map(Number);
+// ══════════════════════════════════════════════
+//  APPLY STEP
+// ══════════════════════════════════════════════
+function applyStep(step) {
+  if (_searching) return; // search mode overrides
+  const activeSet = new Set(step.activeNodes);
+  const doneSet = step.completedNodes;
 
-  // Classify each node
-  for (const id of allNodeIds) {
-    const isActive = step.activeNodes.includes(id);
-    const isCompleted = step.completedNodes.includes(id);
+  for (const id of Object.keys(_nodes).map(Number)) {
+    const isA = activeSet.has(id), isD = doneSet.has(id);
+    const cls = isA ? 'n-active' : isD ? 'n-done' : 'n-dim';
 
-    // Node rect
-    const rect = document.querySelector(`[data-node-rect="${id}"]`);
-    if (rect) {
-      rect.classList.remove('active', 'completed', 'inactive');
-      if (isActive) rect.classList.add('active');
-      else if (isCompleted) rect.classList.add('completed');
-      else rect.classList.add('inactive');
+    const rect = document.querySelector(`[data-nrect="${id}"]`);
+    if (rect) { rect.classList.remove('n-active','n-done','n-dim','n-search','n-search-dim'); rect.classList.add(cls); }
+    for (const sel of ['data-nlbl','data-nid-lbl','data-nsub']) {
+      const el = document.querySelector(`[${sel}="${id}"]`);
+      if (el) { el.classList.remove('n-active','n-dim'); if (isA) el.classList.add('n-active'); else if (!isD) el.classList.add('n-dim'); }
     }
 
-    // Node label
-    const label = document.querySelector(`[data-node-label="${id}"]`);
-    if (label) {
-      label.classList.remove('active', 'inactive');
-      if (isActive) label.classList.add('active');
-      else if (!isCompleted) label.classList.add('inactive');
-    }
-
-    // Node id label
-    const idLabel = document.querySelector(`[data-node-id-label="${id}"]`);
-    if (idLabel) {
-      idLabel.classList.remove('inactive');
-      if (!isActive && !isCompleted) idLabel.classList.add('inactive');
-    }
-
-    // Node sublabel
-    const sub = document.querySelector(`[data-node-sublabel="${id}"]`);
-    if (sub) {
-      sub.classList.remove('inactive');
-      if (!isActive && !isCompleted) sub.classList.add('inactive');
-    }
-
-    // Node value
-    const valEl = document.querySelector(`[data-node-value="${id}"]`);
+    // Value
+    const valEl = document.querySelector(`[data-nval="${id}"]`);
     if (valEl) {
-      if (step.values[id] !== undefined) {
-        valEl.textContent = step.values[id];
+      const v = step.values[id];
+      if (v !== undefined && v !== null) {
+        valEl.textContent = v;
         valEl.style.display = '';
-        valEl.setAttribute('fill', isActive ? 'var(--yellow)' : 'var(--green)');
+        valEl.setAttribute('fill', isA ? 'var(--yellow)' : 'var(--green)');
       } else {
         valEl.style.display = 'none';
       }
     }
 
-    // IR source line
-    const irLine = document.querySelector(`[data-ir-node="${id}"]`);
-    if (irLine) {
-      irLine.className = 'ir-line';
-      if (isActive) irLine.classList.add('active');
-      else if (isCompleted) irLine.classList.add('completed');
-      else irLine.classList.add('inactive');
+    // IR line
+    const irLine = document.querySelector(`[data-ir="${id}"]`);
+    if (irLine) { irLine.className = 'ir-line' + (isA ? ' active' : isD ? ' completed' : ' dimmed'); }
+  }
+
+  // Edges
+  for (const e of _edges) {
+    const path = document.querySelector(`[data-edge="${e.key}"]`);
+    if (!path) continue;
+    if (e.structural) continue;
+    const isA = step.activeEdges.has(e.key), isD = step.completedEdges.has(e.key);
+    path.classList.remove('e-active','e-done','e-dim','e-data');
+    if (isA) { path.classList.add('e-active'); path.setAttribute('marker-end','url(#arr-active)'); }
+    else if (isD) { path.classList.add('e-done'); path.setAttribute('marker-end','url(#arr-done)'); }
+    else { path.classList.add('e-dim'); path.setAttribute('marker-end','url(#arr-data)'); }
+  }
+
+  // Java source highlighting
+  document.querySelectorAll('.java-line.active').forEach(el => el.classList.remove('active'));
+  if (step.javaLines) {
+    for (const ln of step.javaLines) {
+      const el = document.querySelector(`[data-jln="${ln}"]`);
+      if (el) { el.classList.add('active'); el.scrollIntoView({ block: 'nearest' }); }
     }
   }
 
-  // Classify each edge
-  for (const edge of edges) {
-    const isActive = step.activeEdges.includes(edge.key);
-    const isCompleted = step.completedEdges.includes(edge.key);
+  // Step info
+  document.getElementById('step-info').innerHTML = `
+    <div class="sn">Step ${_currentStep}/${_steps.length-1}: ${step.name}</div>
+    <div class="sd">${step.desc}</div>`;
+}
 
-    const path = document.querySelector(`[data-edge="${edge.key}"]`);
-    if (path) {
-      path.classList.remove('active', 'completed', 'inactive');
-      if (edge.structural) {
-        // structural edges stay as-is
-      } else if (isActive) {
-        path.classList.add('active');
-        path.setAttribute('marker-end', 'url(#arrow-active)');
-      } else if (isCompleted) {
-        path.classList.add('completed');
-        path.setAttribute('marker-end', 'url(#arrow-completed)');
-      } else {
-        path.classList.add('inactive');
-        path.setAttribute('marker-end', 'url(#arrow-data)');
-      }
-    }
+// ══════════════════════════════════════════════
+//  IR & JAVA SOURCE
+// ══════════════════════════════════════════════
+function renderIRSource() {
+  const c = document.getElementById('ir-source-display');
+  c.innerHTML = '';
+  for (const n of Object.values(_nodes)) {
+    const d = document.createElement('div');
+    d.className = 'ir-line dimmed';
+    d.setAttribute('data-ir', n.id);
+    d.textContent = n.line;
+    c.appendChild(d);
+  }
+}
+
+function renderJavaSource() {
+  const c = document.getElementById('java-source-display');
+  const src = document.getElementById('java-textarea').value.trim();
+  c.innerHTML = '';
+  if (!src) return;
+  const h3 = document.createElement('h3');
+  h3.textContent = 'Java Source';
+  h3.style.cssText = 'font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px;font-weight:400';
+  c.appendChild(h3);
+  src.split('\n').forEach((line, i) => {
+    const d = document.createElement('div');
+    d.className = 'java-line';
+    d.setAttribute('data-jln', i + 1);
+    d.innerHTML = `<span class="ln">${i+1}</span>${escapeHtml(line)}`;
+    c.appendChild(d);
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════════════════════════════
+//  PARAMS UI
+// ══════════════════════════════════════════════
+function renderParamsUI() {
+  const c = document.getElementById('params-container');
+  c.innerHTML = '';
+  if (_detectedParams.length === 0) {
+    c.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No parameters detected</div>';
+    return;
+  }
+  const row = document.createElement('div');
+  row.className = 'param-row';
+  for (const p of _detectedParams) {
+    const label = document.createElement('label');
+    label.textContent = `p${p.index} (${p.type}) = `;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.value = _paramValues[p.index] ?? (p.index * 42 + 42);
+    input.setAttribute('data-pidx', p.index);
+    input.addEventListener('change', () => { _paramValues[p.index] = +input.value; rebuildSteps(); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { _paramValues[p.index] = +input.value; rebuildSteps(); } });
+    label.appendChild(input);
+    row.appendChild(label);
+  }
+  c.appendChild(row);
+}
+
+// ══════════════════════════════════════════════
+//  ZOOM / PAN
+// ══════════════════════════════════════════════
+let _vb = { x: 0, y: 0, w: 1000, h: 800 };
+
+function setViewBox() {
+  document.getElementById('graph-svg').setAttribute('viewBox', `${_vb.x} ${_vb.y} ${_vb.w} ${_vb.h}`);
+  updateMinimap();
+}
+
+function fitView() {
+  _vb = { ..._bounds };
+  setViewBox();
+}
+
+function initZoomPan() {
+  const svg = document.getElementById('graph-svg');
+  const container = document.getElementById('graph-container');
+
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.08 : 1/1.08;
+    const rect = svg.getBoundingClientRect();
+    const mx = _vb.x + (e.clientX - rect.left) / rect.width * _vb.w;
+    const my = _vb.y + (e.clientY - rect.top) / rect.height * _vb.h;
+    _vb.w *= factor; _vb.h *= factor;
+    _vb.x = mx - (_vb.w * (e.clientX - rect.left) / rect.width);
+    _vb.y = my - (_vb.h * (e.clientY - rect.top) / rect.height);
+    setViewBox();
+  }, { passive: false });
+
+  let dragging = false, ds = {};
+  svg.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    dragging = true;
+    ds = { cx: e.clientX, cy: e.clientY, vx: _vb.x, vy: _vb.y };
+    container.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const rect = svg.getBoundingClientRect();
+    _vb.x = ds.vx - (e.clientX - ds.cx) / rect.width * _vb.w;
+    _vb.y = ds.vy - (e.clientY - ds.cy) / rect.height * _vb.h;
+    setViewBox();
+  });
+  window.addEventListener('mouseup', () => { dragging = false; container.classList.remove('dragging'); });
+}
+
+// ══════════════════════════════════════════════
+//  MINIMAP
+// ══════════════════════════════════════════════
+function updateMinimap() {
+  const canvas = document.getElementById('minimap');
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+
+  // BG
+  ctx.fillStyle = 'rgba(26,27,38,0.92)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  if (!_bounds || _bounds.w <= 0) return;
+
+  const pad = 8;
+  const sx = (cw - 2*pad) / _bounds.w, sy = (ch - 2*pad) / _bounds.h;
+  const s = Math.min(sx, sy);
+  const ox = pad + ((cw - 2*pad) - _bounds.w * s) / 2;
+  const oy = pad + ((ch - 2*pad) - _bounds.h * s) / 2;
+  const tx = (x) => ox + (x - _bounds.x) * s;
+  const ty = (y) => oy + (y - _bounds.y) * s;
+
+  // Edges
+  ctx.strokeStyle = 'rgba(192,202,245,0.12)'; ctx.lineWidth = 0.5;
+  for (const e of _edges) {
+    if (e.structural) continue;
+    const fp = _positions[e.from], tp = _positions[e.to];
+    if (!fp || !tp) continue;
+    ctx.beginPath(); ctx.moveTo(tx(fp.x), ty(fp.y)); ctx.lineTo(tx(tp.x), ty(tp.y)); ctx.stroke();
   }
 
-  // Update step info
-  const stepInfo = document.getElementById('step-info');
-  stepInfo.innerHTML = `
-    <div class="step-num">Step ${currentStep} / ${steps.length - 1}: ${step.name}</div>
-    <div class="step-desc">${step.desc}</div>
-  `;
+  // Nodes
+  for (const [id, pos] of Object.entries(_positions)) {
+    const n = _nodes[+id]; if (!n) continue;
+    const cc = nodeColorClass(n.type);
+    ctx.fillStyle = cc === 'c-frame' ? '#f7768e' : cc === 'c-proj' ? '#9ece6a' :
+      cc === 'c-arith' ? '#ff9e64' : cc === 'c-return' ? '#bb9af7' :
+      cc === 'c-control' ? '#7aa2f7' : cc === 'c-mem' ? '#7dcfff' : '#737aa2';
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(tx(pos.x)-2, ty(pos.y)-1.5, 4, 3);
+  }
+  ctx.globalAlpha = 1;
+
+  // Viewport rect
+  ctx.strokeStyle = 'rgba(122,162,247,0.7)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(tx(_vb.x), ty(_vb.y), _vb.w * s, _vb.h * s);
+  ctx.fillStyle = 'rgba(122,162,247,0.06)';
+  ctx.fillRect(tx(_vb.x), ty(_vb.y), _vb.w * s, _vb.h * s);
 }
 
-// ── State ──
-let nodes, edges, positions, steps;
-let currentStep = 0;
-
-function init() {
-  const paramA = parseInt(document.getElementById('param-a').value) || 0;
-  const paramB = parseInt(document.getElementById('param-b').value) || 0;
-
-  nodes = parseIR(IR_TEXT);
-  edges = buildEdges(nodes);
-  positions = layoutGraph(nodes, edges);
-  steps = buildExecutionSteps(nodes, paramA, paramB);
-  currentStep = 0;
-
-  renderGraph(nodes, edges, positions);
-  renderIRSource(nodes);
-  applyStep(steps[0], nodes, edges);
-  updateButtons();
+function initMinimap() {
+  const canvas = document.getElementById('minimap');
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const pad = 8;
+    const sx = (canvas.width - 2*pad) / _bounds.w, sy = (canvas.height - 2*pad) / _bounds.h;
+    const s = Math.min(sx, sy);
+    const ox = pad + ((canvas.width - 2*pad) - _bounds.w * s) / 2;
+    const oy = pad + ((canvas.height - 2*pad) - _bounds.h * s) / 2;
+    const mx = _bounds.x + (e.clientX - rect.left - ox) / s;
+    const my = _bounds.y + (e.clientY - rect.top - oy) / s;
+    _vb.x = mx - _vb.w / 2;
+    _vb.y = my - _vb.h / 2;
+    setViewBox();
+  });
 }
 
+// ══════════════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════════════
+let _searching = false;
+
+function doSearch(query) {
+  if (!query) {
+    _searching = false;
+    // Restore step state
+    applyStep(_steps[_currentStep]);
+    return;
+  }
+  _searching = true;
+  const q = query.toLowerCase();
+  for (const n of Object.values(_nodes)) {
+    const match = String(n.id) === query || n.type.toLowerCase().includes(q) ||
+      (n.sublabel && n.sublabel.toLowerCase().includes(q)) ||
+      (n.extra && n.extra.toLowerCase().includes(q));
+    const rect = document.querySelector(`[data-nrect="${n.id}"]`);
+    if (rect) {
+      rect.classList.remove('n-active','n-done','n-dim','n-search','n-search-dim');
+      rect.classList.add(match ? 'n-search' : 'n-search-dim');
+    }
+    for (const sel of ['data-nlbl','data-nid-lbl','data-nsub']) {
+      const el = document.querySelector(`[${sel}="${n.id}"]`);
+      if (el) { el.classList.remove('n-active','n-dim'); if (!match) el.classList.add('n-dim'); }
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+//  CONTROLS
+// ══════════════════════════════════════════════
 function goToStep(n) {
-  currentStep = Math.max(0, Math.min(steps.length - 1, n));
-  applyStep(steps[currentStep], nodes, edges);
+  _currentStep = Math.max(0, Math.min(_steps.length - 1, n));
+  _searching = false;
+  document.getElementById('search-input').value = '';
+  applyStep(_steps[_currentStep]);
   updateButtons();
 }
 
 function updateButtons() {
-  document.getElementById('btn-first').disabled = currentStep === 0;
-  document.getElementById('btn-prev').disabled = currentStep === 0;
-  document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
-  document.getElementById('btn-last').disabled = currentStep === steps.length - 1;
+  document.getElementById('btn-first').disabled = _currentStep === 0;
+  document.getElementById('btn-prev').disabled = _currentStep === 0;
+  document.getElementById('btn-next').disabled = _currentStep === _steps.length - 1;
+  document.getElementById('btn-last').disabled = _currentStep === _steps.length - 1;
 }
 
-// ── Event listeners ──
-document.getElementById('btn-first').addEventListener('click', () => goToStep(0));
-document.getElementById('btn-prev').addEventListener('click', () => goToStep(currentStep - 1));
-document.getElementById('btn-next').addEventListener('click', () => goToStep(currentStep + 1));
-document.getElementById('btn-last').addEventListener('click', () => goToStep(steps.length - 1));
+let _playing = false, _playTimer;
+function togglePlay() {
+  if (_playing) {
+    clearInterval(_playTimer);
+    _playing = false;
+    document.getElementById('btn-play').innerHTML = '&#9654;';
+  } else {
+    _playing = true;
+    document.getElementById('btn-play').innerHTML = '&#9646;&#9646;';
+    _playTimer = setInterval(() => {
+      if (_currentStep >= _steps.length - 1) { togglePlay(); return; }
+      goToStep(_currentStep + 1);
+    }, 1200);
+  }
+}
 
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
-  if (e.key === 'ArrowLeft') { e.preventDefault(); goToStep(currentStep - 1); }
-  if (e.key === 'ArrowRight') { e.preventDefault(); goToStep(currentStep + 1); }
-  if (e.key === 'Home') { e.preventDefault(); goToStep(0); }
-  if (e.key === 'End') { e.preventDefault(); goToStep(steps.length - 1); }
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let _nodes = {}, _edges = [], _positions = {}, _edgePoints = {};
+let _bounds = {}, _steps = [], _currentStep = 0;
+let _detectedParams = [], _paramValues = {};
+
+function rebuildSteps() {
+  // Collect param values from UI
+  for (const p of _detectedParams) {
+    const input = document.querySelector(`[data-pidx="${p.index}"]`);
+    if (input) _paramValues[p.index] = +input.value;
+  }
+  const levels = topoLevels(_nodes, _edges);
+  _steps = buildSteps(_nodes, _edges, levels, _paramValues);
+  _currentStep = Math.min(_currentStep, _steps.length - 1);
+  applyStep(_steps[_currentStep]);
+  updateButtons();
+}
+
+function visualize() {
+  const irText = document.getElementById('ir-textarea').value;
+  _nodes = parseIR(irText);
+  _edges = buildEdges(_nodes);
+
+  const { positions, edgePoints } = layoutGraph(_nodes, _edges);
+  _positions = positions;
+  _edgePoints = edgePoints;
+  _bounds = calcBounds(_positions);
+
+  _detectedParams = detectParams(_nodes);
+  // Default param values
+  _paramValues = {};
+  _detectedParams.forEach((p, i) => { _paramValues[p.index] = (i + 1) * 42; });
+
+  const levels = topoLevels(_nodes, _edges);
+  _steps = buildSteps(_nodes, _edges, levels, _paramValues);
+  _currentStep = 0;
+
+  renderGraph();
+  renderIRSource();
+  renderJavaSource();
+  renderParamsUI();
+
+  fitView();
+  applyStep(_steps[0]);
+  updateButtons();
+
+  const count = Object.keys(_nodes).length;
+  document.getElementById('graph-info').textContent = `${count} nodes, ${_edges.filter(e=>!e.structural).length} edges`;
+
+  // Collapse input section after visualizing
+  document.getElementById('ir-input-section').open = false;
+}
+
+// ══════════════════════════════════════════════
+//  EVENT LISTENERS
+// ══════════════════════════════════════════════
+document.getElementById('btn-visualize').addEventListener('click', visualize);
+document.getElementById('btn-first').addEventListener('click', () => goToStep(0));
+document.getElementById('btn-prev').addEventListener('click', () => goToStep(_currentStep - 1));
+document.getElementById('btn-next').addEventListener('click', () => goToStep(_currentStep + 1));
+document.getElementById('btn-last').addEventListener('click', () => goToStep(_steps.length - 1));
+document.getElementById('btn-play').addEventListener('click', togglePlay);
+document.getElementById('btn-fit').addEventListener('click', fitView);
+document.getElementById('search-input').addEventListener('input', (e) => doSearch(e.target.value));
+
+document.getElementById('ir-textarea').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); visualize(); }
 });
 
-document.getElementById('apply-params').addEventListener('click', init);
-document.getElementById('param-a').addEventListener('keydown', (e) => { if (e.key === 'Enter') init(); });
-document.getElementById('param-b').addEventListener('keydown', (e) => { if (e.key === 'Enter') init(); });
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  switch (e.key) {
+    case 'ArrowLeft': e.preventDefault(); goToStep(_currentStep - 1); break;
+    case 'ArrowRight': e.preventDefault(); goToStep(_currentStep + 1); break;
+    case 'Home': e.preventDefault(); goToStep(0); break;
+    case 'End': e.preventDefault(); goToStep(_steps.length - 1); break;
+    case ' ': e.preventDefault(); togglePlay(); break;
+    case 'f': case 'F': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); fitView(); } break;
+  }
+});
 
-// ── Init ──
-init();
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+initZoomPan();
+initMinimap();
+visualize();
 </script>
 </body>
 </html>
