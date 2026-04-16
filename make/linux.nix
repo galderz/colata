@@ -57,11 +57,13 @@ pkgs.mkShell {
     xorg.libXrandr
     zip
   ] ++ [
+    # unstable.temurin-bin-25
     temurin26
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  BOOT_JDK_HOME="${unstable.temurin-26}";
+  # BOOT_JDK_HOME="${unstable.temurin-bin-25}";
+  BOOT_JDK_HOME="${temurin26}";
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
