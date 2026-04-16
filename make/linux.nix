@@ -27,13 +27,39 @@ let
         hash = "sha256-aOGbpTt/H3RjXBP4CeXbNs68zzrp51JCPdktKtfYMe8=";
       };
 
-      dontConfigure = true;
-      dontBuild = true;
+      dontUnpack = true;
+
+      nativeBuildInputs = [
+        pkgs.autoPatchelfHook
+        pkgs.makeWrapper
+      ];
+
+      buildInputs = with pkgs; [
+        stdenv.cc.cc.lib
+        zlib
+        freetype
+        fontconfig
+        alsa-lib
+        cups
+        nss
+        nspr
+        xorg.libX11
+        xorg.libXext
+        xorg.libXi
+        xorg.libXrender
+        xorg.libXtst
+        xorg.libXrandr
+      ];
 
       installPhase = ''
         mkdir -p $out
         tar -xzf $src --strip-components=1 -C $out
       '';
+
+      postFixup = ''
+        wrapProgram $out/bin/java \
+          --set-default JAVA_HOME $out
+    '';
     };
 in
 pkgs.mkShell {
@@ -71,7 +97,7 @@ pkgs.mkShell {
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
-    echo "BOOT_JDK_set HOME to $BOOT_JDK_HOME"
+    echo "BOOT_JDK_HOME set to $BOOT_JDK_HOME"
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
     echo "FREETYPE_INCLUDE set to $FREETYPE_INCLUDE"
     echo "FREETYPE_LIB set to $FREETYPE_LIB"
