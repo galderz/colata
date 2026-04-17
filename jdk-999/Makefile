@@ -39,6 +39,15 @@ JVM_ARGS ?=
 #
 # Display the C2 machine independent IR:
 # JVM_ARGS_APPEND=-XX:+PrintIdeal
+#
+# Display assembly, OptoAssembly output and bytecode
+# JVM_ARGS_APPEND=-XX:CompileCommand=print,First::test
+#
+# Display assembly and OptoAssembly output (without bytecode)
+# JVM_ARGS_APPEND=-XX:CompileCommand=printassembly,First::test
+#
+# Display inlining decisions
+# JVM_ARGS_APPEND=-XX:CompileCommand=printinlining,Inline::test
 JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
