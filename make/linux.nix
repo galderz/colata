@@ -74,6 +74,7 @@ pkgs.mkShell {
     fontconfig
     freetype
     gdb
+    rr
     temurin-bin-21
     unzip
     xorg.libXtst
