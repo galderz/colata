@@ -18,49 +18,49 @@ let
     set debuginfod enabled on
   '';
 
-    temurin26 = pkgs.stdenvNoCC.mkDerivation rec {
-      pname = "temurin-26";
-      version = "26+35";
+  temurin26 = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "temurin-26";
+    version = "26+35";
 
-      src = pkgs.fetchurl {
-        url = "https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_x64_linux_hotspot_26_35.tar.gz";
-        hash = "sha256-aOGbpTt/H3RjXBP4CeXbNs68zzrp51JCPdktKtfYMe8=";
-      };
-
-      dontUnpack = true;
-
-      nativeBuildInputs = [
-        pkgs.autoPatchelfHook
-        pkgs.makeWrapper
-      ];
-
-      buildInputs = with pkgs; [
-        stdenv.cc.cc.lib
-        zlib
-        freetype
-        fontconfig
-        alsa-lib
-        cups
-        nss
-        nspr
-        xorg.libX11
-        xorg.libXext
-        xorg.libXi
-        xorg.libXrender
-        xorg.libXtst
-        xorg.libXrandr
-      ];
-
-      installPhase = ''
-        mkdir -p $out
-        tar -xzf $src --strip-components=1 -C $out
-      '';
-
-      postFixup = ''
-        wrapProgram $out/bin/java \
-          --set-default JAVA_HOME $out
-    '';
+    src = pkgs.fetchurl {
+      url = "https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_x64_linux_hotspot_26_35.tar.gz";
+      hash = "sha256-aOGbpTt/H3RjXBP4CeXbNs68zzrp51JCPdktKtfYMe8=";
     };
+
+    dontUnpack = true;
+
+    nativeBuildInputs = [
+      pkgs.autoPatchelfHook
+      pkgs.makeWrapper
+    ];
+
+    buildInputs = with pkgs; [
+      stdenv.cc.cc.lib
+      zlib
+      freetype
+      fontconfig
+      alsa-lib
+      cups
+      nss
+      nspr
+      xorg.libX11
+      xorg.libXext
+      xorg.libXi
+      xorg.libXrender
+      xorg.libXtst
+      xorg.libXrandr
+    ];
+
+    installPhase = ''
+      mkdir -p $out
+      tar -xzf $src --strip-components=1 -C $out
+    '';
+
+    postFixup = ''
+      wrapProgram $out/bin/java \
+        --set-default JAVA_HOME $out
+  '';
+  };
 in
 pkgs.mkShell {
   hardeningDisable = [ "all" ]; # Disable all hardening
