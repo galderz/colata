@@ -59,8 +59,14 @@ else
   jvm_args = ""
 endif
 
+ifdef RR
+  call_java += rr
+endif
+
+call_java += $(java)
+
 run: clear-logs $(java)
-> $(java) \
+> $(call_java) \
 >   $(jvm_args) \
 >   $(shell pwd)/$(CLASS).java
 .PHONY: run
