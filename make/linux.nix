@@ -59,7 +59,7 @@ let
     postFixup = ''
       wrapProgram $out/bin/java \
         --set-default JAVA_HOME $out
-  '';
+    '';
   };
 in
 pkgs.mkShell {
