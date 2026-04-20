@@ -1,5 +1,34 @@
 { pkgs ? import <nixpkgs> {} }:
 
+let
+  temurin26 = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "temurin-26";
+    version = "26+35";
+
+    src = pkgs.fetchurl {
+      url = "https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_aarch64_mac_hotspot_26_35.tar.gz";
+      # hash obtained with:
+      # $ export ADOPTIUM_URL=https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_aarch64_mac_hotspot_26_35.tar.gz
+      # $ curl -L "$ADOPTIUM_URL" -o OpenJDK26U.tar.gz
+      # $ nix hash file --sri OpenJDK26U.tar.gz
+      hash = "sha256-WWugJkdICLdek0qowyz5s0D6/EVdBvNm7eTyky8gbrE=";
+    };
+
+    dontConfigure = true;
+    dontBuild = true;
+
+    installPhase = ''
+      tmp=$(mktemp -d)
+      tar -xzf "$src" -C "$tmp"
+
+      # Adoptium macOS JDK tarballs contain a bundle with Contents/Home.
+      home="$(echo "$tmp"/*/Contents/Home)"
+
+      mkdir -p "$out"
+      cp -R "$home"/. "$out"/
+    '';
+  };
+in
 pkgs.mkShell {
   buildInputs = with pkgs; [
     ant
@@ -10,11 +39,13 @@ pkgs.mkShell {
     pandoc
     pigz
     temurin-bin-21
-    temurin-bin-25
+    # temurin-bin-25
+  ] ++ [
+    temurin26
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  BOOT_JDK_HOME="${pkgs.temurin-bin-25}";
+  BOOT_JDK_HOME="${temurin26}";
   CAPSTONE_HOME="${pkgs.capstone}";
   IGV_JDK_HOME="${pkgs.temurin-bin-21}";
   MAVEN_HOME="${pkgs.maven}";
