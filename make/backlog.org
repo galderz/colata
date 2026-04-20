@@ -1,11 +1,11 @@
 * Backlog
-- [ ] 8382316: Unused xtmp in long_to_maskLE8_avx https://bugs.openjdk.org/browse/JDK-8382316
+- [WIP] 8382316: Unused xtmp in long_to_maskLE8_avx https://bugs.openjdk.org/browse/JDK-8382316
 ** Loop optimizations
 - [ ] 8332840: C2: Scalar replacement does not work for multi-argument Objects.hash https://bugs.openjdk.org/browse/JDK-8332840
 - [ ] 8312011: C2: Runtime increase for a double while loop code https://bugs.openjdk.org/browse/JDK-8312011
 ** Vectorization
-- [ ] 8367399: C2 SuperWord: add IR rules for MemorySegment cases from JDK-8329077 https://bugs.openjdk.org/browse/JDK-8367399
-- [ ] 8366531: Add vector size checks for IRNode.VECTOR_REINTERPRET https://bugs.openjdk.org/browse/JDK-8366531
+- [WIP] 8366531: Add vector size checks for IRNode.VECTOR_REINTERPRET https://bugs.openjdk.org/browse/JDK-8366531
 - [ ] 8380928: C2 SuperWord: PopulateIndex for NEON/aarch64 https://bugs.openjdk.org/browse/JDK-8380928
 * Completed
 - [X] 8331283: [AArch64] C2: Register Allocator uses > 1GB in compiler/c2/TestFindNode.java https://bugs.openjdk.org/browse/JDK-8331283
+- [X] 8367399: C2 SuperWord: add IR rules for MemorySegment cases from JDK-8329077 https://bugs.openjdk.org/browse/JDK-8367399
