@@ -1,3 +1,48 @@
+* 21.4.25
+Results on linux/x64:
+#+begin_src bash
+Benchmark                                (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
+MinMaxVector.doubleClippingRange                   N/A       90       0    1000  thrpt    4   878.024 ± 0.632  ops/ms
+MinMaxVector.doubleClippingRange                   N/A      100       0    1000  thrpt    4   880.279 ± 0.939  ops/ms
+MinMaxVector.doubleLoopMax                          50      N/A     N/A    2048  thrpt    4   700.890 ± 1.871  ops/ms
+MinMaxVector.doubleLoopMax                          80      N/A     N/A    2048  thrpt    4   701.086 ± 1.133  ops/ms
+MinMaxVector.doubleLoopMax                         100      N/A     N/A    2048  thrpt    4   664.319 ± 0.878  ops/ms
+MinMaxVector.doubleLoopMin                          50      N/A     N/A    2048  thrpt    4   521.357 ± 0.456  ops/ms
+MinMaxVector.doubleLoopMin                          80      N/A     N/A    2048  thrpt    4   517.958 ± 0.218  ops/ms
+MinMaxVector.doubleLoopMin                         100      N/A     N/A    2048  thrpt    4   521.508 ± 0.794  ops/ms
+MinMaxVector.doubleReductionMultiplyMax             50      N/A     N/A    2048  thrpt    4   270.008 ± 0.321  ops/ms
+MinMaxVector.doubleReductionMultiplyMax             80      N/A     N/A    2048  thrpt    4   269.864 ± 0.183  ops/ms
+MinMaxVector.doubleReductionMultiplyMax            100      N/A     N/A    2048  thrpt    4   270.056 ± 0.210  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             50      N/A     N/A    2048  thrpt    4   310.749 ± 0.370  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             80      N/A     N/A    2048  thrpt    4   310.818 ± 0.351  ops/ms
+MinMaxVector.doubleReductionMultiplyMin            100      N/A     N/A    2048  thrpt    4   310.871 ± 0.201  ops/ms
+MinMaxVector.doubleReductionSimpleMax               50      N/A     N/A    2048  thrpt    4   377.118 ± 0.237  ops/ms
+MinMaxVector.doubleReductionSimpleMax               80      N/A     N/A    2048  thrpt    4   377.162 ± 0.315  ops/ms
+MinMaxVector.doubleReductionSimpleMax              100      N/A     N/A    2048  thrpt    4   377.256 ± 0.365  ops/ms
+MinMaxVector.doubleReductionSimpleMin               50      N/A     N/A    2048  thrpt    4   331.661 ± 0.243  ops/ms
+MinMaxVector.doubleReductionSimpleMin               80      N/A     N/A    2048  thrpt    4   331.187 ± 0.389  ops/ms
+MinMaxVector.doubleReductionSimpleMin              100      N/A     N/A    2048  thrpt    4   331.138 ± 0.155  ops/ms
+MinMaxVector.floatClippingRange                    N/A       90       0    1000  thrpt    4  1682.597 ± 1.592  ops/ms
+MinMaxVector.floatClippingRange                    N/A      100       0    1000  thrpt    4  1658.065 ± 1.834  ops/ms
+MinMaxVector.floatLoopMax                           50      N/A     N/A    2048  thrpt    4  1386.114 ± 1.614  ops/ms
+MinMaxVector.floatLoopMax                           80      N/A     N/A    2048  thrpt    4  1382.976 ± 1.054  ops/ms
+MinMaxVector.floatLoopMax                          100      N/A     N/A    2048  thrpt    4  1157.655 ± 0.758  ops/ms
+MinMaxVector.floatLoopMin                           50      N/A     N/A    2048  thrpt    4  1087.902 ± 1.458  ops/ms
+MinMaxVector.floatLoopMin                           80      N/A     N/A    2048  thrpt    4  1375.762 ± 1.598  ops/ms
+MinMaxVector.floatLoopMin                          100      N/A     N/A    2048  thrpt    4  1083.873 ± 0.637  ops/ms
+MinMaxVector.floatReductionMultiplyMax              50      N/A     N/A    2048  thrpt    4   535.551 ± 0.351  ops/ms
+MinMaxVector.floatReductionMultiplyMax              80      N/A     N/A    2048  thrpt    4   534.637 ± 0.567  ops/ms
+MinMaxVector.floatReductionMultiplyMax             100      N/A     N/A    2048  thrpt    4   533.566 ± 0.556  ops/ms
+MinMaxVector.floatReductionMultiplyMin              50      N/A     N/A    2048  thrpt    4   613.940 ± 0.354  ops/ms
+MinMaxVector.floatReductionMultiplyMin              80      N/A     N/A    2048  thrpt    4   612.168 ± 0.583  ops/ms
+MinMaxVector.floatReductionMultiplyMin             100      N/A     N/A    2048  thrpt    4   614.387 ± 0.589  ops/ms
+MinMaxVector.floatReductionSimpleMax                50      N/A     N/A    2048  thrpt    4   737.263 ± 1.924  ops/ms
+MinMaxVector.floatReductionSimpleMax                80      N/A     N/A    2048  thrpt    4   737.077 ± 2.538  ops/ms
+MinMaxVector.floatReductionSimpleMax               100      N/A     N/A    2048  thrpt    4   736.000 ± 2.190  ops/ms
+MinMaxVector.floatReductionSimpleMin                50      N/A     N/A    2048  thrpt    4   668.352 ± 0.425  ops/ms
+MinMaxVector.floatReductionSimpleMin                80      N/A     N/A    2048  thrpt    4   669.136 ± 0.524  ops/ms
+MinMaxVector.floatReductionSimpleMin               100      N/A     N/A    2048  thrpt    4   669.911 ± 0.596  ops/ms
+#+end_src
 * 8.4.25
 Results darwin/aarch64:
 #+begin_src bash
