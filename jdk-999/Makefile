@@ -48,6 +48,9 @@ JVM_ARGS ?=
 #
 # Display inlining decisions
 # JVM_ARGS_APPEND=-XX:CompileCommand=printinlining,Inline::test
+#
+# Display CPU information
+# JVM_ARGS_APPEND=-Xlog:os+cpu=info
 JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
