@@ -1,4 +1,5 @@
 * Backlog
+- [ ] 8382607: TestReinterpretAndCast test2 and test3 just need `asimd` on aarch64 https://bugs.openjdk.org/browse/JDK-8382607
 - [WIP] 8382316: Unused xtmp in long_to_maskLE8_avx https://bugs.openjdk.org/browse/JDK-8382316
 ** Loop optimizations
 - [ ] 8332840: C2: Scalar replacement does not work for multi-argument Objects.hash https://bugs.openjdk.org/browse/JDK-8332840
