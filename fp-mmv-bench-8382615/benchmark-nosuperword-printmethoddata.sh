@@ -34,7 +34,7 @@ benchmark()
     git checkout ${branch}
     popd
 
-    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.\\\(?:float\\\|double\\\)\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -jvmArgsAppend -XX:+PrintMethodData -rff ${rff_prefix}-mmv.csv ${extra_args} ${common_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.java\.lang\.MinMaxVector\.\\\(?:float\\\|double\\\)\" MICRO=\"OPTIONS=-jvmArgsAppend -XX:-UseSuperWord -jvmArgs -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+PrintMethodData -rff ${rff_prefix}-mmv.csv ${extra_args} ${common_args}\" CONF=release LOG=warn make test
 }
 
 log()
