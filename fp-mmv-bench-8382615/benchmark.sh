@@ -3,6 +3,7 @@
 set -ex
 
 CLEAN="false"
+EVENTS="cycles,instructions,branch-misses,br_mis_pred,inst_retired"
 
 if [ "$(uname)" = "Darwin" ]; then
   ASM_PROFILER="xctraceasm"
@@ -42,4 +43,6 @@ log()
     eval "$*"
 }
 
+benchmark "topic.fp-mmv-bench" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark "topic.fp-mmv-bench" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 benchmark "topic.fp-mmv-bench" "" "noprof"
