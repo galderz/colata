@@ -44,5 +44,7 @@ log()
 }
 
 benchmark "topic.fp-mmv-bench" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark "topic.fp-mmv-bench" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+if [ "$(uname)" = "Linux" ]; then
+  benchmark "topic.fp-mmv-bench" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+fi
 benchmark "topic.fp-mmv-bench" "" "noprof"
