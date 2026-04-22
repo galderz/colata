@@ -1,11 +1,109 @@
+import java.util.Arrays;
+import java.util.stream.LongStream;
+import java.util.concurrent.ThreadLocalRandom;
+
 public class BranchProbability
 {
-    public static class LoopState {
-        LoopState(int size, int probability) {
-            this.size = size;
-            this.probability = probability;
+    private static final long negativeZeroDoubleBits = Double.doubleToRawLongBits(-0.0d);
+
+    @SuppressWarnings({"AssertWithSideEffects", "ConstantConditions"})
+    public static void needEnabledAsserts()
+    {
+        boolean enabled = false;
+        assert enabled = true;
+        if (!enabled)
+            throw new AssertionError("assert not enabled");
+    }
+
+    static void main() {
+        needEnabledAsserts();
+        longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0));
+        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
+        // doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
+    }
+
+    record Expects(
+        int notANumber
+        , int zeroZero
+        , int aboveEquals
+        , int below
+    ) {}
+
+    static class Counts {
+        int notANumber;
+        int zeroZero;
+        int aboveEquals;
+        int below;
+    }
+
+    public static long longReductionSimpleMax(LoopState state, Expects expects) {
+        long result = 0;
+        final Counts counts = new Counts();
+        for (int i = 0; i < state.size; i++) {
+            final long v = state.maxLongA[i];
+            // result = myMax(result, v, counts);
+            result = myMax(v, result, counts);
+        }
+        validate(expects, counts, state.size);
+        return result;
+    }
+
+    public static long myMax(long a, long b, Counts counts) {
+        if (a >= b) {
+            counts.aboveEquals++;
+            return a;
         }
 
+        counts.below++;
+        return b;
+    }
+
+//    public static double doubleReductionSimpleMax(LoopState state, Expects expects) {
+//        double result = 0;
+//        final Counts counts = new Counts();
+//        for (int i = 0; i < state.size; i++) {
+//            final double v = state.maxDoubleA[i];
+//            result = myMax(result, v, counts);
+//        }
+//        validate(expects, counts, state.size);
+//        return result;
+//    }
+
+//    public static double myMax(double a, double b, Counts counts) {
+//        if (a != a) {
+//            counts.notANumber++;
+//            return a;   // a is NaN
+//        }
+//        if ((a == 0.0d) &&
+//            (b == 0.0d) &&
+//            (Double.doubleToRawLongBits(a) == negativeZeroDoubleBits)) {
+//            // Raw conversion ok since NaN can't map to -0.0.
+//            counts.zeroZero++;
+//            return b;
+//        }
+//        if (a >= b) {
+//            counts.aboveEquals++;
+//            return a;
+//        }
+//
+//        counts.below++;
+//        return b;
+//    }
+
+    static void validate(Expects expects, Counts counts, int numElements) {
+        int aboveOrEqualMaxPercentage = (counts.aboveEquals * 100) / numElements;
+        int belowMaxPercentage = 100 - aboveOrEqualMaxPercentage;
+
+        System.out.printf("Percentage above or equal max value: %d%% from above %d and and array size %d%n", aboveOrEqualMaxPercentage, counts.aboveEquals, numElements);
+        System.out.printf("Percentage below to max value: %d%%%n", belowMaxPercentage);
+
+        assert aboveOrEqualMaxPercentage == expects.aboveEquals : String.format("Expected %d%% above or equal max but got %d%%", expects.aboveEquals, aboveOrEqualMaxPercentage);
+        assert belowMaxPercentage == expects.below : String.format("Expected %d%% below max but got %d%%", expects.below, belowMaxPercentage);
+        assert 0 == expects.zeroZero : String.format("Expected %d%% -0.0 but got %d%%", expects.zeroZero, counts.zeroZero);
+        assert 0 == expects.notANumber : String.format("Expected %d%% NaN but got %d%%", expects.notANumber, counts.notANumber);
+    }
+
+    public static class LoopState {
         int size;
 
         /**
@@ -38,8 +136,9 @@ public class BranchProbability
         float[] resultFloatArray;
         double[] resultDoubleArray;
 
-        @Setup
-        public void setup() {
+        public LoopState setup(int size, int probability) {
+            this.size = size;
+            this.probability = probability;
             final long[][] longs = distributeLongRandomIncrement(size, probability);
             maxLongA = longs[0];
             maxLongB = longs[1];
@@ -61,6 +160,7 @@ public class BranchProbability
             resultLongArray = new long[size];
             resultFloatArray = new float[size];
             resultDoubleArray = new double[size];
+            return this;
         }
 
         static long[] negate(long[] nums) {

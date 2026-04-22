@@ -1,3 +1,4 @@
+CLASS ?= BranchProbability
 ID ?= fp-mmv-bench
 
 # Workaround for compiler errors after upgrade to Xcode 16.3 on Nix:
@@ -6,8 +7,20 @@ ID ?= fp-mmv-bench
 #        |                                       ^~~~~
 NO_WARNINGS_ERRORS := true
 
-default: build-jdk
+default: run
 
 TOPDIR = ..
 include $(TOPDIR)/make/MakeBase.gmk
 include $(TOPDIR)/make/OpenJDK.gmk
+
+base_jvm_args += -ea
+
+jvm_args += $(base_jvm_args)
+
+call_java += $(java)
+
+run: clear-logs $(java)
+> $(call_java) \
+>   $(jvm_args) \
+>   $(shell pwd)/$(CLASS).java
+.PHONY: run
