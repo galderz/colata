@@ -17,6 +17,10 @@ public class BranchProbability
 
     static void main() {
         needEnabledAsserts();
+        longReductionSimpleMin(new LoopState().setup(10, 100), new Expects(0, 0, 0, 0, 100));
+        longReductionSimpleMin(new LoopState().setup(2048, 100), new Expects(0, 0, 0, 0, 100));
+        doubleReductionSimpleMin(new LoopState().setup(10, 100), new Expects(0, 0, 0, 0, 100));
+        doubleReductionSimpleMin(new LoopState().setup(2048, 100), new Expects(0, 0, 0, 0, 100));
         longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
         longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
         doubleReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
@@ -66,6 +70,32 @@ public class BranchProbability
         return b;
     }
 
+    public static long longReductionSimpleMin(LoopState state, Expects expects) {
+        long result = 0;
+        final Counts counts = new Counts();
+        for (int i = 0; i < state.size; i++) {
+            final long v = state.minLongA[i];
+            // result = myMin(result, v, counts);
+            result = myMin(v, result, counts);
+        }
+        validate(expects, counts, state.size);
+        return result;
+    }
+
+    public static long myMin(long a, long b, Counts counts) {
+        if (a < b) {
+            counts.below++;
+            return a;
+        }
+        if (a == b) {
+            counts.equals++;
+            return a;
+        }
+
+        counts.above++;
+        return b;
+    }
+
     public static double doubleReductionSimpleMax(LoopState state, Expects expects) {
         double result = 0;
         final Counts counts = new Counts();
@@ -101,6 +131,43 @@ public class BranchProbability
         }
 
         counts.below++;
+        return b;
+    }
+
+    public static double doubleReductionSimpleMin(LoopState state, Expects expects) {
+        double result = 0;
+        final Counts counts = new Counts();
+        for (int i = 0; i < state.size; i++) {
+            final double v = state.minDoubleA[i];
+            // result = myMin(result, v, counts);
+            result = myMin(v, result, counts);
+        }
+        validate(expects, counts, state.size);
+        return result;
+    }
+
+    public static double myMin(double a, double b, Counts counts) {
+        if (a != a) {
+            counts.notANumber++;
+            return a;   // a is NaN
+        }
+        if ((a == 0.0d) &&
+            (b == 0.0d) &&
+            (Double.doubleToRawLongBits(b) == negativeZeroDoubleBits)) {
+            // Raw conversion ok since NaN can't map to -0.0.
+            counts.zeroZero++;
+            return b;
+        }
+        if (a < b) {
+            counts.below++;
+            return a;
+        }
+        if (a == b) {
+            counts.equals++;
+            return a;
+        }
+
+        counts.above++;
         return b;
     }
 
