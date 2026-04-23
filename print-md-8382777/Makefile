@@ -53,7 +53,9 @@ JVM_ARGS ?=
 # JVM_ARGS_APPEND=-Xlog:os+cpu=info
 #
 # Display method data, e.g. branch taken/not-taken counters while on interpreter
+# It also works with release builds, but it needs to be prepended with `-XX:+UnlockDiagnosticVMOptions`.
 # JVM_ARGS_APPEND=-XX:+PrintMethodData
+# JVM_ARGS_APPEND="-XX:+UnlockDiagnosticVMOptions -XX:+PrintMethodData"
 JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
