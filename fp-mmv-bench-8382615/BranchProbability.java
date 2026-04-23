@@ -18,9 +18,9 @@ public class BranchProbability
     static void main() {
         needEnabledAsserts();
         longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
-//        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
+        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
         doubleReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
-//        doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
+        doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
     }
 
     record Expects(
