@@ -18,9 +18,9 @@ public class BranchProbability
     static void main() {
         needEnabledAsserts();
         longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
-//        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
-//        doubleReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0));
-//        doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
+//        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
+        doubleReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
+//        doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0, 0));
     }
 
     record Expects(
@@ -47,6 +47,7 @@ public class BranchProbability
             // result = myMax(result, v, counts);
             result = myMax(v, result, counts);
         }
+        // System.out.println(Arrays.toString(state.maxLongA));
         validate(expects, counts, state.size);
         return result;
     }
@@ -65,38 +66,43 @@ public class BranchProbability
         return b;
     }
 
-//    public static double doubleReductionSimpleMax(LoopState state, Expects expects) {
-//        double result = 0;
-//        final Counts counts = new Counts();
-//        for (int i = 0; i < state.size; i++) {
-//            final double v = state.maxDoubleA[i];
-//            result = myMax(result, v, counts);
-//            // result = myMax(v, result, counts);
-//        }
-//        validate(expects, counts, state.size);
-//        return result;
-//    }
-//
-//    public static double myMax(double a, double b, Counts counts) {
-//        if (a != a) {
-//            counts.notANumber++;
-//            return a;   // a is NaN
-//        }
-//        if ((a == 0.0d) &&
-//            (b == 0.0d) &&
-//            (Double.doubleToRawLongBits(a) == negativeZeroDoubleBits)) {
-//            // Raw conversion ok since NaN can't map to -0.0.
-//            counts.zeroZero++;
-//            return b;
-//        }
-//        if (a >= b) {
-//            counts.aboveEquals++;
-//            return a;
-//        }
-//
-//        counts.below++;
-//        return b;
-//    }
+    public static double doubleReductionSimpleMax(LoopState state, Expects expects) {
+        double result = 0;
+        final Counts counts = new Counts();
+        for (int i = 0; i < state.size; i++) {
+            final double v = state.maxDoubleA[i];
+            // result = myMax(result, v, counts);
+            result = myMax(v, result, counts);
+        }
+        // System.out.println(Arrays.toString(state.maxDoubleA));
+        validate(expects, counts, state.size);
+        return result;
+    }
+
+    public static double myMax(double a, double b, Counts counts) {
+        if (a != a) {
+            counts.notANumber++;
+            return a;   // a is NaN
+        }
+        if ((a == 0.0d) &&
+            (b == 0.0d) &&
+            (Double.doubleToRawLongBits(a) == negativeZeroDoubleBits)) {
+            // Raw conversion ok since NaN can't map to -0.0.
+            counts.zeroZero++;
+            return b;
+        }
+        if (a > b) {
+            counts.above++;
+            return a;
+        }
+        if (a == b) {
+            counts.equals++;
+            return a;
+        }
+
+        counts.below++;
+        return b;
+    }
 
     static void validate(Expects expects, Counts counts, int numElements) {
         int aboveMaxPercentage = (counts.above * 100) / numElements;
@@ -207,7 +213,7 @@ public class BranchProbability
             // such that when the values in the same index are compared for min/max,
             // the probability that a new min/max value is found has the probability P.
             do {
-                long max = ThreadLocalRandom.current().nextLong(10);
+                long max = ThreadLocalRandom.current().nextLong(1, 10);
                 result = new long[2][size];
                 result[0][0] = max;
                 result[1][0] = max - 1;
