@@ -17,22 +17,25 @@ public class BranchProbability
 
     static void main() {
         needEnabledAsserts();
-        longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0));
-        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
-        // doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
+        longReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0, 0));
+//        longReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
+//        doubleReductionSimpleMax(new LoopState().setup(10, 100), new Expects(0, 0, 100, 0));
+//        doubleReductionSimpleMax(new LoopState().setup(2048, 100), new Expects(0, 0, 100, 0));
     }
 
     record Expects(
         int notANumber
         , int zeroZero
-        , int aboveEquals
+        , int above
+        , int equals
         , int below
     ) {}
 
     static class Counts {
         int notANumber;
         int zeroZero;
-        int aboveEquals;
+        int above;
+        int equals;
         int below;
     }
 
@@ -49,8 +52,12 @@ public class BranchProbability
     }
 
     public static long myMax(long a, long b, Counts counts) {
-        if (a >= b) {
-            counts.aboveEquals++;
+        if (a > b) {
+            counts.above++;
+            return a;
+        }
+        if (a == b) {
+            counts.equals++;
             return a;
         }
 
@@ -64,11 +71,12 @@ public class BranchProbability
 //        for (int i = 0; i < state.size; i++) {
 //            final double v = state.maxDoubleA[i];
 //            result = myMax(result, v, counts);
+//            // result = myMax(v, result, counts);
 //        }
 //        validate(expects, counts, state.size);
 //        return result;
 //    }
-
+//
 //    public static double myMax(double a, double b, Counts counts) {
 //        if (a != a) {
 //            counts.notANumber++;
@@ -91,14 +99,16 @@ public class BranchProbability
 //    }
 
     static void validate(Expects expects, Counts counts, int numElements) {
-        int aboveOrEqualMaxPercentage = (counts.aboveEquals * 100) / numElements;
-        int belowMaxPercentage = 100 - aboveOrEqualMaxPercentage;
+        int aboveMaxPercentage = (counts.above * 100) / numElements;
+        int belowMaxPercentage = 100 - aboveMaxPercentage;
 
-        System.out.printf("Percentage above or equal max value: %d%% from above %d and and array size %d%n", aboveOrEqualMaxPercentage, counts.aboveEquals, numElements);
+        System.out.printf("Percentage above max value: %d%% from above %d and and array size %d%n", aboveMaxPercentage, counts.above, numElements);
+        System.out.printf("Percentage equals max value: equals %d and and array size %d%n", counts.equals, numElements);
         System.out.printf("Percentage below to max value: %d%%%n", belowMaxPercentage);
 
-        assert aboveOrEqualMaxPercentage == expects.aboveEquals : String.format("Expected %d%% above or equal max but got %d%%", expects.aboveEquals, aboveOrEqualMaxPercentage);
+        assert aboveMaxPercentage == expects.above : String.format("Expected %d%% above or equal max but got %d%%", expects.above, aboveMaxPercentage);
         assert belowMaxPercentage == expects.below : String.format("Expected %d%% below max but got %d%%", expects.below, belowMaxPercentage);
+        assert counts.equals == expects.equals : String.format("Expected %d%% above or equal max but got %d%%", expects.equals, counts.equals);
         assert 0 == expects.zeroZero : String.format("Expected %d%% -0.0 but got %d%%", expects.zeroZero, counts.zeroZero);
         assert 0 == expects.notANumber : String.format("Expected %d%% NaN but got %d%%", expects.notANumber, counts.notANumber);
     }
@@ -202,16 +212,16 @@ public class BranchProbability
                 result[0][0] = max;
                 result[1][0] = max - 1;
 
-                aboveCount = 0;
+                // Assume that the first value is above the current max
+                aboveCount = 1;
                 for (int i = 1; i < result[0].length; i++) {
                     long value;
                     if (ThreadLocalRandom.current().nextLong(101) <= probability) {
-                        long increment = ThreadLocalRandom.current().nextLong(10);
+                        long increment = ThreadLocalRandom.current().nextLong(1, 10);
                         value = max + increment;
                         aboveCount++;
                     } else {
-                        // Decrement by at least 1
-                        long diffToMax = ThreadLocalRandom.current().nextLong(10) + 1;
+                        long diffToMax = ThreadLocalRandom.current().nextLong(1, 10);
                         value = max - diffToMax;
                     }
                     result[0][i] = value;
@@ -219,7 +229,7 @@ public class BranchProbability
                     max = Math.max(max, value);
                 }
 
-                abovePercent = ((aboveCount + 1) * 100) / size;
+                abovePercent = (aboveCount * 100) / size;
             } while (abovePercent != probability);
 
             return result;
