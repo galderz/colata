@@ -17,6 +17,15 @@ public class BranchProbability
 
     static void main() {
         needEnabledAsserts();
+        longReductionSimpleMin(new LoopState().setup(10, 50), new Expects(0, 0, 50, 0, 50));
+        longReductionSimpleMin(new LoopState().setup(2048, 50), new Expects(0, 0, 50, 0, 50));
+        doubleReductionSimpleMin(new LoopState().setup(10, 50), new Expects(0, 0, 50, 0, 50));
+        doubleReductionSimpleMin(new LoopState().setup(2048, 50), new Expects(0, 0, 50, 0, 50));
+        longReductionSimpleMax(new LoopState().setup(10, 50), new Expects(0, 0, 50, 0, 50));
+        longReductionSimpleMax(new LoopState().setup(2048, 50), new Expects(0, 0, 50, 0, 50));
+        doubleReductionSimpleMax(new LoopState().setup(10, 50), new Expects(0, 0, 50, 0, 50));
+        doubleReductionSimpleMax(new LoopState().setup(2048, 50), new Expects(0, 0, 50, 0, 50));
+
         longReductionSimpleMin(new LoopState().setup(10, 100), new Expects(0, 0, 0, 0, 100));
         longReductionSimpleMin(new LoopState().setup(2048, 100), new Expects(0, 0, 0, 0, 100));
         doubleReductionSimpleMin(new LoopState().setup(10, 100), new Expects(0, 0, 0, 0, 100));
@@ -52,7 +61,7 @@ public class BranchProbability
             result = myMax(v, result, counts);
         }
         // System.out.println(Arrays.toString(state.maxLongA));
-        validate(expects, counts, state.size);
+        validateMax(expects, counts, state.size);
         return result;
     }
 
@@ -78,7 +87,7 @@ public class BranchProbability
             // result = myMin(result, v, counts);
             result = myMin(v, result, counts);
         }
-        validate(expects, counts, state.size);
+        validateMin(expects, counts, state.size);
         return result;
     }
 
@@ -105,7 +114,7 @@ public class BranchProbability
             result = myMax(v, result, counts);
         }
         // System.out.println(Arrays.toString(state.maxDoubleA));
-        validate(expects, counts, state.size);
+        validateMax(expects, counts, state.size);
         return result;
     }
 
@@ -142,7 +151,7 @@ public class BranchProbability
             // result = myMin(result, v, counts);
             result = myMin(v, result, counts);
         }
-        validate(expects, counts, state.size);
+        validateMin(expects, counts, state.size);
         return result;
     }
 
@@ -171,16 +180,35 @@ public class BranchProbability
         return b;
     }
 
-    static void validate(Expects expects, Counts counts, int numElements) {
-        int aboveMaxPercentage = (counts.above * 100) / numElements;
-        int belowMaxPercentage = 100 - aboveMaxPercentage;
+    static void validateMax(Expects expects, Counts counts, int numElements) {
+        int abovePercent = (counts.above * 100) / numElements;
+        // System.out.printf("[validate] %d = (%d * 100) / %d%n", abovePercent, counts.above, numElements);
+        int belowPercentage = 100 - abovePercent;
 
-        System.out.printf("Percentage above max value: %d%% from above %d and and array size %d%n", aboveMaxPercentage, counts.above, numElements);
-        System.out.printf("Percentage equals max value: equals %d and and array size %d%n", counts.equals, numElements);
-        System.out.printf("Percentage below to max value: %d%%%n", belowMaxPercentage);
+        System.out.printf("Percentage above: %d%% of %d and and array size %d%n", abovePercent, counts.above, numElements);
+        System.out.printf("Percentage below: %d%% of %d and and array size %d%n", belowPercentage, counts.below, numElements);
+        System.out.printf("Percentage equals: equals %d and and array size %d%n", counts.equals, numElements);
+        System.out.printf("Percentage below to max value: %d%%%n", belowPercentage);
 
-        assert aboveMaxPercentage == expects.above : String.format("Expected %d%% above or equal max but got %d%%", expects.above, aboveMaxPercentage);
-        assert belowMaxPercentage == expects.below : String.format("Expected %d%% below max but got %d%%", expects.below, belowMaxPercentage);
+        assert abovePercent == expects.above : String.format("Expected %d%% above but got %d%%", expects.above, abovePercent);
+        assert belowPercentage == expects.below : String.format("Expected %d%% below but got %d%%", expects.below, belowPercentage);
+        assert counts.equals == expects.equals : String.format("Expected %d%% above or equal max but got %d%%", expects.equals, counts.equals);
+        assert 0 == expects.zeroZero : String.format("Expected %d%% -0.0 but got %d%%", expects.zeroZero, counts.zeroZero);
+        assert 0 == expects.notANumber : String.format("Expected %d%% NaN but got %d%%", expects.notANumber, counts.notANumber);
+    }
+
+    static void validateMin(Expects expects, Counts counts, int numElements) {
+        int belowPercent = (counts.below * 100) / numElements;
+        // System.out.printf("[validate] %d = (%d * 100) / %d%n", belowPercent, counts.above, numElements);
+        int abovePercent = 100 - belowPercent;
+
+        System.out.printf("Percentage above: %d%% of %d and and array size %d%n", abovePercent, counts.above, numElements);
+        System.out.printf("Percentage below: %d%% of %d and and array size %d%n", belowPercent, counts.below, numElements);
+        System.out.printf("Percentage equals: equals %d and and array size %d%n", counts.equals, numElements);
+        System.out.printf("Percentage below to max value: %d%%%n", belowPercent);
+
+        assert abovePercent == expects.above : String.format("Expected %d%% above but got %d%%", expects.above, abovePercent);
+        assert belowPercent == expects.below : String.format("Expected %d%% below but got %d%%", expects.below, belowPercent);
         assert counts.equals == expects.equals : String.format("Expected %d%% above or equal max but got %d%%", expects.equals, counts.equals);
         assert 0 == expects.zeroZero : String.format("Expected %d%% -0.0 but got %d%%", expects.zeroZero, counts.zeroZero);
         assert 0 == expects.notANumber : String.format("Expected %d%% NaN but got %d%%", expects.notANumber, counts.notANumber);
@@ -304,6 +332,8 @@ public class BranchProbability
 
                 abovePercent = (aboveCount * 100) / size;
             } while (abovePercent != probability);
+
+            System.out.printf("[distribute] %d = (%d * 100) / %d%n", abovePercent, aboveCount, size);
 
             return result;
         }
