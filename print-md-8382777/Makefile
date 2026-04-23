@@ -51,6 +51,9 @@ JVM_ARGS ?=
 #
 # Display CPU information
 # JVM_ARGS_APPEND=-Xlog:os+cpu=info
+#
+# Display method data, e.g. branch taken/not-taken counters while on interpreter
+# JVM_ARGS_APPEND=-XX:+PrintMethodData
 JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
