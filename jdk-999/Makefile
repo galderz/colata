@@ -1,4 +1,5 @@
 CLASS ?= Test
+# ID ?= ...
 JDK_HOME ?= $(HOME)/src/jdk
 
 NO_WARNINGS_ERRORS := true
@@ -64,7 +65,7 @@ ifdef JVM_ARGS_APPEND
 else ifdef JVM_ARGS
   jvm_args += $(JVM_ARGS)
 else
-  jvm_args = ""
+  jvm_args += $(base_jvm_args)
 endif
 
 ifdef RR
