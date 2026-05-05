@@ -43,8 +43,10 @@ log()
     eval "$*"
 }
 
-benchmark "topic.fp-mmv-bench" "-prof ${ASM_PROFILER}" "perfasm"
-if [ "$(uname)" = "Linux" ]; then
-  benchmark "topic.fp-mmv-bench" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-fi
-benchmark "topic.fp-mmv-bench" "" "noprof"
+#benchmark "topic.fp-mmv-bench" "-prof ${ASM_PROFILER}" "perfasm"
+#if [ "$(uname)" = "Linux" ]; then
+#  benchmark "topic.fp-mmv-bench" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+#fi
+benchmark "topic.fp-mmv-bench.base" "" "noprof"
+benchmark "topic.fp-mmv-bench.reorder" "" "noprof"
+benchmark "topic.fp-mmv-bench.reorder-no-equals" "" "noprof"
