@@ -57,6 +57,11 @@ JVM_ARGS ?=
 # It also works with release builds, but it needs to be prepended with `-XX:+UnlockDiagnosticVMOptions`.
 # JVM_ARGS_APPEND=-XX:+PrintMethodData
 # JVM_ARGS_APPEND="-XX:+UnlockDiagnosticVMOptions -XX:+PrintMethodData"
+#
+# Collects timing information about a compilation,
+# i.e. it measures how much time was spent in individual compilation phases and optimization passes.
+# Also repeat compilation to get more stable measurement of compilation times.
+# JVM_ARGS_APPEND="-XX:+CITime -XX:RepeatCompilation=1000"
 JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
