@@ -4,6 +4,8 @@ import jakarta.inject.Inject;
 
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+import org.acme.getting.started.commandmode.valhalla.identity.RequestMatchIdentity;
+import org.acme.getting.started.commandmode.valhalla.value.RequestMatchValue;
 import org.jboss.resteasy.reactive.server.mapping.RequestMapper;
 import org.jboss.resteasy.reactive.server.mapping.URITemplate;
 
@@ -30,6 +32,24 @@ public class GreetingMain implements QuarkusApplication {
         );
 
         System.out.println(service.greeting(requestMatch.toString()));
+
+        final RequestMatchIdentity<String> requestMatchIdentity = new RequestMatchIdentity<>(
+            new org.acme.getting.started.commandmode.valhalla.model.URITemplate("abc")
+            , "def"
+            , new String[]{"ghi", "jkl"}
+            , "mno"
+        );
+
+        System.out.println(service.greeting(requestMatchIdentity.toString()));
+
+        final RequestMatchValue<String> requestMatchValue = new RequestMatchValue<>(
+            new org.acme.getting.started.commandmode.valhalla.model.URITemplate("abc")
+            , "def"
+            , new String[]{"ghi", "jkl"}
+            , "mno"
+        );
+
+        System.out.println(service.greeting(requestMatchValue.toString()));
 
         return 0;
     }
