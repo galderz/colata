@@ -15,7 +15,7 @@ REMOTE_BRANCH ?= master
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
-compile_jdk = $(JDK_HOME)/build/release-$(os_cpu)/images/jdk
+compile_jdk = $(JDK_HOME)/build/release-$(os_cpu)/jdk
 gtest_src = $(opt)/googletest
 java = $(java_home)/bin/java
 javac = $(java_home)/bin/javac
