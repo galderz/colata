@@ -1,4 +1,55 @@
-* 21.4.25
+* 5.5.26
+base
+#+begin_src bash
+Benchmark                                (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.doubleReductionMultiplyMax             50    2048  thrpt    4  297.360 ± 5.731  ops/ms
+MinMaxVector.doubleReductionMultiplyMax             80    2048  thrpt    4  291.361 ± 1.963  ops/ms
+MinMaxVector.doubleReductionMultiplyMax            100    2048  thrpt    4  287.322 ± 0.322  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             50    2048  thrpt    4  345.702 ± 5.657  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             80    2048  thrpt    4  331.494 ± 5.017  ops/ms
+MinMaxVector.doubleReductionMultiplyMin            100    2048  thrpt    4  313.099 ± 3.180  ops/ms
+MinMaxVector.doubleReductionSimpleMax               50    2048  thrpt    4  349.311 ± 3.565  ops/ms
+MinMaxVector.doubleReductionSimpleMax               80    2048  thrpt    4  327.079 ± 2.344  ops/ms
+MinMaxVector.doubleReductionSimpleMax              100    2048  thrpt    4  298.365 ± 0.293  ops/ms
+MinMaxVector.doubleReductionSimpleMin               50    2048  thrpt    4  279.394 ± 3.453  ops/ms
+MinMaxVector.doubleReductionSimpleMin               80    2048  thrpt    4  271.554 ± 5.166  ops/ms
+MinMaxVector.doubleReductionSimpleMin              100    2048  thrpt    4  258.571 ± 0.531  ops/ms
+#+end_src
+
+reorder
+#+begin_src bash
+Benchmark                                (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.doubleReductionMultiplyMax             50    2048  thrpt    4  291.698 ± 2.142  ops/ms
+MinMaxVector.doubleReductionMultiplyMax             80    2048  thrpt    4  298.524 ± 3.822  ops/ms
+MinMaxVector.doubleReductionMultiplyMax            100    2048  thrpt    4  287.718 ± 1.677  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             50    2048  thrpt    4  346.714 ± 5.746  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             80    2048  thrpt    4  327.870 ± 2.971  ops/ms
+MinMaxVector.doubleReductionMultiplyMin            100    2048  thrpt    4  312.534 ± 1.555  ops/ms
+MinMaxVector.doubleReductionSimpleMax               50    2048  thrpt    4  349.986 ± 2.692  ops/ms
+MinMaxVector.doubleReductionSimpleMax               80    2048  thrpt    4  327.560 ± 2.222  ops/ms
+MinMaxVector.doubleReductionSimpleMax              100    2048  thrpt    4  295.464 ± 2.841  ops/ms
+MinMaxVector.doubleReductionSimpleMin               50    2048  thrpt    4  277.969 ± 2.045  ops/ms
+MinMaxVector.doubleReductionSimpleMin               80    2048  thrpt    4  269.753 ± 3.839  ops/ms
+MinMaxVector.doubleReductionSimpleMin              100    2048  thrpt    4  264.238 ± 0.235  ops/ms
+#+end_src
+
+reorder no equals
+#+begin_src bash
+Benchmark                                (probability)  (size)   Mode  Cnt    Score   Error   Units
+MinMaxVector.doubleReductionMultiplyMax             50    2048  thrpt    4  299.458 ± 0.555  ops/ms
+MinMaxVector.doubleReductionMultiplyMax             80    2048  thrpt    4  300.885 ± 4.622  ops/ms
+MinMaxVector.doubleReductionMultiplyMax            100    2048  thrpt    4  306.487 ± 1.891  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             50    2048  thrpt    4  351.887 ± 6.421  ops/ms
+MinMaxVector.doubleReductionMultiplyMin             80    2048  thrpt    4  350.249 ± 0.500  ops/ms
+MinMaxVector.doubleReductionMultiplyMin            100    2048  thrpt    4  333.560 ± 0.344  ops/ms
+MinMaxVector.doubleReductionSimpleMax               50    2048  thrpt    4  358.846 ± 7.102  ops/ms
+MinMaxVector.doubleReductionSimpleMax               80    2048  thrpt    4  345.805 ± 2.678  ops/ms
+MinMaxVector.doubleReductionSimpleMax              100    2048  thrpt    4  316.022 ± 0.235  ops/ms
+MinMaxVector.doubleReductionSimpleMin               50    2048  thrpt    4  282.221 ± 2.847  ops/ms
+MinMaxVector.doubleReductionSimpleMin               80    2048  thrpt    4  279.756 ± 1.698  ops/ms
+MinMaxVector.doubleReductionSimpleMin              100    2048  thrpt    4  279.787 ± 1.809  ops/ms
+#+end_src
+* 21.4.26
 Results on linux/x64:
 #+begin_src bash
 Benchmark                                (probability)  (range)  (seed)  (size)   Mode  Cnt     Score   Error   Units
@@ -43,7 +94,7 @@ MinMaxVector.floatReductionSimpleMin                50      N/A     N/A    2048 
 MinMaxVector.floatReductionSimpleMin                80      N/A     N/A    2048  thrpt    4   669.136 ± 0.524  ops/ms
 MinMaxVector.floatReductionSimpleMin               100      N/A     N/A    2048  thrpt    4   669.911 ± 0.596  ops/ms
 #+end_src
-* 8.4.25
+* 8.4.26
 Results darwin/aarch64:
 #+begin_src bash
 Benchmark                                (probability)  (range)  (seed)  (size)   Mode  Cnt      Score     Error   Units
