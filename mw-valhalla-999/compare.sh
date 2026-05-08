@@ -35,4 +35,5 @@ cd $REPO/scripts/perf-lab
   --run-identifier local-1 \
   --tests run-load-test \
   --user $QDUP_USER \
+  --use-container-host-network \
   --wait-time 30
