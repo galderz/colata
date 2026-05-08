@@ -1,0 +1,34 @@
+# Template definition for incus-spawn
+
+# Required: unique name, conventionally prefixed with 'tpl-'
+name: tpl-quarkus-perf
+
+# Optional: human-readable description
+description: Develop spring-quarkus-perf-comparison repository
+
+# Parent template to inherit from (packages, tools, repos are additive)
+# Common parents: tpl-minimal, tpl-dev, tpl-java
+parent: tpl-mydev
+
+# Base image (only for root templates without a parent)
+# Default: images:fedora/43
+# image: images:fedora/43
+
+# System packages to install via dnf
+# packages:
+#   - htop
+#   - ripgrep
+
+# Tool definitions to set up
+# Built-in tools: podman, maven-3, gh, claude
+tools:
+  - podman
+
+# Git repositories to clone
+repos:
+  - url: https://github.com/galderz/spring-quarkus-perf-comparison
+    path: spring-quarkus-perf-comparison
+
+# Claude Code skills
+# skills:
+#   - owner/skills-repo@skill-name
