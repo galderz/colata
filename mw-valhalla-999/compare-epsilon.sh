@@ -21,7 +21,7 @@ cd $REPO/scripts/perf-lab
   --host 127.0.0.1 \
   --iterations 1 \
   --java-version 25.0.2-tem \
-  --jvm-args "-XX:+UseNUMA -Dserver.tomcat.threads.max=50 -Dserver.tomcat.threads.min-spare=50" \
+  --jvm-args "-XX:+UseNUMA -Dserver.tomcat.threads.max=50 -Dserver.tomcat.threads.min-spare=50 -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -XX:+HeapDumpOnOutOfMemoryError" \
   --jvm-memory "-Xmx512m -Xms512m" \
   --repo-branch $BRANCH \
   --repo-url $REPO \
@@ -31,7 +31,7 @@ cd $REPO/scripts/perf-lab
   --output-dir run \
   --profiler none \
   --quarkus-version 3.34.1 \
-  --runtimes quarkus3-jvm,spring4-jvm \
+  --runtimes quarkus3-jvm \
   --run-identifier local-1 \
   --tests run-load-test \
   --user $QDUP_USER \
