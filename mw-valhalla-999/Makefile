@@ -11,6 +11,8 @@ default: build-jdk
 TOPDIR = ..
 include $(TOPDIR)/make/MakeBase.gmk
 include $(TOPDIR)/make/OpenJDK.gmk
+include $(TOPDIR)/make/Hibernate.gmk
+include $(TOPDIR)/make/Quarkus.gmk
 
 JOL_CLASS ?= RequestMatch
 
