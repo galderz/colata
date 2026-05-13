@@ -2,12 +2,12 @@
 
 set -ex
 
-SRD_DIR=${1:-$HOME/src}
+SRC=${1:-$HOME/src}
 QUARKUS_VERSION={$2:-999-SNAPSHOT}
 BRANCH=main
 QDUP_USER=$USER
 
-cd $SRC_DIR/spring-quarkus-perf-comparison/scripts/perf-lab
+cd $SRC/spring-quarkus-perf-comparison/scripts/perf-lab
 
 GC="-Xlog:gc*:file=gc.log:level,time,tags,uptime"
 PROFILER="jfr"
