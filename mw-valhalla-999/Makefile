@@ -21,7 +21,7 @@ quarkus_jar = getting-started-command-mode/target/quarkus-app/quarkus-run.jar
 hibernate_jar = hibernate-orm-quickstart/target/quarkus-app/quarkus-run.jar
 
 run-hibernate: $(hibernate_jar)
-> $(java) -jar $<
+> $(compile_jdk)/bin/java -jar $<
 
 $(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.java')
 $(hibernate_jar): $(quarkus_extensions_hibernate_orm_jar)
