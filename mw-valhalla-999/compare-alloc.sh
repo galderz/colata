@@ -3,7 +3,6 @@
 set -ex
 
 SRC=${1:-$HOME/src}
-QUARKUS_VERSION=${2:-999-SNAPSHOT}
 REPO=$SRC/spring-quarkus-perf-comparison
 BRANCH=main
 QDUP_USER=$USER
@@ -33,7 +32,8 @@ PROFILER="jfr"
   --scenario tuned \
   --output-dir run \
   --profiler $PROFILER \
-  --quarkus-version $QUARKUS_VERSION \
+  --quarkus-build-config-args="-Dquarkus.platform.group-id=io.quarkus" \
+  --quarkus-version 999-SNAPSHOT \
   --runtimes quarkus3-jvm \
   --run-identifier local-1 \
   --tests run-load-test \
