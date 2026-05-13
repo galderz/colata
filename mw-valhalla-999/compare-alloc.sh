@@ -3,6 +3,7 @@
 set -ex
 
 SRC=${1:-$HOME/src}
+QUARKUS_VERSION=${2:-999-SNAPSHOT}
 REPO=$SRC/spring-quarkus-perf-comparison
 BRANCH=main
 QDUP_USER=$USER
