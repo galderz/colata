@@ -18,6 +18,15 @@ JOL_CLASS ?= RequestMatch
 
 jol_quarkus_jar = jol-quarkus/target/jol-quarkus.jar
 quarkus_jar = getting-started-command-mode/target/quarkus-app/quarkus-run.jar
+hibernate_jar = hibernate-orm-quickstart/target/quarkus-app/quarkus-run.jar
+
+run-hibernate: $(hibernate_jar)
+> $(java) -jar $<
+
+$(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.java')
+$(hibernate_jar): $(quarkus_extensions_hibernate_orm_jar)
+> cd hibernate-orm-quickstart
+> JAVA_HOME=$(compile_jdk) mvn package -DskipTests
 
 run-quarkus: $(quarkus_jar)
 > $(java) -XX:+PrintFieldLayout --enable-preview -jar $<

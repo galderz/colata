@@ -51,6 +51,7 @@ $(quarkus_extensions_grpc_jar): $(shell find $(QUARKUS_HOME)/extensions/grpc -ty
 quarkus_extensions_hibernate_orm_jar = $(QUARKUS_HOME)/extensions/hibernate-orm/deployment/target/quarkus-hibernate-orm-deployment-$(QUARKUS_VERSION).jar
 $(quarkus_extensions_hibernate_orm_jar): $(shell find $(QUARKUS_HOME)/extensions/hibernate-orm -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
 $(quarkus_extensions_hibernate_orm_jar): $(shell find $(QUARKUS_HOME)/extensions/hibernate-orm -type f -name 'pom.xml' | sed 's: :\\ :g')
+$(quarkus_extensions_hibernate_orm_jar): $(hibernate_core_jar)
 > cd $(QUARKUS_HOME)
 > ./mvnw -DskipTests -f extensions/hibernate-orm install
 > touch $@
