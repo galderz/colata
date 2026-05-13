@@ -9,7 +9,7 @@ QDUP_USER=$USER
 
 cd $REPO/scripts/perf-lab
 
-GC="-Xlog:gc*:file=gc.log:level,time,tags,uptime"
+GC="-Xlog:gc*:file=$HOME/tmp/gc.log:level,time,tags,uptime"
 PROFILER="jfr"
 
 ./run-benchmarks.sh \
