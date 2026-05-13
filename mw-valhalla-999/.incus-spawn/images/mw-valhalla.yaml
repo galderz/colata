@@ -1,0 +1,64 @@
+# Template definition for incus-spawn
+
+# Required: unique name, conventionally prefixed with 'tpl-'
+name: tpl-mw-valhalla
+
+# Optional: human-readable description
+description: Quarkus + Valhalla
+
+# Parent template to inherit from (packages, tools, repos are additive)
+# Common parents: tpl-minimal, tpl-dev, tpl-java
+parent: tpl-quarkus
+
+# Base image (only for root templates without a parent)
+# Default: images:fedora/43
+# image: images:fedora/43
+
+packages:
+  - java-26-openjdk-devel
+  - autoconf
+  - alsa-lib-devel
+  - capstone-devel
+  - cups-devel
+  - fontconfig-devel
+  - freetype-devel
+  - libXtst-devel
+  - libXt-devel
+  - libXrender-devel
+  - libXrandr-devel
+  - libXi-devel
+  - libjpeg-turbo-devel
+  - libpng-devel
+  - giflib-devel
+  - lcms2-devel
+  - libffi-devel
+  - gcc
+  - gcc-c++
+  - make
+  - gdb
+  - zip
+  - unzip
+
+# System packages to install via dnf
+# packages:
+#   - htop
+#   - ripgrep
+
+# Tool definitions to set up
+# Built-in tools: podman, maven-3, gh, claude
+tools:
+  - jtreg
+
+# Git repositories to clone
+repos:
+  - url: https://github.com/galderz/colata
+    path: colata
+  - url: https://github.com/galderz/jdk
+    path: jdk
+    branch: topic.mw-valhalla
+  - url: https://github.com/galderz/spring-quarkus-perf-comparison
+    path: spring-quarkus-perf-comparison
+
+# Claude Code skills
+# skills:
+#   - owner/skills-repo@skill-name

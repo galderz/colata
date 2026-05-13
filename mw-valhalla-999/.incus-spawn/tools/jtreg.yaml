@@ -1,0 +1,15 @@
+name: jtreg
+description: jtreg 8.2.1
+
+downloads:
+  - url: https://builds.shipilev.net/jtreg/jtreg-8.2.1%2B1.zip
+    sha256: 8f1655b3efec37367812f417dba64853930e430b430fa7b3b2f11f648592606c
+    extract: /opt
+    links:
+      /opt/jtreg/bin/jtreg: /usr/local/bin/jtreg
+
+env:
+  - export JTREG_HOME=/opt/jtreg
+  - export JTREG_JAVA=/usr/bin/java
+
+verify: jtreg -version
