@@ -2,7 +2,7 @@
 
 set -ex
 
-SRD=${1:-$HOME/src}
+SRC=${1:-$HOME/src}
 BRANCH=main
 QDUP_USER=$USER
 
