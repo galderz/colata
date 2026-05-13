@@ -32,7 +32,7 @@ PROFILER="jfr"
   --scenario tuned \
   --output-dir run \
   --profiler $PROFILER \
-  --quarkus-build-config-args="-Dquarkus.platform.group-id=io.quarkus" \
+  --quarkus-build-config-args "-Dquarkus.platform.group-id=io.quarkus" \
   --quarkus-version 999-SNAPSHOT \
   --runtimes quarkus3-jvm \
   --run-identifier local-1 \
