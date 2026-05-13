@@ -3,6 +3,7 @@
 set -ex
 
 SRD_DIR=${1:-$HOME/src}
+QUARKUS_VERSION={$2:-3.34.1}
 BRANCH=main
 QDUP_USER=$USER
 
@@ -29,11 +30,9 @@ PROFILER="jfr"
   --repo-branch $BRANCH \
   --repo-url $REPO \
   --scenario tuned \
-  --springboot3-version 3.5.13 \
-  --springboot4-version 4.0.5 \
   --output-dir run \
   --profiler $PROFILER \
-  --quarkus-version 3.34.1 \
+  --quarkus-version $QUARKUS_VERSION \
   --runtimes quarkus3-jvm \
   --run-identifier local-1 \
   --tests run-load-test \

@@ -1,4 +1,4 @@
-BOOT_JDK_HOME ?= $(opt)/boot-java-$(BOOT_JDK_VERSION)
+BOOT_JDK_HOME ?= $(OPT)/boot-java-$(BOOT_JDK_VERSION)
 CAPSTONE_HOME ?= /usr
 CONF ?= fast
 
@@ -16,7 +16,7 @@ REMOTE_BRANCH ?= master
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
 boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 compile_jdk = $(JDK_HOME)/build/release-$(os_cpu)/jdk
-gtest_src = $(opt)/googletest
+gtest_src = $(OPT)/googletest
 java = $(java_home)/bin/java
 javac = $(java_home)/bin/javac
 javap = $(java_home)/bin/javap
@@ -30,7 +30,7 @@ jtreg_bin = $(jtreg_home)/bin/jtreg
 jtreg_dir = $(JDK_HOME)/test/hotspot/jtreg
 jtreg_home = $(jtreg_src)/build/images/jtreg
 jtreg_readme = $(jtreg_src)/README.md
-jtreg_src = $(opt)/jtreg
+jtreg_src = $(OPT)/jtreg
 lldbinit = $(TOPDIR)/make/.lldbinit
 modules_libs_dir = $(java_build_dir)/support/modules_libs/java.base/server
 os = $(shell uname | tr A-Z a-z)

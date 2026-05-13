@@ -11,4 +11,4 @@ endif
 
 A_ROOT ?= $(HOME)
 
-opt = $(A_ROOT)/opt
+OPT ?= $(A_ROOT)/opt

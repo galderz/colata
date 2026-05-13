@@ -36,3 +36,13 @@ Add devkit to Nix store:
 ```shell
 $ make store-devkit
 ```
+
+# Incus Spawn
+
+Build with the following,
+but you might need to build first with JDK 25 to get jtreg built,
+then switch to JDK 26 for the main build:
+
+```shell
+SRC=$HOME OPT=$HOME JDK_HOME=$HOME/jdk BOOT_JDK_HOME=/usr/lib/jvm/java-26 CONF=release make configure build-jdk
+```
