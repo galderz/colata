@@ -7,7 +7,6 @@ CONF ?= fast
 LOG ?= info
 
 BASE_JDK ?= jdk
-SRC ?= $(A_ROOT)/src
 WORKTREE ?= topic
 BRANCH ?= topic.${ID}
 REMOTE_NAME ?= upstream

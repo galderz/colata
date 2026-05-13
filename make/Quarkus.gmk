@@ -1,0 +1,138 @@
+QUARKUS_HOME ?= $(SRC)/quarkus-$(ID)
+QUARKUS_VERSION ?= 999-SNAPSHOT
+TEST_MODULE ?= main
+
+build-quarkus:
+> cd $(QUARKUS_HOME)
+> ./mvnw install -DskipTests -DskipDocs -Dquickly -Dinvoker.skip -DskipExtensionValidation -Dskip.gradle.tests -Dskip.gradle.build -Dtruststore.skip -Dinsecure.repositories=WARN
+.PHONY: build-quarkus
+
+test_quarkus_args += -Dnative
+test_quarkus_args += -Dnative.surefire.skip
+test_quarkus_args += -Dquarkus.native.container-build=false
+
+ifdef CONTAINER
+  test_quarkus_args += -Dtest-containers
+  test_quarkus_args += -Dstart-containers
+endif
+
+ifdef DEBUG
+  test_mvn = mvnDebug
+else
+  test_mvn = ./mvnw
+endif
+
+ifdef TRACE
+  test_quarkus_args += -Dquarkus.log.min-level=TRACE
+  test_quarkus_args += -Dquarkus.log.level=TRACE
+endif
+
+quarkus_core_jar = $(QUARKUS_HOME)/core/deployment/target/quarkus-core-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_core_jar): $(shell find $(QUARKUS_HOME)/core -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_core_jar): $(shell find $(QUARKUS_HOME)/core -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f core install
+> touch $@
+
+quarkus_extensions_amazon_lambda_jar = $(QUARKUS_HOME)/extensions/amazon-lambda/deployment/target/quarkus-amazon-lambda-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_amazon_lambda_jar): $(shell find $(QUARKUS_HOME)/extensions/amazon-lambda -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_amazon_lambda_jar): $(shell find $(QUARKUS_HOME)/extensions/amazon-lambda -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/amazon-lambda install
+> touch $@
+
+quarkus_extensions_grpc_jar = $(QUARKUS_HOME)/extensions/grpc/deployment/target/quarkus-grpc-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_grpc_jar): $(shell find $(QUARKUS_HOME)/extensions/grpc -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_grpc_jar): $(shell find $(QUARKUS_HOME)/extensions/grpc -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/grpc install
+> touch $@
+
+quarkus_extensions_hibernate_orm_jar = $(QUARKUS_HOME)/extensions/hibernate-orm/deployment/target/quarkus-hibernate-orm-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_hibernate_orm_jar): $(shell find $(QUARKUS_HOME)/extensions/hibernate-orm -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_hibernate_orm_jar): $(shell find $(QUARKUS_HOME)/extensions/hibernate-orm -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/hibernate-orm install
+> touch $@
+
+quarkus_extensions_micrometer_jar = $(QUARKUS_HOME)/extensions/micrometer/deployment/target/quarkus-micrometer-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_micrometer_jar): $(shell find $(QUARKUS_HOME)/extensions/micrometer -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_micrometer_jar): $(shell find $(QUARKUS_HOME)/extensions/micrometer -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/micrometer install
+> touch $@
+
+quarkus_extensions_netty_jar = $(QUARKUS_HOME)/extensions/netty/deployment/target/quarkus-netty-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_netty_jar): $(shell find $(QUARKUS_HOME)/extensions/netty -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_netty_jar): $(shell find $(QUARKUS_HOME)/extensions/netty -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/netty install
+> touch $@
+
+quarkus_extensions_rest_client_jar = $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client/deployment/target/quarkus-rest-client-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_rest_client_jar): $(shell find $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_rest_client_jar): $(shell find $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/resteasy-reactive/rest-client install
+> touch $@
+
+quarkus_extensions_rest_client_jaxrs_jar = $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client-jaxrs/deployment/target/quarkus-rest-client-jaxrs-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_rest_client_jaxrs_jar): $(shell find $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client-jaxrs -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_rest_client_jaxrs_jar): $(shell find $(QUARKUS_HOME)/extensions/resteasy-reactive/rest-client-jaxrs -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/resteasy-reactive/rest-client-jaxrs install
+> touch $@
+
+quarkus_extensions_scheduler_jar = $(QUARKUS_HOME)/extensions/scheduler/deployment/target/quarkus-scheduler-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_scheduler_jar): $(shell find $(QUARKUS_HOME)/extensions/scheduler -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_scheduler_jar): $(shell find $(QUARKUS_HOME)/extensions/scheduler -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/scheduler install
+> touch $@
+
+quarkus_extensions_security_jar = $(QUARKUS_HOME)/extensions/security/deployment/target/quarkus-security-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_security_jar): $(shell find $(QUARKUS_HOME)/extensions/security -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_security_jar): $(shell find $(QUARKUS_HOME)/extensions/security -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/security install
+> touch $@
+
+quarkus_extensions_spring_web_jar = $(QUARKUS_HOME)/extensions/spring-web/core/deployment/target/quarkus-spring-web-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_spring_web_jar): $(shell find $(QUARKUS_HOME)/extensions/spring-web/core -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_spring_web_jar): $(shell find $(QUARKUS_HOME)/extensions/spring-web/core -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/spring-web/core install
+> touch $@
+
+quarkus_extensions_vertx_jar = $(QUARKUS_HOME)/extensions/vertx/deployment/target/quarkus-vertx-deployment-$(QUARKUS_VERSION).jar
+$(quarkus_extensions_vertx_jar): $(shell find $(QUARKUS_HOME)/extensions/vertx -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_extensions_vertx_jar): $(shell find $(QUARKUS_HOME)/extensions/vertx -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f extensions/vertx install
+> touch $@
+
+quarkus_independent_arc_jar = $(QUARKUS_HOME)/independent-projects/arc/runtime/target/arc-$(QUARKUS_VERSION).jar
+$(quarkus_independent_arc_jar): $(shell find $(QUARKUS_HOME)/independent-projects/arc -type f -name '*.java' | grep -v '/target/' | sed 's: :\\ :g')
+$(quarkus_independent_arc_jar): $(shell find $(QUARKUS_HOME)/independent-projects/arc -type f -name 'pom.xml' | sed 's: :\\ :g')
+> cd $(QUARKUS_HOME)
+> ./mvnw -DskipTests -f independent-projects/arc install
+> touch $@
+
+quarkus: $(quarkus_core_jar)
+quarkus: $(quarkus_extensions_amazon_lambda_jar)
+quarkus: $(quarkus_extensions_grpc_jar)
+quarkus: $(quarkus_extensions_hibernate_orm_jar)
+quarkus: $(quarkus_extensions_micrometer_jar)
+quarkus: $(quarkus_extensions_netty_jar)
+quarkus: $(quarkus_extensions_rest_client_jar)
+quarkus: $(quarkus_extensions_rest_client_jaxrs_jar)
+quarkus: $(quarkus_extensions_scheduler_jar)
+quarkus: $(quarkus_extensions_security_jar)
+quarkus: $(quarkus_extensions_spring_web_jar)
+quarkus: $(quarkus_extensions_vertx_jar)
+quarkus: $(quarkus_independent_arc_jar)
+
+test-quarkus: quarkus
+> cd $(QUARKUS_HOME)
+> $(test_mvn) $(test_quarkus_args) clean install -f integration-tests/$(TEST_MODULE)
+.PHONY: test-quarkus

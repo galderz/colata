@@ -1,0 +1,7 @@
+HIBERNATE_HOME ?= $(SRC)/hibernate-orm-$(ID)
+HIBERNATE_VERSION ?= 999-SNAPSHOT
+
+build-hibernate:
+> cd $(HIBERNATE_HOME)
+> ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache
+.PHONY: build-hibernate
