@@ -26,7 +26,7 @@ run-hibernate: $(hibernate_jar)
 $(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.java')
 $(hibernate_jar): $(quarkus_extensions_hibernate_orm_jar)
 > cd hibernate-orm-quickstart
-> JAVA_HOME=$(compile_jdk) mvn package -DskipTests
+> JAVA_HOME=$(compile_jdk) ./mvnw package -DskipTests
 
 run-quarkus: $(quarkus_jar)
 > $(java) -XX:+PrintFieldLayout --enable-preview -jar $<
@@ -34,7 +34,7 @@ run-quarkus: $(quarkus_jar)
 $(quarkus_jar): $(shell find getting-started-command-mode/src -type f -name '*.java')
 $(quarkus_jar): getting-started-command-mode/pom.xml
 > cd getting-started-command-mode
-> JAVA_HOME=$(compile_jdk) mvn package
+> JAVA_HOME=$(compile_jdk) ./mvnw package
 
 run-jol: $(jol_quarkus_jar)
 > $(boot_jdk_java) -cp $< jol.quarkus.$(JOL_CLASS)Jol
