@@ -24,6 +24,7 @@ run-hibernate: $(hibernate_jar)
 > $(compile_jdk)/bin/java -jar $<
 
 $(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.java')
+$(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.properties')
 $(hibernate_jar): $(quarkus_extensions_hibernate_orm_jar)
 > cd hibernate-orm-quickstart
 > JAVA_HOME=$(compile_jdk) ./mvnw package -DskipTests
