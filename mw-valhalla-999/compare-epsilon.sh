@@ -3,10 +3,11 @@
 set -ex
 
 SRC=${1:-$HOME/src}
+REPO=$SRC/spring-quarkus-perf-comparison
 BRANCH=main
 QDUP_USER=$USER
 
-cd $SRC/spring-quarkus-perf-comparison/scripts/perf-lab
+cd $REPO/scripts/perf-lab
 
 ./run-benchmarks.sh \
   --cpus-app 28,29,30,31 \
