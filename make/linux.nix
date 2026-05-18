@@ -43,6 +43,7 @@ let
       cups
       nss
       nspr
+      numactl
       xorg.libX11
       xorg.libXext
       xorg.libXi
