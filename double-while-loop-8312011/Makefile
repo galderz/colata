@@ -16,8 +16,16 @@ else
   RUN_JAVA_HOME = $(java_home)
 endif
 
+NIXOS := $(wildcard /etc/NIXOS)
+
+ifdef NIXOS
+  RUN_PREFIX = "numactl --cpunodebind=1 --membind=1"
+else
+  RUN_PREFIX = ""
+endif
+
 run: $(benchmarks_jar)
-> $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms -rff results.csv
+> $(RUN_PREFIX) $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms -rff results.csv
 
 $(benchmarks_jar):
 > cd $(BENCHMARKS_REPO)
