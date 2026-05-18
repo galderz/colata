@@ -35,7 +35,7 @@ run-benchmark: $(benchmarks_jar)
 
 $(benchmarks_jar):
 > cd $(BENCHMARKS_REPO)
-> JAVA_HOME=$(JDK_17_HOME) mvn install
+> JAVA_HOME=$(IGV_JDK_HOME) mvn install
 
 low-freq:
 > $(TOPDIR)/make/set-cpu-freq.sh $(LOW_FREQ)
