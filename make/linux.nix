@@ -43,7 +43,6 @@ let
       cups
       nss
       nspr
-      numactl
       xorg.libX11
       xorg.libXext
       xorg.libXi
@@ -75,6 +74,7 @@ pkgs.mkShell {
     fontconfig
     freetype
     gdb
+    numactl
     rr
     temurin-bin-21
     unzip
