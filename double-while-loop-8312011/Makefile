@@ -23,7 +23,7 @@ endif
 ifdef JAVA_17_HOME
   RUN_CMD += $(JAVA_17_HOME)/bin/java
 else
-  RUN_CMD += $(java_home)/bin/java
+  RUN_CMD += $(java)
 endif
 
 run: low-freq run-benchmark high-freq
