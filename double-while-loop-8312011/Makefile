@@ -17,7 +17,7 @@ else
 endif
 
 run: $(benchmarks_jar)
-> $(RUN_JAVA_HOME)/bin/java -jar $< org.xceptance.B03*
+> $(RUN_JAVA_HOME)/bin/java -jar $< org.xceptance.B03* -bm thrpt
 
 $(benchmarks_jar):
 > cd $(BENCHMARKS_REPO)
