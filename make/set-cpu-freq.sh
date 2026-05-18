@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # set-cpu-freq.sh — set all CPUs to a fixed frequency
 # Usage: sudo ./set-cpu-freq.sh <freq_mhz>
 # Example: sudo ./set-cpu-freq.sh 2300   # match perf-lab Xeon 5218
