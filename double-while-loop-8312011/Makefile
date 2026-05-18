@@ -30,7 +30,7 @@ run: low-freq run-benchmark high-freq
 .PHONY: run
 
 run-benchmark: $(benchmarks_jar)
-> $(RUN_PREFIX) $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms -rff results.csv
+> $(RUN_PREFIX) $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms -rff result.csv
 .PHONY: run-benchmark
 
 $(benchmarks_jar):
