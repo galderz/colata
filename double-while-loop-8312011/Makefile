@@ -14,8 +14,8 @@ NIXOS := $(wildcard /etc/NIXOS)
 
 ifdef NIXOS
   RUN_CMD += numactl
-  RUN_CMD += --cpunodebind=1
-  RUN_CMD += --membind=1
+  RUN_CMD += --physcpubind=0,2,4,6,8,10
+  RUN_CMD += --membind=0
   HIGH_FREQ = 1900
   LOW_FREQ = 800
 endif
