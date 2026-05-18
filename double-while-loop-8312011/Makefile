@@ -20,13 +20,27 @@ NIXOS := $(wildcard /etc/NIXOS)
 
 ifdef NIXOS
   RUN_PREFIX = "numactl --cpunodebind=1 --membind=1"
+  HIGH_FREQ = 1900
+  LOW_FREQ = 800
 else
   RUN_PREFIX = ""
 endif
 
-run: $(benchmarks_jar)
+run: low-freq run-benchmark high-freq
+.PHONY: run
+
+run-benchmark: $(benchmarks_jar)
 > $(RUN_PREFIX) $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms -rff results.csv
+.PHONY: run-benchmark
 
 $(benchmarks_jar):
 > cd $(BENCHMARKS_REPO)
 > JAVA_HOME=$(JDK_17_HOME) mvn install
+
+low-freq:
+> TOPDIR/make/set-cpu-freq.sh $(LOW_FREQ)
+.PHONY: low-freq
+
+high-freq:
+> TOPDIR/make/set-cpu-freq.sh $(HIGH_FREQ)
+.PHONY: high-freq
