@@ -42,5 +42,5 @@ low-freq:
 .PHONY: low-freq
 
 high-freq:
-> TOPDIR/make/set-cpu-freq.sh $(HIGH_FREQ)
+> $(TOPDIR)/make/set-cpu-freq.sh $(HIGH_FREQ)
 .PHONY: high-freq
