@@ -12,7 +12,7 @@ benchmarks_jar = $(BENCHMARKS_REPO)/target/benchmarks.jar
 
 ifdef NIXOS
   RUN_CMD += numactl
-  RUN_CMD += --cpunodebind=1 --membind=1
+  RUN_CMD += --cpunodebind=1
   RUN_CMD += --membind=1
   HIGH_FREQ = 1900
   LOW_FREQ = 800
