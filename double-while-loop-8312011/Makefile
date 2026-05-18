@@ -38,7 +38,7 @@ $(benchmarks_jar):
 > JAVA_HOME=$(JDK_17_HOME) mvn install
 
 low-freq:
-> TOPDIR/make/set-cpu-freq.sh $(LOW_FREQ)
+> $(TOPDIR)/make/set-cpu-freq.sh $(LOW_FREQ)
 .PHONY: low-freq
 
 high-freq:
