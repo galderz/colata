@@ -10,14 +10,14 @@ include $(TOPDIR)/make/OpenJDK.gmk
 
 benchmarks_jar = $(BENCHMARKS_REPO)/target/benchmarks.jar
 
+NIXOS := $(wildcard /etc/NIXOS)
+
 ifdef NIXOS
   RUN_CMD += numactl
   RUN_CMD += --cpunodebind=1
   RUN_CMD += --membind=1
   HIGH_FREQ = 1900
   LOW_FREQ = 800
-else
-  RUN_PREFIX = ""
 endif
 
 ifdef JAVA_17_HOME
@@ -25,8 +25,6 @@ ifdef JAVA_17_HOME
 else
   RUN_CMD = $(java_home)/bin/java
 endif
-
-NIXOS := $(wildcard /etc/NIXOS)
 
 run: low-freq run-benchmark high-freq
 .PHONY: run
