@@ -10,7 +10,7 @@ include $(TOPDIR)/make/OpenJDK.gmk
 
 benchmarks_jar = $(BENCHMARKS_REPO)/target/benchmarks.jar
 
-ifdef JDK_17_HOME
+ifdef JAVA_17_HOME
   RUN_JAVA_HOME = $(JAVA_17_HOME)
 else
   RUN_JAVA_HOME = $(java_home)
