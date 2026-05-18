@@ -10,6 +10,7 @@ include $(TOPDIR)/make/OpenJDK.gmk
 
 benchmarks_jar = $(BENCHMARKS_REPO)/target/benchmarks.jar
 
+
 ifdef JAVA_17_HOME
   RUN_JAVA_HOME = $(JAVA_17_HOME)
 else
@@ -17,7 +18,7 @@ else
 endif
 
 run: $(benchmarks_jar)
-> $(RUN_JAVA_HOME)/bin/java -jar $< org.xceptance.B03* -bm thrpt
+> $(RUN_JAVA_HOME)/bin/java -jar $< -bm thrpt -tu ms
 
 $(benchmarks_jar):
 > cd $(BENCHMARKS_REPO)
