@@ -1,18 +1,95 @@
 * 18.5.26
-highlights:
+** xeon
+jdk17 (base) vs master (patch):
 #+begin_src bash
-Benchmark                                  Mode  Cnt     Score      Error  Units
-B03a_ShortWarmupAndTest.parse              avgt   10    34.380 ±    2.382  ns/op # 17
-B03a_ShortWarmupAndTest.parse              avgt   10    48.263 ±    1.187  ns/op # main
-B03b_UnquotedWarmupAndTest.parse           avgt   10   265.506 ±   26.853  ns/op # 17
-B03b_UnquotedWarmupAndTest.parse           avgt   10   187.286 ±    7.863  ns/op # main
-B03c_QuotedWarmupAndTest.parse             avgt   10   277.176 ±   10.395  ns/op # 17
-B03c_QuotedWarmupAndTest.parse             avgt   10   269.478 ±    3.055  ns/op # main
-B05f_QuotedWarmupAndUnquotedTest.parse     avgt   10   414.264 ±    4.528  ns/op # 17
-B05f_QuotedWarmupAndUnquotedTest.parse     avgt   10   521.923 ±    4.093  ns/op # main
+Benchmark                                   Mode  Cnt      Base      Patch   Units  Diff
+B00_Short.parse                            thrpt    5  2254.877   1885.459  ops/ms  -16% <-- 5th
+B01_Threads.parse                          thrpt    3  9564.134  10992.449  ops/ms  +15%
+B01a_ThreadsHeavy.parse                    thrpt    3   130.193    129.492  ops/ms   -1%
+B02_LoadCPU.parse                          thrpt    5  4117.697   5280.475  ops/ms  +28%
+B03a_ShortWarmupAndTest.parse              thrpt   10  2247.015   1876.100  ops/ms  -17% <-- 4th
+B03b_UnquotedWarmupAndTest.parse           thrpt   10   460.496    545.054  ops/ms  +18%
+B03c_QuotedWarmupAndTest.parse             thrpt   10   298.160    314.736  ops/ms   +6%
+B05a_ShortWarmupAndUnquotedTest.parse      thrpt   10   423.453    503.353  ops/ms  +19%
+B05b_ShortWarmupAndQuotedTest.parse        thrpt   10   279.752    355.000  ops/ms  +27%
+B05c_UnquotedWarmupAndQuotedTest.parse     thrpt   10   276.426    313.405  ops/ms  +13%
+B05d_UnquotedWarmupAndShortTest.parse      thrpt   10  2531.675   2972.778  ops/ms  +17%
+B05e_QuotedWarmupAndShortTest.parse        thrpt   10  1494.313   1285.909  ops/ms  -14% <-- 6th
+B05f_QuotedWarmupAndUnquotedTest.parse     thrpt   10   177.331    110.418  ops/ms  -38% <-- 1st
+B07a_ShortWarmupAndLongMixedTest.parse     thrpt   10   229.480    314.876  ops/ms  +37%
+B07b_UnquotedWarmupAndLongMixedTest.parse  thrpt   10   238.476    318.280  ops/ms  +33%
+B07c_QuotedWarmupAndLongMixedTest.parse    thrpt   10   211.192    162.996  ops/ms  -23% <-- 3rd
+B08a_ShortWarmupAndMixedTest.parse         thrpt   10   296.093    417.180  ops/ms  +41%
+B08b_UnquotedWarmupAndMixedTest.parse      thrpt   10   351.386    426.332  ops/ms  +21%
+B08c_QuotedWarmupAndMixedTest.parse        thrpt   10   292.534    206.263  ops/ms  -29% <-- 2nd
+B10_MixedWarmupAndMixedTest.parse          thrpt   10   323.570    431.347  ops/ms  +33%
 #+end_src
 
-main darwin/aarch64:
+master:
+#+begin_src bash
+Benchmark                                   Mode  Cnt      Score      Error   Units
+B00_Short.parse                            thrpt    5   1885.459 ±    7.262  ops/ms
+B01_Threads.parse                          thrpt    3  10992.449 ± 3603.801  ops/ms
+B01a_ThreadsHeavy.parse                    thrpt    3    129.492 ±   14.680  ops/ms
+B02_LoadCPU.parse                          thrpt    5   5280.475 ±  720.449  ops/ms
+B03a_ShortWarmupAndTest.parse              thrpt   10   1876.100 ±    9.930  ops/ms
+B03b_UnquotedWarmupAndTest.parse           thrpt   10    545.054 ±    2.905  ops/ms
+B03c_QuotedWarmupAndTest.parse             thrpt   10    314.736 ±    1.134  ops/ms
+B05a_ShortWarmupAndUnquotedTest.parse      thrpt   10    503.353 ±   14.111  ops/ms
+B05b_ShortWarmupAndQuotedTest.parse        thrpt   10    355.000 ±   10.475  ops/ms
+B05c_UnquotedWarmupAndQuotedTest.parse     thrpt   10    313.405 ±   11.957  ops/ms
+B05d_UnquotedWarmupAndShortTest.parse      thrpt   10   2972.778 ±   19.342  ops/ms
+B05e_QuotedWarmupAndShortTest.parse        thrpt   10   1285.909 ±    2.321  ops/ms
+B05f_QuotedWarmupAndUnquotedTest.parse     thrpt   10    110.418 ±    3.090  ops/ms
+B07a_ShortWarmupAndLongMixedTest.parse     thrpt   10    314.876 ±   18.855  ops/ms
+B07b_UnquotedWarmupAndLongMixedTest.parse  thrpt   10    318.280 ±   13.218  ops/ms
+B07c_QuotedWarmupAndLongMixedTest.parse    thrpt   10    162.996 ±    0.499  ops/ms
+B08a_ShortWarmupAndMixedTest.parse         thrpt   10    417.180 ±   16.816  ops/ms
+B08b_UnquotedWarmupAndMixedTest.parse      thrpt   10    426.332 ±   25.911  ops/ms
+B08c_QuotedWarmupAndMixedTest.parse        thrpt   10    206.263 ±   10.988  ops/ms
+B10_MixedWarmupAndMixedTest.parse          thrpt   10    431.347 ±    0.839  ops/ms
+#+end_src
+
+jdk17:
+#+begin_src bash
+Benchmark                                   Mode  Cnt     Score      Error   Units
+B00_Short.parse                            thrpt    5  2254.877 ±   13.050  ops/ms
+B01_Threads.parse                          thrpt    3  9564.134 ± 1672.353  ops/ms
+B01a_ThreadsHeavy.parse                    thrpt    3   130.193 ±    1.044  ops/ms
+B02_LoadCPU.parse                          thrpt    5  4117.697 ± 1011.634  ops/ms
+B03a_ShortWarmupAndTest.parse              thrpt   10  2247.015 ±    2.335  ops/ms
+B03b_UnquotedWarmupAndTest.parse           thrpt   10   460.496 ±    0.362  ops/ms
+B03c_QuotedWarmupAndTest.parse             thrpt   10   298.160 ±    0.298  ops/ms
+B05a_ShortWarmupAndUnquotedTest.parse      thrpt   10   423.453 ±   13.390  ops/ms
+B05b_ShortWarmupAndQuotedTest.parse        thrpt   10   279.752 ±   10.633  ops/ms
+B05c_UnquotedWarmupAndQuotedTest.parse     thrpt   10   276.426 ±   11.251  ops/ms
+B05d_UnquotedWarmupAndShortTest.parse      thrpt   10  2531.675 ±    2.586  ops/ms
+B05e_QuotedWarmupAndShortTest.parse        thrpt   10  1494.313 ±    3.238  ops/ms
+B05f_QuotedWarmupAndUnquotedTest.parse     thrpt   10   177.331 ±    0.236  ops/ms
+B07a_ShortWarmupAndLongMixedTest.parse     thrpt   10   229.480 ±    9.813  ops/ms
+B07b_UnquotedWarmupAndLongMixedTest.parse  thrpt   10   238.476 ±   12.880  ops/ms
+B07c_QuotedWarmupAndLongMixedTest.parse    thrpt   10   211.192 ±    0.509  ops/ms
+B08a_ShortWarmupAndMixedTest.parse         thrpt   10   296.093 ±   16.280  ops/ms
+B08b_UnquotedWarmupAndMixedTest.parse      thrpt   10   351.386 ±    5.744  ops/ms
+B08c_QuotedWarmupAndMixedTest.parse        thrpt   10   292.534 ±    0.849  ops/ms
+B10_MixedWarmupAndMixedTest.parse          thrpt   10   323.570 ±    0.891  ops/ms
+#+end_src
+** darwin/aarch64
+highlights:
+#+begin_src bash
+  Benchmark                                  Mode  Cnt     Score      Error  Units
+  B03a_ShortWarmupAndTest.parse              avgt   10    34.380 ±    2.382  ns/op # 17
+
+  B03a_ShortWarmupAndTest.parse              avgt   10    48.263 ±    1.187  ns/op # main
+  B03b_UnquotedWarmupAndTest.parse           avgt   10   265.506 ±   26.853  ns/op # 17
+  B03b_UnquotedWarmupAndTest.parse           avgt   10   187.286 ±    7.863  ns/op # main
+  B03c_QuotedWarmupAndTest.parse             avgt   10   277.176 ±   10.395  ns/op # 17
+  B03c_QuotedWarmupAndTest.parse             avgt   10   269.478 ±    3.055  ns/op # main
+  B05f_QuotedWarmupAndUnquotedTest.parse     avgt   10   414.264 ±    4.528  ns/op # 17
+  B05f_QuotedWarmupAndUnquotedTest.parse     avgt   10   521.923 ±    4.093  ns/op # main
+#+end_src
+
+master:
 #+begin_src bash
 Benchmark                                  Mode  Cnt     Score      Error  Units
 B00_Short.parse                            avgt    5    43.831 ±    0.611  ns/op
@@ -36,7 +113,7 @@ B08b_UnquotedWarmupAndMixedTest.parse      avgt   10   211.025 ±    2.676  ns/o
 B08c_QuotedWarmupAndMixedTest.parse        avgt   10   285.571 ±    2.613  ns/op
 #+end_src
 
-jdk17 darwin/aarch64:
+jdk17
 #+begin_src bash
 Benchmark                                  Mode  Cnt     Score     Error  Units
 B00_Short.parse                            avgt    5    34.814 ±   2.580  ns/op
