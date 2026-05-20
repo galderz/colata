@@ -76,6 +76,7 @@ pkgs.mkShell {
     gdb
     numactl
     rr
+    temurin-bin-17
     temurin-bin-21
     unzip
     xorg.libXtst
@@ -90,19 +91,21 @@ pkgs.mkShell {
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  # BOOT_JDK_HOME="${unstable.temurin-bin-25}";
-  BOOT_JDK_HOME="${temurin26}";
   CAPSTONE_HOME="${pkgs.capstone}";
   FREETYPE_INCLUDE="${pkgs.freetype.dev}/include";
   FREETYPE_LIB="${pkgs.freetype}/lib";
-  IGV_JDK_HOME="${pkgs.temurin-bin-21}";
+  JAVA_17_HOME="${pkgs.temurin-bin-17}";
+  JAVA_21_HOME="${pkgs.temurin-bin-21}";
+  JAVA_26_HOME="${temurin26}";
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
-    echo "BOOT_JDK_HOME set to $BOOT_JDK_HOME"
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
     echo "FREETYPE_INCLUDE set to $FREETYPE_INCLUDE"
     echo "FREETYPE_LIB set to $FREETYPE_LIB"
+    echo "JAVA_17_HOME set to $JAVA_17_HOME"
+    echo "JAVA_21_HOME set to $JAVA_21_HOME"
+    echo "JAVA_26_HOME set to $JAVA_26_HOME"
 
     ln -sf ${gdbInit} $HOME/.gdbinit
 

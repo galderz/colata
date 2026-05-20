@@ -38,6 +38,7 @@ pkgs.mkShell {
     maven
     pandoc
     pigz
+    temurin-bin-17
     temurin-bin-21
     # temurin-bin-25
   ] ++ [
@@ -45,9 +46,10 @@ pkgs.mkShell {
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
-  BOOT_JDK_HOME="${temurin26}";
   CAPSTONE_HOME="${pkgs.capstone}";
-  IGV_JDK_HOME="${pkgs.temurin-bin-21}";
+  JAVA_17_HOME="${pkgs.temurin-bin-17}";
+  JAVA_21_HOME="${pkgs.temurin-bin-21}";
+  JAVA_26_HOME="${temurin26}";
   MAVEN_HOME="${pkgs.maven}";
 
   shellHook = ''
@@ -56,6 +58,9 @@ pkgs.mkShell {
 
     mkdir -p "$STUB_DIR"
     export OPENJDK_STUB_DIR="$STUB_DIR"
+
+    # For building JDK 17
+    export SYSROOT="$(xcrun --show-sdk-path)"
 
     # Create stub-mig.sh
     cat > "$STUB_DIR/stub-mig.sh" << 'STUB_MIG_EOF'
@@ -166,11 +171,13 @@ STUB_SETFILE_EOF
     chmod +x "$STUB_DIR/stub-setfile.sh"
 
     echo "ANT_HOME set to $ANT_HOME"
-    echo "BOOT_JDK_HOME set to $BOOT_JDK_HOME"
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
-    echo "IGV_JDK_HOME set to $IGV_JDK_HOME"
+    echo "JAVA_17_HOME set to $JAVA_17_HOME"
+    echo "JAVA_21_HOME set to $JAVA_21_HOME"
+    echo "JAVA_26_HOME set to $JAVA_26_HOME"
     echo "MAVEN_HOME set to $MAVEN_HOME"
     echo "STUB_DIR set to $STUB_DIR"
+    echo "SYSROOT set to $SYSROOT"
 
     unset SOURCE_DATE_EPOCH
     echo "Unsetting SOURCE_DATE_EPOCH to avoid errors running tests"

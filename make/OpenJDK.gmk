@@ -1,4 +1,3 @@
-BOOT_JDK_HOME ?= $(OPT)/boot-java-$(BOOT_JDK_VERSION)
 CAPSTONE_HOME ?= /usr
 CONF ?= fast
 
@@ -13,7 +12,6 @@ REMOTE_NAME ?= upstream
 REMOTE_BRANCH ?= master
 
 benchmarks_jar = $(java_build_dir)/images/test/micro/benchmarks.jar
-boot_jdk_java = $(BOOT_JDK_HOME)/bin/java
 compile_jdk = $(JDK_HOME)/build/release-$(os_cpu)/jdk
 gtest_src = $(OPT)/googletest
 java = $(java_home)/bin/java
@@ -48,6 +46,15 @@ else
 endif
 
 JDK_HOME ?= $(SRC)/$(jdk_tree_name)
+
+JDK_FEATURE := $(shell \
+  sed -n 's/^DEFAULT_VERSION_FEATURE=//p' \
+  $(JDK_HOME)/make/conf/version-numbers.conf \
+)
+
+JDK_LE_17 := $(shell [ "$(JDK_FEATURE)" -le 17 ] && echo yes)
+JDK_GE_25 := $(shell [ "$(JDK_FEATURE)" -ge 25 ] && echo yes)
+JDK_GE_27 := $(shell [ "$(JDK_FEATURE)" -ge 27 ] && echo yes)
 
 ifeq ($(CONF),slow)
   conf_args += --with-debug-level=slowdebug
@@ -100,17 +107,47 @@ endif
 > popd
 > touch $@
 
+ENABLE_HSDIS :=
+
 ifndef NO_HSDIS
+  ifeq ($(JDK_GE_25),yes)
+    ENABLE_HSDIS := yes
+  endif
+endif
+
+ifeq ($(ENABLE_HSDIS),yes)
   conf_args += --enable-hsdis-bundling
   conf_args += --with-capstone=$(CAPSTONE_HOME)
   conf_args += --with-hsdis=capstone
 endif
 
+ifeq ($(JDK_LE_17),yes)
+  conf_args += --with-sysroot=$(SYSROOT)
+  ifneq ($(CONF),release)
+    conf_args += --with-build-jdk=$(compile_jdk)
+  endif
+endif
+
+boot_jdk :=
+
+ifeq ($(JDK_GE_27),yes)
+  boot_jdk := $(JAVA_26_HOME)
+else ifeq ($(JDK_LE_17),yes)
+  boot_jdk := $(JAVA_17_HOME)
+else ifdef JAVA_21_HOME
+  boot_jdk := $(JAVA_21_HOME)
+else
+  boot_jdk ?= $(OPT)/boot-java-$(BOOT_JDK_VERSION)
+endif
+
+boot_jdk_java = $(boot_jdk)/bin/java
+
 configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
+> $(info Configuring OpenJDK feature version $(JDK_FEATURE))
 > pushd $(JDK_HOME)
 > bash configure \
 >   --disable-precompiled-headers \
->   --with-boot-jdk=$(BOOT_JDK_HOME) \
+>   --with-boot-jdk=$(boot_jdk) \
 >   --with-conf-name=$(conf_name) \
 >   --with-devkit=$(DEVKIT_ROOT) \
 >   --with-gtest=$(gtest_src) \
@@ -128,11 +165,17 @@ endif
 .PHONY: configure
 
 build-jdk:
+> $(info Building OpenJDK feature version $(JDK_FEATURE))
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make -s
 > popd
 > touch $(java)
 .PHONY: build-jdk
+
+# Build hsdis manually into a JDK for older versions (e.g. 17)
+build-hsdis:
+> $(TOPDIR)/make/build-hsdis.sh $(JDK_HOME)
+.PHONY: build-hsdis
 
 install-jmh:
 > $(TOPDIR)/make/install-jmh.sh $(JDK_HOME)
@@ -165,7 +208,7 @@ jtreg-format:
 .PHONY: jtreg-format
 
 jtreg-compiler:
-> JTREG_JAVA=$(BOOT_JDK_HOME) $(jtreg_bin) -ignore:quiet -conc:16 -dir:$(jtreg_dir) -compilejdk:$(compile_jdk) -testjdk:$(java_images_jdk_dir) -va -javaoptions:"-server" compiler
+> JTREG_JAVA=$(boot_jdk) $(jtreg_bin) -ignore:quiet -conc:16 -dir:$(jtreg_dir) -compilejdk:$(compile_jdk) -testjdk:$(java_images_jdk_dir) -va -javaoptions:"-server" compiler
 .PHONY: jtreg-compiler
 
 $(benchmarks_jar): test-image
@@ -205,7 +248,7 @@ remove-worktree:
 .PHONY: remove-worktree
 
 clion:
-> $(boot_jdk_java) $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
+> $(JAVA_26_HOME)/bin/java $(TOPDIR)/make/Clion.java $(JDK_HOME) $(conf_name)
 .PHONY: clion
 
 idea:
@@ -274,7 +317,7 @@ collect-failed-tests:
 $(jtreg_bin): $(shell find $(jtreg_src)/src -type f -name '*.java')
 $(jtreg_bin): $(jtreg_readme)
 > cd $(jtreg_src)
-> sh make/build.sh --jdk $(BOOT_JDK_HOME)
+> sh make/build.sh --jdk $(boot_jdk)
 
 $(jtreg_readme):
 > cd $(opt)
@@ -288,9 +331,9 @@ $(gtest_src):
 
 igv:
 > pushd $(JDK_HOME)/src/utils/IdealGraphVisualizer
-> JAVA_HOME=$(IGV_JDK_HOME) mvn clean install -DskipTests
+> JAVA_HOME=$(JAVA_21_HOME) mvn clean install -DskipTests
 > popd
-> $(TOPDIR)/make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(IGV_JDK_HOME)
+> $(TOPDIR)/make/run-igv.sh $(JDK_HOME)/src/utils/IdealGraphVisualizer $(JAVA_21_HOME)
 .PHONY: igv
 
 clear-logs:
