@@ -215,9 +215,14 @@ public class BenchmarkCompare
             Comparator.comparing(RunResult::params);
     }
 
+    record Labels(
+        String base
+        , String patch
+    ) {}
+
     public static void main(String[] args) throws IOException
     {
-        if (args.length != 1)
+        if (args.length < 1)
         {
             System.err.println("Missing directory argument");
             System.exit(10);
@@ -231,6 +236,10 @@ public class BenchmarkCompare
             System.exit(10);
         }
 
+        String baseLabel = args.length > 1 ? args[1] : "Base";
+        String patchLabel = args.length > 2 ? args[2] : "Patch";
+        Labels labels = new Labels(baseLabel, patchLabel);
+
         try (Stream<Path> files = Files.list(dir))
         {
             final List<Path> csvPaths = files
@@ -238,7 +247,7 @@ public class BenchmarkCompare
                 .toList();
 
             final Collection<RunResult> runResults = readCsvFiles(csvPaths);
-            writeOut(runResults, System.out);
+            writeOut(runResults, labels, System.out);
 //            for (Path p : csvFilePaths)
 //            {
 //                final String fileName = p.getFileName().toString();
@@ -410,7 +419,7 @@ public class BenchmarkCompare
         return result;
     }
 
-    private static void writeOut(Collection<RunResult> runResults, PrintStream out)
+    private static void writeOut(Collection<RunResult> runResults, Labels labels, PrintStream out)
     {
         final int COLUMN_PAD = 2;
 
@@ -453,8 +462,8 @@ public class BenchmarkCompare
         // determine column lengths for other columns
         int modeLen = "Mode".length();
         int samplesLen = "Cnt".length();
-        int baseScoreLen = "Base".length();
-        int patchScoreLen = "Patch".length();
+        int baseScoreLen = labels.base.length();
+        int patchScoreLen = labels.patch.length();
         // todo score error
         // int scoreErrLen = "Error".length();
         int unitLen = "Units".length();
@@ -497,8 +506,8 @@ public class BenchmarkCompare
 
         out.printf("%" + modeLen + "s", "Mode");
         out.printf("%" + samplesLen + "s", "Cnt");
-        out.printf("%" + baseScoreLen + "s", "Base");
-        out.printf("%" + patchScoreLen + "s", "Patch");
+        out.printf("%" + baseScoreLen + "s", labels.base());
+        out.printf("%" + patchScoreLen + "s", labels.patch());
         // todo score error
         // out.printf("%" + scoreErrLen + "s", "Error");
         out.printf("%" + unitLen + "s", "Units");
