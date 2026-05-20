@@ -49,7 +49,6 @@ public class BenchmarkCompare implements Callable<Integer>
     )
     private String patchLabel = "Patch";
 
-    // todo use option
     @Option(
         names = {"-e", "--with-error"}
         , description = "Show error values or not."
