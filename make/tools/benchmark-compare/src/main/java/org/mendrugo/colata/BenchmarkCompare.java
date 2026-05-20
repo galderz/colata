@@ -201,7 +201,9 @@ public class BenchmarkCompare
         BenchmarkParams params
         , long sampleCount
         , double baseScore
+        , double baseScoreError
         , double patchScore
+        , double patchScoreError
         , long diff
         , String scoreUnit
     ) {}
@@ -297,12 +299,16 @@ public class BenchmarkCompare
 //                , new WorkloadParams(workloadParams)
 //            );
             final double baseScore = Double.parseDouble(baseValues.data.get("Score"));
+            final double baseScoreError = Double.parseDouble(baseValues.data.get("Score Error (99.9%)"));
             final double patchScore = Double.parseDouble(patchValues.data.get("Score"));
+            final double patchScoreError = Double.parseDouble(patchValues.data.get("Score Error (99.9%)"));
             final Result result = new Result(
                 params
                 , Long.parseLong(baseValues.data.get("Samples"))
                 , baseScore
+                , baseScoreError
                 , patchScore
+                , patchScoreError
                 , Math.round((patchScore - baseScore) / baseScore * 100.0)
                 , baseValues.data.get("Unit")
             );
@@ -463,9 +469,9 @@ public class BenchmarkCompare
         int modeLen = "Mode".length();
         int samplesLen = "Cnt".length();
         int baseScoreLen = labels.base.length();
+        int baseScoreErrLen = "Error".length();
         int patchScoreLen = labels.patch.length();
-        // todo score error
-        // int scoreErrLen = "Error".length();
+        int patchScoreErrLen = "Error".length();
         int unitLen = "Units".length();
         int diffLen = "Diff".length();
 
@@ -476,9 +482,9 @@ public class BenchmarkCompare
             modeLen     = Math.max(modeLen, res.params().mode().shortLabel().length());
             samplesLen  = Math.max(samplesLen, String.format("%d", primRes.sampleCount()).length());
             baseScoreLen    = Math.max(baseScoreLen, ScoreFormatter.format(primRes.baseScore()).length());
+            baseScoreErrLen = Math.max(baseScoreErrLen, ScoreFormatter.format(primRes.baseScoreError()).length());
             patchScoreLen    = Math.max(patchScoreLen, ScoreFormatter.format(primRes.patchScore()).length());
-            // todo score error
-            // scoreErrLen = Math.max(scoreErrLen, ScoreFormatter.format(primRes.scoreError()).length());
+            patchScoreErrLen = Math.max(patchScoreErrLen, ScoreFormatter.format(primRes.patchScoreError()).length());
             unitLen     = Math.max(unitLen, primRes.scoreUnit().length());
             diffLen     = Math.max(diffLen, formatDiff(primRes.diff()).length());
 
@@ -493,9 +499,9 @@ public class BenchmarkCompare
         modeLen += COLUMN_PAD;
         samplesLen += COLUMN_PAD;
         baseScoreLen += COLUMN_PAD;
+        baseScoreErrLen += COLUMN_PAD - 1; // digest a single character for +- separator
         patchScoreLen += COLUMN_PAD;
-        // todo score error
-        // scoreErrLen += COLUMN_PAD - 1; // digest a single character for +- separator
+        patchScoreErrLen += COLUMN_PAD - 1; // digest a single character for +- separator
         unitLen += COLUMN_PAD;
         diffLen += COLUMN_PAD;
 
@@ -507,9 +513,11 @@ public class BenchmarkCompare
         out.printf("%" + modeLen + "s", "Mode");
         out.printf("%" + samplesLen + "s", "Cnt");
         out.printf("%" + baseScoreLen + "s", labels.base());
+        out.print("  ");
+        out.printf("%" + baseScoreErrLen + "s", "Error");
         out.printf("%" + patchScoreLen + "s", labels.patch());
-        // todo score error
-        // out.printf("%" + scoreErrLen + "s", "Error");
+        out.print("  ");
+        out.printf("%" + patchScoreErrLen + "s", "Error");
         out.printf("%" + unitLen + "s", "Units");
         out.printf("%" + diffLen + "s", "Diff");
         out.println();
@@ -537,16 +545,22 @@ public class BenchmarkCompare
             }
 
             out.print(ScoreFormatter.format(baseScoreLen, pRes.baseScore()));
-            out.print(ScoreFormatter.format(patchScoreLen, pRes.patchScore()));
+            if (!Double.isNaN(pRes.baseScoreError()) && !ScoreFormatter.isApproximate(pRes.baseScore())) {
+                out.print(" \u00B1");
+                out.print(ScoreFormatter.formatError(baseScoreErrLen, pRes.baseScoreError()));
+            } else {
+                out.print("  ");
+                out.printf("%" + baseScoreErrLen + "s", "");
+            }
 
-            // todo score error
-            // if (!Double.isNaN(pRes.getScoreError()) && !ScoreFormatter.isApproximate(pRes.getScore())) {
-            //     out.print(" \u00B1");
-            //     out.print(ScoreFormatter.formatError(scoreErrLen, pRes.getScoreError()));
-            // } else {
-            //     out.print("  ");
-            //     out.printf("%" + scoreErrLen + "s", "");
-            // }
+            out.print(ScoreFormatter.format(patchScoreLen, pRes.patchScore()));
+            if (!Double.isNaN(pRes.patchScoreError()) && !ScoreFormatter.isApproximate(pRes.patchScore())) {
+                out.print(" \u00B1");
+                out.print(ScoreFormatter.formatError(patchScoreErrLen, pRes.patchScoreError()));
+            } else {
+                out.print("  ");
+                out.printf("%" + patchScoreErrLen + "s", "");
+            }
 
             out.printf("%" + unitLen + "s", pRes.scoreUnit());
             out.printf("%" + diffLen + "s", formatDiff(pRes.diff()));
@@ -726,6 +740,11 @@ public class BenchmarkCompare
             {
                 return String.format("%" + width + "." + PRECISION + "f", score);
             }
+        }
+
+        public static String formatError(int width, double error)
+        {
+            return String.format("%" + width + "." + PRECISION + "f", Math.max(error, ULP));
         }
 
         public static String superscript(String str)
