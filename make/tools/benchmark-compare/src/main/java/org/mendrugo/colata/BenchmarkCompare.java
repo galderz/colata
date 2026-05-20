@@ -457,7 +457,7 @@ public class BenchmarkCompare implements Callable<Integer>
         return result;
     }
 
-    private static void writeOut(Collection<RunResult> runResults, Labels labels, PrintStream out)
+    private void writeOut(Collection<RunResult> runResults, Labels labels, PrintStream out)
     {
         final int COLUMN_PAD = 2;
 
@@ -545,11 +545,17 @@ public class BenchmarkCompare implements Callable<Integer>
         out.printf("%" + modeLen + "s", "Mode");
         out.printf("%" + samplesLen + "s", "Cnt");
         out.printf("%" + baseScoreLen + "s", labels.base());
-        out.print("  ");
-        out.printf("%" + baseScoreErrLen + "s", "Error");
+        if (withError)
+        {
+            out.print("  ");
+            out.printf("%" + baseScoreErrLen + "s", "Error");
+        }
         out.printf("%" + patchScoreLen + "s", labels.patch());
-        out.print("  ");
-        out.printf("%" + patchScoreErrLen + "s", "Error");
+        if (withError)
+        {
+            out.print("  ");
+            out.printf("%" + patchScoreErrLen + "s", "Error");
+        }
         out.printf("%" + unitLen + "s", "Units");
         out.printf("%" + diffLen + "s", "Diff");
         out.println();
@@ -577,21 +583,27 @@ public class BenchmarkCompare implements Callable<Integer>
             }
 
             out.print(ScoreFormatter.format(baseScoreLen, pRes.baseScore()));
-            if (!Double.isNaN(pRes.baseScoreError()) && !ScoreFormatter.isApproximate(pRes.baseScore())) {
-                out.print(" \u00B1");
-                out.print(ScoreFormatter.formatError(baseScoreErrLen, pRes.baseScoreError()));
-            } else {
-                out.print("  ");
-                out.printf("%" + baseScoreErrLen + "s", "");
+            if (withError)
+            {
+                if (!Double.isNaN(pRes.baseScoreError()) && !ScoreFormatter.isApproximate(pRes.baseScore())) {
+                    out.print(" \u00B1");
+                    out.print(ScoreFormatter.formatError(baseScoreErrLen, pRes.baseScoreError()));
+                } else {
+                    out.print("  ");
+                    out.printf("%" + baseScoreErrLen + "s", "");
+                }
             }
 
             out.print(ScoreFormatter.format(patchScoreLen, pRes.patchScore()));
-            if (!Double.isNaN(pRes.patchScoreError()) && !ScoreFormatter.isApproximate(pRes.patchScore())) {
-                out.print(" \u00B1");
-                out.print(ScoreFormatter.formatError(patchScoreErrLen, pRes.patchScoreError()));
-            } else {
-                out.print("  ");
-                out.printf("%" + patchScoreErrLen + "s", "");
+            if (withError)
+            {
+                if (!Double.isNaN(pRes.patchScoreError()) && !ScoreFormatter.isApproximate(pRes.patchScore())) {
+                    out.print(" \u00B1");
+                    out.print(ScoreFormatter.formatError(patchScoreErrLen, pRes.patchScoreError()));
+                } else {
+                    out.print("  ");
+                    out.printf("%" + patchScoreErrLen + "s", "");
+                }
             }
 
             out.printf("%" + unitLen + "s", pRes.scoreUnit());
