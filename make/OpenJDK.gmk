@@ -136,8 +136,6 @@ else ifeq ($(JDK_LE_17),yes)
   boot_jdk := $(JAVA_17_HOME)
 else ifdef JAVA_21_HOME
   boot_jdk := $(JAVA_21_HOME)
-else
-  boot_jdk ?= $(OPT)/boot-java-$(BOOT_JDK_VERSION)
 endif
 
 boot_jdk_java = $(boot_jdk)/bin/java
