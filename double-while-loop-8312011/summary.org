@@ -1,5 +1,55 @@
 * 18.5.26
 ** xeon
+jdk17 (base) vs master (patch) - with errors - ordered by diff:
+#+begin_src bash
+Benchmark                                   Mode  Cnt     JDK17      Error     Master      Error   Units  Diff
+B05f_QuotedWarmupAndUnquotedTest.parse     thrpt   10   177.331 ±    0.236    110.418 ±    3.090  ops/ms  -38%
+B08c_QuotedWarmupAndMixedTest.parse        thrpt   10   292.534 ±    0.849    206.263 ±   10.988  ops/ms  -29%
+B07c_QuotedWarmupAndLongMixedTest.parse    thrpt   10   211.192 ±    0.509    162.996 ±    0.499  ops/ms  -23%
+B03a_ShortWarmupAndTest.parse              thrpt   10  2247.015 ±    2.335   1876.100 ±    9.930  ops/ms  -17%
+B00_Short.parse                            thrpt    5  2254.877 ±   13.050   1885.459 ±    7.262  ops/ms  -16%
+B05e_QuotedWarmupAndShortTest.parse        thrpt   10  1494.313 ±    3.238   1285.909 ±    2.321  ops/ms  -14%
+B01a_ThreadsHeavy.parse                    thrpt    3   130.193 ±    1.044    129.492 ±   14.680  ops/ms   -1%
+B03c_QuotedWarmupAndTest.parse             thrpt   10   298.160 ±    0.298    314.736 ±    1.134  ops/ms   +6%
+B05c_UnquotedWarmupAndQuotedTest.parse     thrpt   10   276.426 ±   11.251    313.405 ±   11.957  ops/ms  +13%
+B01_Threads.parse                          thrpt    3  9564.134 ± 1672.353  10992.449 ± 3603.801  ops/ms  +15%
+B05d_UnquotedWarmupAndShortTest.parse      thrpt   10  2531.675 ±    2.586   2972.778 ±   19.342  ops/ms  +17%
+B03b_UnquotedWarmupAndTest.parse           thrpt   10   460.496 ±    0.362    545.054 ±    2.905  ops/ms  +18%
+B05a_ShortWarmupAndUnquotedTest.parse      thrpt   10   423.453 ±   13.390    503.353 ±   14.111  ops/ms  +19%
+B08b_UnquotedWarmupAndMixedTest.parse      thrpt   10   351.386 ±    5.744    426.332 ±   25.911  ops/ms  +21%
+B05b_ShortWarmupAndQuotedTest.parse        thrpt   10   279.752 ±   10.633    355.000 ±   10.475  ops/ms  +27%
+B02_LoadCPU.parse                          thrpt    5  4117.697 ± 1011.634   5280.475 ±  720.449  ops/ms  +28%
+B07b_UnquotedWarmupAndLongMixedTest.parse  thrpt   10   238.476 ±   12.880    318.280 ±   13.218  ops/ms  +33%
+B10_MixedWarmupAndMixedTest.parse          thrpt   10   323.570 ±    0.891    431.347 ±    0.839  ops/ms  +33%
+B07a_ShortWarmupAndLongMixedTest.parse     thrpt   10   229.480 ±    9.813    314.876 ±   18.855  ops/ms  +37%
+B08a_ShortWarmupAndMixedTest.parse         thrpt   10   296.093 ±   16.280    417.180 ±   16.816  ops/ms  +41%
+#+end_src
+
+jdk17 (base) vs master (patch) - with errors:
+#+begin_src bash
+Benchmark                                   Mode  Cnt     JDK17      Error     Master      Error   Units  Diff
+B00_Short.parse                            thrpt    5  2254.877 ±   13.050   1885.459 ±    7.262  ops/ms  -16%
+B01_Threads.parse                          thrpt    3  9564.134 ± 1672.353  10992.449 ± 3603.801  ops/ms  +15%
+B01a_ThreadsHeavy.parse                    thrpt    3   130.193 ±    1.044    129.492 ±   14.680  ops/ms   -1%
+B02_LoadCPU.parse                          thrpt    5  4117.697 ± 1011.634   5280.475 ±  720.449  ops/ms  +28%
+B03a_ShortWarmupAndTest.parse              thrpt   10  2247.015 ±    2.335   1876.100 ±    9.930  ops/ms  -17%
+B03b_UnquotedWarmupAndTest.parse           thrpt   10   460.496 ±    0.362    545.054 ±    2.905  ops/ms  +18%
+B03c_QuotedWarmupAndTest.parse             thrpt   10   298.160 ±    0.298    314.736 ±    1.134  ops/ms   +6%
+B05a_ShortWarmupAndUnquotedTest.parse      thrpt   10   423.453 ±   13.390    503.353 ±   14.111  ops/ms  +19%
+B05b_ShortWarmupAndQuotedTest.parse        thrpt   10   279.752 ±   10.633    355.000 ±   10.475  ops/ms  +27%
+B05c_UnquotedWarmupAndQuotedTest.parse     thrpt   10   276.426 ±   11.251    313.405 ±   11.957  ops/ms  +13%
+B05d_UnquotedWarmupAndShortTest.parse      thrpt   10  2531.675 ±    2.586   2972.778 ±   19.342  ops/ms  +17%
+B05e_QuotedWarmupAndShortTest.parse        thrpt   10  1494.313 ±    3.238   1285.909 ±    2.321  ops/ms  -14%
+B05f_QuotedWarmupAndUnquotedTest.parse     thrpt   10   177.331 ±    0.236    110.418 ±    3.090  ops/ms  -38%
+B07a_ShortWarmupAndLongMixedTest.parse     thrpt   10   229.480 ±    9.813    314.876 ±   18.855  ops/ms  +37%
+B07b_UnquotedWarmupAndLongMixedTest.parse  thrpt   10   238.476 ±   12.880    318.280 ±   13.218  ops/ms  +33%
+B07c_QuotedWarmupAndLongMixedTest.parse    thrpt   10   211.192 ±    0.509    162.996 ±    0.499  ops/ms  -23%
+B08a_ShortWarmupAndMixedTest.parse         thrpt   10   296.093 ±   16.280    417.180 ±   16.816  ops/ms  +41%
+B08b_UnquotedWarmupAndMixedTest.parse      thrpt   10   351.386 ±    5.744    426.332 ±   25.911  ops/ms  +21%
+B08c_QuotedWarmupAndMixedTest.parse        thrpt   10   292.534 ±    0.849    206.263 ±   10.988  ops/ms  -29%
+B10_MixedWarmupAndMixedTest.parse          thrpt   10   323.570 ±    0.891    431.347 ±    0.839  ops/ms  +33%
+#+end_src
+
 jdk17 (base) vs master (patch):
 #+begin_src bash
 Benchmark                                   Mode  Cnt      Base      Patch   Units  Diff
