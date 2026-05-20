@@ -14,4 +14,11 @@
         <maven.compiler.release>25</maven.compiler.release>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.7.7</version>
+        </dependency>
+    </dependencies>
 </project>

@@ -1,11 +1,15 @@
 package org.mendrugo.colata;
 
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,10 +22,40 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
-public class BenchmarkCompare
+@Command(name = "benchmark-compare"
+    , mixinStandardHelpOptions = true
+    , version = "benchmark-compare 1.0"
+    , description = "Compares benchmark results")
+public class BenchmarkCompare implements Callable<Integer>
 {
+    @Parameters(
+        index = "0"
+        , description = "The directory with the benchmark results to compare."
+    )
+    private Path dir;
+
+    @Option(
+        names = {"-b", "--base-label"}
+        , description = "Base label to show."
+    )
+    private String baseLabel = "Base";
+
+    @Option(
+        names = {"-p", "--patch-label"}
+        , description = "Patch label to show."
+    )
+    private String patchLabel = "Patch";
+
+    // todo use option
+    @Option(
+        names = {"-e", "--with-error"}
+        , description = "Show error values or not."
+    )
+    private boolean withError = false;
+
     private enum Label
     {
         BASE
@@ -222,24 +256,15 @@ public class BenchmarkCompare
         , String patch
     ) {}
 
-    public static void main(String[] args) throws IOException
+    @Override
+    public Integer call() throws Exception
     {
-        if (args.length < 1)
-        {
-            System.err.println("Missing directory argument");
-            System.exit(10);
-        }
-
-        final Path dir = Paths.get(args[0]);
-
         if (!Files.isDirectory(dir))
         {
             System.err.println("Not a directory: " + dir);
             System.exit(10);
         }
 
-        String baseLabel = args.length > 1 ? args[1] : "Base";
-        String patchLabel = args.length > 2 ? args[2] : "Patch";
         Labels labels = new Labels(baseLabel, patchLabel);
 
         try (Stream<Path> files = Files.list(dir))
@@ -257,6 +282,13 @@ public class BenchmarkCompare
 //                readCsvInto(p, label, table);
 //            }
         }
+        return 0;  // TODO: Customise this generated block
+    }
+
+    static void main(String[] args)
+    {
+        int exitCode = new CommandLine(new BenchmarkCompare()).execute(args);
+        System.exit(exitCode);
     }
 
     record CsvLine(Map<String, String> data) {}
