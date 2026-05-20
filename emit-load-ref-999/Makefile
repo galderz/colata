@@ -1,4 +1,4 @@
-ID ?= emit-load-ref
+ID ?= emit-ref-load
 
 NO_WARNINGS_ERRORS := true
 
