@@ -56,6 +56,19 @@ public class BenchmarkCompare implements Callable<Integer>
     )
     private boolean withError = false;
 
+    @Option(
+        names = {"-o", "--order"}
+        , description = "Valid values: ${COMPLETION-CANDIDATES}"
+    )
+    private Order order = Order.ALPHA;
+
+    private enum Order
+    {
+        ALPHA
+        , ASCENDING
+        , DESCENDING
+    }
+
     private enum Label
     {
         BASE
@@ -273,7 +286,8 @@ public class BenchmarkCompare implements Callable<Integer>
                 .filter(f -> f.getFileName().toString().endsWith(".csv"))
                 .toList();
 
-            final Collection<RunResult> runResults = readCsvFiles(csvPaths);
+            final Collection<RunResult> csvRunResults = readCsvFiles(csvPaths);
+            final Collection<RunResult> runResults = reorder(csvRunResults);
             writeOut(runResults, labels, System.out);
 //            for (Path p : csvFilePaths)
 //            {
@@ -285,9 +299,30 @@ public class BenchmarkCompare implements Callable<Integer>
         return 0;  // TODO: Customise this generated block
     }
 
+    private Collection<RunResult> reorder(Collection<RunResult> runResults)
+    {
+        return switch (order)
+        {
+            case ALPHA ->
+                runResults;
+            case ASCENDING ->
+                runResults
+                    .stream()
+                    .sorted(Comparator.comparingLong(rr -> rr.primaryResult.diff))
+                    .toList();
+            case DESCENDING ->
+                runResults
+                    .stream()
+                    .sorted(Comparator.comparingLong((RunResult rr) -> rr.primaryResult.diff).reversed())
+                    .toList();
+        };
+    }
+
     static void main(String[] args)
     {
-        int exitCode = new CommandLine(new BenchmarkCompare()).execute(args);
+        int exitCode = new CommandLine(new BenchmarkCompare())
+            .setCaseInsensitiveEnumValuesAllowed(true)
+            .execute(args);
         System.exit(exitCode);
     }
 
