@@ -12,6 +12,9 @@ if [ "$(uname)" = "Darwin" ]; then
 elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then
   OS=$(uname | tr A-Z a-z)
   ARCH="aarch64"
+elif [ "$(uname -m)" = "riscv64" ]; then
+  OS=$(uname | tr A-Z a-z)
+  ARCH="riscv64"
 else
   OS=$(uname | tr A-Z a-z)
   ARCH="x64"
