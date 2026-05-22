@@ -1,3 +1,4 @@
+BOOT_JDK_VERSION ?= 26
 CAPSTONE_HOME ?= /usr
 CONF ?= fast
 
