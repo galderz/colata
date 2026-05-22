@@ -59,6 +59,7 @@ JDK_GE_27 := $(shell [ "$(JDK_FEATURE)" -ge 27 ] && echo yes)
 ifeq ($(CONF),slow)
   conf_args += --with-debug-level=slowdebug
   conf_args += --with-native-debug-symbols=internal
+  conf_args += --disable-precompiled-headers
 else ifeq ($(CONF),fast)
   conf_args += --with-debug-level=fastdebug
   conf_args += --with-native-debug-symbols=internal
@@ -144,7 +145,6 @@ configure: $(boot_jdk_java) $(jmh) $(jtreg_bin) $(gtest_src)
 > $(info Configuring OpenJDK feature version $(JDK_FEATURE))
 > pushd $(JDK_HOME)
 > bash configure \
->   --disable-precompiled-headers \
 >   --with-boot-jdk=$(boot_jdk) \
 >   --with-conf-name=$(conf_name) \
 >   --with-devkit=$(DEVKIT_ROOT) \
