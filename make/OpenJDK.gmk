@@ -387,7 +387,8 @@ sudo apt-get install -y \
   libxrandr-dev \
   libxtst-dev \
   libxt-dev \
-  unzip
+  unzip \
+  zip
 endef
 
 tools-apt:
@@ -408,7 +409,8 @@ sudo apt-get install -y \
   libxrandr-dev \
   libxtst-dev \
   libxt-dev \
-  unzip
+  unzip \
+  zip
 endef
 
 tools-milkv:
