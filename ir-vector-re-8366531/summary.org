@@ -1,0 +1,15 @@
+* 21.5.26
+Need to handle vector size 8 and 16:
+#+begin_src bash
+ 2146  VectorReinterpret  === _ 2125  [[ 2167 ]]  #vectord<B,8> !jvms: AbstractVector::convert0 @ bci:328 (line 806) AbstractVector::reinterpretShapeTemplate @ bci:19 (line 392) ByteVector128::reinterpretShape @ bci:3 (line 260) VectorReshapeHelper::vectorDoubleExpandShrink @ bci:13 (line 243) TestVectorDoubleExpandShrink::testB128toB64 @ bci:8 (line 77)
+ 2167  VectorReinterpret  === _ 2146  [[ 1674 2192 1905 1689 1889 1968 1547 1853 1986 ]]  #vectorx<B,16> !jvms: AbstractVector::convert0 @ bci:328 (line 806) AbstractVector::reinterpretShapeTemplate @ bci:19 (line 392) ByteVector64::reinterpretShape @ bci:3 (line 260) VectorReshapeHelper::vectorDoubleExpandShrink @ bci:18 (line 244) TestVectorDoubleExpandShrink::testB128toB64 @ bci:8 (line 77)
+...
+1) Method "compiler.vectorapi.reshape.tests.TestVectorDoubleExpandShrink::testB128toB64" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#V#VECTOR_REINTERPRET_B#_", "2"}, applyIfPlatform={}, applyIfPlatformOr={"x64", "true", "aarch64", "true", "riscv64", "true"}, failOn={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(VectorReinterpret.*)+(\s){2}===.*vector[A-Za-z]<B,16>)"
+           - Failed comparison: [found] 1 = 2 [given]
+             - Matched node:
+               * 2167  VectorReinterpret  === _ 2146  [[ 1674 2192 1905 1689 1889 1968 1547 1853 1986 ]]  #vectorx<B,16>
+#+end_src
