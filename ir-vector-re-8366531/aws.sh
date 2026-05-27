@@ -26,4 +26,7 @@ export JAVA_26_HOME=$HOME/opt/boot-java-26
 
 NO_HSDIS=true make configure build-jdk
 
+make print-flags
+make print-properties
+
 TEST="test/hotspot/jtreg/compiler/vectorapi/reshape/TestVectorReinterpret.java" make clean-jtreg jtreg
