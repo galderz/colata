@@ -2,6 +2,8 @@
 
 set -e -x
 
+sudo apt install make
+
 make tools-apt
 
 pushd $HOME/src
@@ -17,10 +19,10 @@ popd
 pushd colata/ir-vector-re-8366531
 
 BOOT_JDK_VERSION=25 make boot-jdk
-JAVA_25_HOME=$HOME/opt/boot-java-25
+export JAVA_25_HOME=$HOME/opt/boot-java-25
 
 BOOT_JDK_VERSION=26 make boot-jdk
-JAVA_26_HOME=$HOME/opt/boot-java-26
+export JAVA_26_HOME=$HOME/opt/boot-java-26
 
 NO_HSDIS=true make configure build-jdk
 
