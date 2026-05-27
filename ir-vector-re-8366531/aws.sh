@@ -5,12 +5,22 @@ set -e -x
 sudo apt-get install -y \
   autoconf \
   build-essential \
-  make
+  make \
+  libasound2-dev \
+  libcapstone-dev \
+  libfontconfig1-dev \
+  libcups2-dev \
+  libx11-dev \
+  libxext-dev \
+  libxrender-dev \
+  libxrandr-dev \
+  libxtst-dev \
+  libxt-dev
 
-popd src
+pushd $HOME/src
 git clone https://github.com/galderz/jdk
 
-popd jdk
+pushd jdk
 git worktree add \
   -b topic.ir-vector-re.expand-use \
   ../jdk-ir-vector-re \
