@@ -379,7 +379,6 @@ sudo apt-get install -y \
   autoconf \
   build-essential \
   libasound2-dev \
-  libcapstone-dev \
   libfontconfig1-dev \
   libcups2-dev \
   libx11-dev \
@@ -393,6 +392,26 @@ endef
 tools-apt:
 > $(call tools-apt)
 .PHONY: tools-apt
+
+define tools-milkv
+sudo apt-get install -y \
+  autoconf \
+  build-essential \
+  libasound2-dev \
+  libcapstone-dev \
+  libfontconfig1-dev \
+  libcups2-dev \
+  libx11-dev \
+  libxext-dev \
+  libxrender-dev \
+  libxrandr-dev \
+  libxtst-dev \
+  libxt-dev
+endef
+
+tools-milkv:
+> $(call tools-milkv)
+.PHONY: tools-milkv
 
 aws-type:
 > $(TOPDIR)/make/aws-type.sh
