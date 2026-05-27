@@ -13,3 +13,6 @@ tests=(
 )
 
 TEST="${tests[*]}" make jtreg
+
+# Run full valhalla testsuite
+TEST=compiler/valhalla/inlinetypes make test
