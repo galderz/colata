@@ -386,7 +386,8 @@ sudo apt-get install -y \
   libxrender-dev \
   libxrandr-dev \
   libxtst-dev \
-  libxt-dev
+  libxt-dev \
+  unzip
 endef
 
 tools-apt:
@@ -406,7 +407,8 @@ sudo apt-get install -y \
   libxrender-dev \
   libxrandr-dev \
   libxtst-dev \
-  libxt-dev
+  libxt-dev \
+  unzip
 endef
 
 tools-milkv:
