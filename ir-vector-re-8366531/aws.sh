@@ -2,20 +2,7 @@
 
 set -e -x
 
-sudo apt-get install -y \
-  autoconf \
-  build-essential \
-  make \
-  libasound2-dev \
-  libcapstone-dev \
-  libfontconfig1-dev \
-  libcups2-dev \
-  libx11-dev \
-  libxext-dev \
-  libxrender-dev \
-  libxrandr-dev \
-  libxtst-dev \
-  libxt-dev
+make tools-apt
 
 pushd $HOME/src
 git clone https://github.com/galderz/jdk
@@ -27,7 +14,7 @@ git worktree add \
   origin/topic.ir-vector-re.expand-use
 popd
 
-popd colata/ir-vector-re-8366531
+pushd colata/ir-vector-re-8366531
 
 BOOT_JDK_VERSION=25 make boot-jdk
 JAVA_25_HOME=$HOME/opt/boot-java-25
