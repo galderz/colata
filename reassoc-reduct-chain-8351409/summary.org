@@ -180,6 +180,679 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
+* 29.5.26
+#+begin_quote
+Char/short regressions:
+> Every other regression is due to register spilling.
+And byte is not affected here? I would have expected it would also lead to lots of unrolling and lots of operations in the loop, and so more register pressure.
+#+end_quote
+
+byte results from 22.1, why not regression/spills there?
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base     Patch   Units   Diff
+VectorReduction2.NoSuperword.byteAddBig             2048       0  thrpt    3  301.002   300.922  ops/ms     0%
+VectorReduction2.NoSuperword.byteAddDotProduct      2048       0  thrpt    3  395.632   395.708  ops/ms     0%
+VectorReduction2.NoSuperword.byteAddSimple          2048       0  thrpt    3  462.476   462.422  ops/ms     0%
+VectorReduction2.NoSuperword.byteAndBig             2048       0  thrpt    3  341.738   341.843  ops/ms     0%
+VectorReduction2.NoSuperword.byteAndDotProduct      2048       0  thrpt    3  644.273   644.554  ops/ms     0%
+VectorReduction2.NoSuperword.byteAndSimple          2048       0  thrpt    3  790.690   786.439  ops/ms    -1%
+VectorReduction2.NoSuperword.byteMaxBig             2048       0  thrpt    3  298.563   293.044  ops/ms    -2%
+VectorReduction2.NoSuperword.byteMaxDotProduct      2048       0  thrpt    3  408.814   483.670  ops/ms   +18%
+VectorReduction2.NoSuperword.byteMaxSimple          2048       0  thrpt    3  461.890   572.365  ops/ms   +24%
+VectorReduction2.NoSuperword.byteMinBig             2048       0  thrpt    3  298.550   293.136  ops/ms    -2%
+VectorReduction2.NoSuperword.byteMinDotProduct      2048       0  thrpt    3  408.742   483.519  ops/ms   +18%
+VectorReduction2.NoSuperword.byteMinSimple          2048       0  thrpt    3  461.957   574.078  ops/ms   +24%
+VectorReduction2.NoSuperword.byteMulBig             2048       0  thrpt    3  230.307   230.227  ops/ms     0%
+VectorReduction2.NoSuperword.byteMulDotProduct      2048       0  thrpt    3  231.451   231.420  ops/ms     0%
+VectorReduction2.NoSuperword.byteMulSimple          2048       0  thrpt    3  232.921   232.913  ops/ms     0%
+VectorReduction2.NoSuperword.byteOrBig              2048       0  thrpt    3  341.910   342.970  ops/ms     0%
+VectorReduction2.NoSuperword.byteOrDotProduct       2048       0  thrpt    3  639.483   635.157  ops/ms    -1%
+VectorReduction2.NoSuperword.byteOrSimple           2048       0  thrpt    3  790.605   790.015  ops/ms     0%
+VectorReduction2.NoSuperword.byteXorBig             2048       0  thrpt    3  344.639   344.373  ops/ms     0%
+VectorReduction2.NoSuperword.byteXorDotProduct      2048       0  thrpt    3  653.551   634.577  ops/ms    -3%
+VectorReduction2.NoSuperword.byteXorSimple          2048       0  thrpt    3  790.346   787.228  ops/ms     0%
+#+end_src
+
+shortXorBig vs byteXorBig
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base     Patch   Units   Diff
+VectorReduction2.NoSuperword.byteXorBig             2048       0  thrpt    3  344.639   344.373  ops/ms     0%
+VectorReduction2.NoSuperword.shortXorBig            2048       0  thrpt    3  305.049   174.546  ops/ms   -43%
+#+end_src
+
+shortXorBig assembly:
+#+begin_src bash
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub, version 5, compile id 519 
+
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@30 (line 123)
+             0x00007f449baf8453:   movl		$1, %ebp
+             0x00007f449baf8458:   jmp		0x7f449baf892e
+             0x00007f449baf845d:   nop		
+          ↗  0x00007f449baf8460:   vmovq		%xmm5, %r9          ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@12 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8465:   movswl		0x10(%r9, %rcx, 2), %r11d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.27%  │  0x00007f449baf846b:   vmovq		%r9, %xmm5          ;   {other}
+   0.03%  │  0x00007f449baf8470:   vmovq		%xmm12, %r10
+          │  0x00007f449baf8475:   movswl		0x10(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf847b:   vmovq		%xmm12, %r8
+   0.97%  │  0x00007f449baf8480:   movswl		0x2e(%r8, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8486:   movl		%r10d, %r9d
+          │  0x00007f449baf8489:   imull		%r11d, %r9d
+          │  0x00007f449baf848d:   movl		%r9d, 0x44(%rsp)
+   1.49%  │  0x00007f449baf8492:   addl		%r11d, %r10d
+          │  0x00007f449baf8495:   movl		%r10d, 0x48(%rsp)
+          │  0x00007f449baf849a:   vmovq		%xmm5, %r10
+   0.06%  │  0x00007f449baf849f:   movswl		0x2e(%r10, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.07%  │  0x00007f449baf84a5:   vmovq		%xmm14, %r10
+   0.06%  │  0x00007f449baf84aa:   movswl		0x2e(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf84b0:   leal		(%r8, %r11), %r9d
+   0.19%  │  0x00007f449baf84b4:   imull		%r9d, %r10d
+   1.27%  │  0x00007f449baf84b8:   imull		%r11d, %r8d
+   0.03%  │  0x00007f449baf84bc:   addl		%r10d, %r8d
+   0.16%  │  0x00007f449baf84bf:   movswl		%r8w, %r10d
+   0.78%  │  0x00007f449baf84c3:   vmovd		%r10d, %xmm7
+   0.97%  │  0x00007f449baf84c8:   vmovq		%xmm12, %r10
+   0.03%  │  0x00007f449baf84cd:   movswl		0x2c(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf84d3:   vmovq		%xmm5, %r11
+   0.03%  │  0x00007f449baf84d8:   movswl		0x2c(%r11, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.20%  │  0x00007f449baf84de:   vmovq		%xmm14, %r11
+   0.03%  │  0x00007f449baf84e3:   movswl		0x2c(%r11, %rcx, 2), %r11d
+          │  0x00007f449baf84e9:   leal		(%r10, %r8), %ebx
+   0.16%  │  0x00007f449baf84ed:   imull		%ebx, %r11d
+   1.10%  │  0x00007f449baf84f1:   imull		%r8d, %r10d
+   0.13%  │  0x00007f449baf84f5:   addl		%r11d, %r10d
+          │  0x00007f449baf84f8:   movswl		%r10w, %r10d
+          │  0x00007f449baf84fc:   vmovd		%r10d, %xmm6
+   1.10%  │  0x00007f449baf8501:   vmovq		%xmm12, %r10
+   0.03%  │  0x00007f449baf8506:   movswl		0x2a(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf850c:   vmovq		%xmm5, %r11
+   0.03%  │  0x00007f449baf8511:   movswl		0x2a(%r11, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.14%  │  0x00007f449baf8517:   vmovq		%xmm14, %r11
+          │  0x00007f449baf851c:   movswl		0x2a(%r11, %rcx, 2), %r11d
+          │  0x00007f449baf8522:   leal		(%r10, %r8), %ebx
+          │  0x00007f449baf8526:   imull		%r11d, %ebx
+   1.14%  │  0x00007f449baf852a:   imull		%r8d, %r10d
+          │  0x00007f449baf852e:   addl		%ebx, %r10d
+          │  0x00007f449baf8531:   movswl		%r10w, %r10d
+   0.06%  │  0x00007f449baf8535:   vmovd		%r10d, %xmm9
+   1.04%  │  0x00007f449baf853a:   vmovq		%xmm14, %r10
+   0.03%  │  0x00007f449baf853f:   movswl		0x28(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf8545:   vmovq		%xmm12, %r11
+          │  0x00007f449baf854a:   movswl		0x28(%r11, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.30%  │  0x00007f449baf8550:   vmovq		%xmm5, %r8
+          │  0x00007f449baf8555:   movswl		0x28(%r8, %rcx, 2), %r9d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf855b:   vmovq		%xmm12, %r8
+          │  0x00007f449baf8560:   movswl		0x26(%r8, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.01%  │  0x00007f449baf8566:   movl		%r11d, %ebx
+   0.03%  │  0x00007f449baf8569:   imull		%r9d, %ebx          ;   {other}
+          │  0x00007f449baf856d:   addl		%r9d, %r11d
+   0.03%  │  0x00007f449baf8570:   imull		%r11d, %r10d
+   1.23%  │  0x00007f449baf8574:   addl		%ebx, %r10d
+          │  0x00007f449baf8577:   movswl		%r10w, %r10d
+          │  0x00007f449baf857b:   vmovd		%r10d, %xmm8
+          │  0x00007f449baf8580:   vmovq		%xmm5, %r10
+   1.01%  │  0x00007f449baf8585:   movswl		0x26(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf858b:   vmovq		%xmm14, %r11
+          │  0x00007f449baf8590:   movswl		0x26(%r11, %rcx, 2), %r9d
+          │  0x00007f449baf8596:   leal		(%r8, %r10), %r11d
+   0.62%  │  0x00007f449baf859a:   imull		%r9d, %r11d
+          │  0x00007f449baf859e:   imull		%r10d, %r8d
+          │  0x00007f449baf85a2:   addl		%r11d, %r8d
+          │  0x00007f449baf85a5:   movswl		%r8w, %r10d
+   1.20%  │  0x00007f449baf85a9:   vmovd		%r10d, %xmm11
+          │  0x00007f449baf85ae:   vmovq		%xmm14, %r10
+          │  0x00007f449baf85b3:   movswl		0x24(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf85b9:   vmovq		%xmm5, %r11
+   1.40%  │  0x00007f449baf85be:   movswl		0x24(%r11, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f449baf85c4:   vmovq		%xmm12, %r8
+          │  0x00007f449baf85c9:   movswl		0x24(%r8, %rcx, 2), %r9d
+   0.03%  │  0x00007f449baf85cf:   movswl		0x22(%r8, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.94%  │  0x00007f449baf85d5:   movl		%r11d, %ebx
+   0.06%  │  0x00007f449baf85d8:   imull		%r9d, %ebx
+          │  0x00007f449baf85dc:   addl		%r9d, %r11d
+   0.03%  │  0x00007f449baf85df:   imull		%r11d, %r10d
+   1.04%  │  0x00007f449baf85e3:   addl		%ebx, %r10d
+          │  0x00007f449baf85e6:   movswl		%r10w, %r10d
+          │  0x00007f449baf85ea:   vmovd		%r10d, %xmm10
+   0.06%  │  0x00007f449baf85ef:   vmovq		%xmm5, %r10
+   0.84%  │  0x00007f449baf85f4:   movswl		0x22(%r10, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f449baf85fa:   vmovq		%xmm14, %r10
+          │  0x00007f449baf85ff:   movswl		0x22(%r10, %rcx, 2), %r10d
+   0.03%  │  0x00007f449baf8605:   leal		(%r8, %r11), %ebx
+   0.97%  │  0x00007f449baf8609:   imull		%r10d, %ebx
+          │  0x00007f449baf860d:   imull		%r11d, %r8d
+          │  0x00007f449baf8611:   addl		%ebx, %r8d
+          │  0x00007f449baf8614:   movswl		%r8w, %edi
+   0.91%  │  0x00007f449baf8618:   vmovq		%xmm14, %r10
+   0.03%  │  0x00007f449baf861d:   movswl		0x20(%r10, %rcx, 2), %r11d
+          │  0x00007f449baf8623:   vmovq		%xmm12, %r10
+   0.03%  │  0x00007f449baf8628:   movswl		0x20(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.43%  │  0x00007f449baf862e:   vmovq		%xmm5, %r8
+   0.03%  │  0x00007f449baf8633:   movswl		0x20(%r8, %rcx, 2), %r9d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8639:   vmovq		%xmm12, %r8
+   0.03%  │  0x00007f449baf863e:   movswl		0x1e(%r8, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.07%  │  0x00007f449baf8644:   movl		%r10d, %edx
+          │  0x00007f449baf8647:   imull		%r9d, %edx
+          │  0x00007f449baf864b:   addl		%r9d, %r10d
+   0.03%  │  0x00007f449baf864e:   imull		%r10d, %r11d
+   0.65%  │  0x00007f449baf8652:   addl		%edx, %r11d
+   0.03%  │  0x00007f449baf8655:   movswl		%r11w, %ebx
+          │  0x00007f449baf8659:   vmovq		%xmm5, %r10
+   0.03%  │  0x00007f449baf865e:   movswl		0x1e(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.88%  │  0x00007f449baf8664:   vmovq		%xmm14, %r11
+          │  0x00007f449baf8669:   movswl		0x1e(%r11, %rcx, 2), %r9d;   {other}
+          │  0x00007f449baf866f:   leal		(%r8, %r10), %r11d
+          │  0x00007f449baf8673:   imull		%r9d, %r11d
+   0.88%  │  0x00007f449baf8677:   imull		%r10d, %r8d
+   0.03%  │  0x00007f449baf867b:   addl		%r11d, %r8d
+          │  0x00007f449baf867e:   movswl		%r8w, %esi
+   0.03%  │  0x00007f449baf8682:   vmovq		%xmm14, %r10
+   0.97%  │  0x00007f449baf8687:   movswl		0x1c(%r10, %rcx, 2), %r11d
+          │  0x00007f449baf868d:   vmovq		%xmm12, %r10
+          │  0x00007f449baf8692:   movswl		0x1c(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8698:   vmovq		%xmm5, %r8
+   1.20%  │  0x00007f449baf869d:   movswl		0x1c(%r8, %rcx, 2), %r9d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f449baf86a3:   vmovq		%xmm12, %r8
+          │  0x00007f449baf86a8:   movswl		0x1a(%r8, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf86ae:   movl		%r10d, %eax
+   0.68%  │  0x00007f449baf86b1:   imull		%r9d, %eax
+   0.03%  │  0x00007f449baf86b5:   addl		%r9d, %r10d
+          │  0x00007f449baf86b8:   imull		%r10d, %r11d
+          │  0x00007f449baf86bc:   addl		%eax, %r11d
+   1.20%  │  0x00007f449baf86bf:   movswl		%r11w, %edx
+          │  0x00007f449baf86c3:   vmovq		%xmm5, %r10
+          │  0x00007f449baf86c8:   movswl		0x1a(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf86ce:   vmovq		%xmm14, %r11
+   1.07%  │  0x00007f449baf86d3:   movswl		0x1a(%r11, %rcx, 2), %r9d
+   0.03%  │  0x00007f449baf86d9:   leal		(%r8, %r10), %r11d
+          │  0x00007f449baf86dd:   imull		%r9d, %r11d
+          │  0x00007f449baf86e1:   imull		%r10d, %r8d
+   0.94%  │  0x00007f449baf86e5:   addl		%r11d, %r8d
+          │  0x00007f449baf86e8:   movswl		%r8w, %ebp
+          │  0x00007f449baf86ec:   vmovq		%xmm12, %r10
+          │  0x00007f449baf86f1:   movswl		0x18(%r10, %rcx, 2), %r10d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   1.17%  │  0x00007f449baf86f7:   vmovq		%xmm5, %r11
+   0.03%  │  0x00007f449baf86fc:   movswl		0x18(%r11, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8702:   vmovq		%xmm14, %r8
+   0.03%  │  0x00007f449baf8707:   movswl		0x18(%r8, %rcx, 2), %r9d
+   1.20%  │  0x00007f449baf870d:   movl		%r10d, %r8d
+          │  0x00007f449baf8710:   imull		%r11d, %r8d
+          │  0x00007f449baf8714:   addl		%r11d, %r10d
+          │  0x00007f449baf8717:   imull		%r9d, %r10d
+   1.17%  │  0x00007f449baf871b:   addl		%r8d, %r10d
+   0.13%  │  0x00007f449baf871e:   movswl		%r10w, %r13d
+          │  0x00007f449baf8722:   vmovq		%xmm12, %r10
+          │  0x00007f449baf8727:   movswl		0x16(%r10, %rcx, 2), %r11d
+          │                                                            ;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.97%  │  0x00007f449baf872d:   vmovq		%xmm5, %r10
+   0.03%  │  0x00007f449baf8732:   movswl		0x16(%r10, %rcx, 2), %r10d
+   0.03%  │  0x00007f449baf8738:   vmovq		%xmm14, %r8
+          │  0x00007f449baf873d:   movswl		0x16(%r8, %rcx, 2), %r9d
+   1.10%  │  0x00007f449baf8743:   leal		(%r11, %r10), %r8d
+   0.03%  │  0x00007f449baf8747:   imull		%r9d, %r8d
+          │  0x00007f449baf874b:   imull		%r10d, %r11d
+          │  0x00007f449baf874f:   addl		%r8d, %r11d
+   1.14%  │  0x00007f449baf8752:   movswl		%r11w, %eax
+   0.03%  │  0x00007f449baf8756:   vmovq		%xmm14, %r10
+          │  0x00007f449baf875b:   movswl		0x14(%r10, %rcx, 2), %r10d
+          │  0x00007f449baf8761:   vmovq		%xmm5, %r11
+   1.33%  │  0x00007f449baf8766:   movswl		0x14(%r11, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │                                                            ;   {other}
+          │  0x00007f449baf876c:   vmovq		%xmm12, %r11
+          │  0x00007f449baf8771:   movswl		0x14(%r11, %rcx, 2), %r11d
+   0.03%  │  0x00007f449baf8777:   vmovq		%xmm12, %r9
+   0.68%  │  0x00007f449baf877c:   movswl		0x12(%r9, %rcx, 2), %r14d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@23 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+          │  0x00007f449baf8782:   movl		%r8d, %r9d
+          │  0x00007f449baf8785:   imull		%r11d, %r9d
+   0.03%  │  0x00007f449baf8789:   addl		%r11d, %r8d
+   1.10%  │  0x00007f449baf878c:   imull		%r8d, %r10d
+   0.03%  │  0x00007f449baf8790:   addl		%r9d, %r10d
+   0.19%  │  0x00007f449baf8793:   movswl		%r10w, %r10d
+   0.03%  │  0x00007f449baf8797:   vmovq		%xmm5, %r11
+   0.94%  │  0x00007f449baf879c:   movswl		0x12(%r11, %rcx, 2), %r8d;*saload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@36 (line 734)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f449baf87a2:   vmovq		%xmm14, %r11
+   0.03%  │  0x00007f449baf87a7:   movswl		0x12(%r11, %rcx, 2), %r11d
+   0.06%  │  0x00007f449baf87ad:   leal		(%r14, %r8), %r9d
+   1.59%  │  0x00007f449baf87b1:   imull		%r11d, %r9d
+   0.10%  │  0x00007f449baf87b5:   imull		%r8d, %r14d
+          │  0x00007f449baf87b9:   addl		%r9d, %r14d
+          │  0x00007f449baf87bc:   movswl		%r14w, %r11d
+   1.27%  │  0x00007f449baf87c0:   vmovq		%xmm14, %r8
+   0.03%  │  0x00007f449baf87c5:   movswl		0x10(%r8, %rcx, 2), %r8d
+   0.03%  │  0x00007f449baf87cb:   imull		0x48(%rsp), %r8d
+   0.06%  │  0x00007f449baf87d1:   addl		0x44(%rsp), %r8d
+   2.18%  │  0x00007f449baf87d6:   movswl		%r8w, %r9d
+   0.42%  │  0x00007f449baf87da:   xorl		%r9d, %r11d
+   1.62%  │  0x00007f449baf87dd:   xorl		%r11d, %r10d
+   1.82%  │  0x00007f449baf87e0:   xorl		%r10d, %eax
+   5.36%  │  0x00007f449baf87e3:   xorl		%eax, %r13d
+   5.39%  │  0x00007f449baf87e6:   xorl		%r13d, %ebp
+   5.88%  │  0x00007f449baf87e9:   xorl		%ebp, %edx
+   2.11%  │  0x00007f449baf87eb:   xorl		%edx, %esi
+   1.40%  │  0x00007f449baf87ed:   xorl		%esi, %ebx
+   1.49%  │  0x00007f449baf87ef:   xorl		%ebx, %edi
+   1.20%  │  0x00007f449baf87f1:   vmovd		%xmm10, %r10d
+          │  0x00007f449baf87f6:   xorl		%edi, %r10d
+   1.62%  │  0x00007f449baf87f9:   vmovd		%xmm11, %r11d
+   0.03%  │  0x00007f449baf87fe:   xorl		%r10d, %r11d
+   1.30%  │  0x00007f449baf8801:   vmovd		%xmm8, %r10d
+   0.03%  │  0x00007f449baf8806:   xorl		%r11d, %r10d
+   1.56%  │  0x00007f449baf8809:   vmovd		%xmm9, %r11d
+          │  0x00007f449baf880e:   xorl		%r10d, %r11d
+   1.40%  │  0x00007f449baf8811:   vmovd		%xmm6, %r10d
+          │  0x00007f449baf8816:   xorl		%r11d, %r10d
+   1.27%  │  0x00007f449baf8819:   vmovd		%xmm7, %r11d
+   0.03%  │  0x00007f449baf881e:   xorl		%r10d, %r11d
+   1.95%  │  0x00007f449baf8821:   vmovd		%xmm13, %r10d
+          │  0x00007f449baf8826:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@59 (line 735)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.91%  │  0x00007f449baf8829:   vmovd		%r10d, %xmm13
+   1.82%  │  0x00007f449baf882e:   addl		$0x10, %ecx         ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@62 (line 733)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%  │  0x00007f449baf8831:   cmpl		0x50(%rsp), %ecx
+          ╰  0x00007f449baf8835:   jl		0x7f449baf8460      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                       ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@9 (line 733)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+             0x00007f449baf883b:   movq		0x30(%r15), %r10    ; ImmutableOopMap {xmm0=Oop xmm1=Oop xmm2=Oop xmm3=Oop xmm5=Oop xmm12=Oop xmm14=Oop }
+                                                                       ;*goto {reexecute=1 rethrow=0 return_oop=0}
+                                                                       ; - (reexecute) org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@65 (line 733)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+             0x00007f449baf883f:   testl		%eax, (%r10)        ;*goto {reexecute=0 rethrow=0 return_oop=0}
+                                                                       ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@65 (line 733)
+                                                                       ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+                                                                       ;   {poll}
+   0.06%     0x00007f449baf8842:   cmpl		0x4c(%rsp), %ecx
+             0x00007f449baf8846:   jge		0x7f449baf88a5
+             0x00007f449baf8848:   vmovq		%xmm5, %r9
+             0x00007f449baf884d:   movl		0x4c(%rsp), %edi
+             0x00007f449baf8851:   vmovq		%xmm12, %rsi
+             0x00007f449baf8856:   vmovq		%xmm14, %rdx
+             0x00007f449baf885b:   vmovd		%xmm13, %r8d
+             0x00007f449baf8860:   movl		%edi, %r10d
+....................................................................................................
+  95.39%  <total for region 1>
+#+end_src
+
+byteXorBig assembly:
+#+begin_src bash
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub, version 5, compile id 516
+
+                                                                          ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@27 (line 123)
+                0x00007f89e3af850a:   testl		%r10d, %r10d
+                0x00007f89e3af850d:   jne		0x7f89e3af897d      ;*ifeq {reexecute=0 rethrow=0 return_oop=0}
+                                                                          ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@30 (line 123)
+                0x00007f89e3af8513:   movl		$1, %ebp
+                0x00007f89e3af8518:   jmp		0x7f89e3af8873
+           ↗    0x00007f89e3af851d:   movl		0x44(%rsp), %r11d
+           │    0x00007f89e3af8522:   movl		%r11d, %r8d
+           │    0x00007f89e3af8525:   subl		%r13d, %r8d
+           │    0x00007f89e3af8528:   xorl		%r9d, %r9d
+   0.03%   │    0x00007f89e3af852b:   cmpl		%r13d, %r11d
+           │    0x00007f89e3af852e:   cmovll		%r9d, %r8d
+           │    0x00007f89e3af8532:   cmpl		$0x3e80, %r8d
+           │    0x00007f89e3af8539:   movl		$0x3e80, %r10d
+   0.03%   │    0x00007f89e3af853f:   cmoval		%r10d, %r8d
+   0.07%   │    0x00007f89e3af8543:   addl		%r13d, %r8d
+           │    0x00007f89e3af8546:   movl		%r11d, 0x44(%rsp)
+           │    0x00007f89e3af854b:   movl		%r8d, 0x48(%rsp)    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+           │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@12 (line 308)
+           │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.49%  ↗│    0x00007f89e3af8550:   movslq		%r13d, %rdx         ;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@17 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.59%  ││    0x00007f89e3af8553:   movsbl		0x1f(%rbx, %rdx), %esi
+   0.39%  ││    0x00007f89e3af8558:   movsbl		0x10(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.65%  ││    0x00007f89e3af855e:   movsbl		0x10(%rcx, %rdx), %eax
+   0.52%  ││    0x00007f89e3af8563:   movsbl		0x10(%rdi, %rdx), %r11d
+   0.43%  ││    0x00007f89e3af8569:   movl		%eax, %r9d
+   0.56%  ││    0x00007f89e3af856c:   imull		%r10d, %r9d
+   0.39%  ││    0x00007f89e3af8570:   addl		%r10d, %eax
+   0.62%  ││    0x00007f89e3af8573:   imull		%eax, %r11d
+   0.33%  ││    0x00007f89e3af8577:   addl		%r9d, %r11d
+   1.11%  ││    0x00007f89e3af857a:   movsbl		%r11b, %eax
+   0.79%  ││    0x00007f89e3af857e:   movsbl		0x11(%rcx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.85%  ││    0x00007f89e3af8584:   movsbl		0x11(%rbx, %rdx), %r11d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.39%  ││    0x00007f89e3af858a:   movsbl		0x11(%rdi, %rdx), %r9d
+   0.62%  ││    0x00007f89e3af8590:   movl		%r11d, %r8d         ;   {other}
+   0.49%  ││    0x00007f89e3af8593:   imull		%r10d, %r8d
+   0.59%  ││    0x00007f89e3af8597:   addl		%r10d, %r11d
+   1.34%  ││    0x00007f89e3af859a:   imull		%r11d, %r9d
+   0.69%  ││    0x00007f89e3af859e:   addl		%r8d, %r9d
+   1.67%  ││    0x00007f89e3af85a1:   movsbl		%r9b, %r8d
+   1.21%  ││    0x00007f89e3af85a5:   xorl		%eax, %r8d
+   0.46%  ││    0x00007f89e3af85a8:   movsbl		0x12(%rcx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.39%  ││    0x00007f89e3af85ae:   movsbl		0x12(%rbx, %rdx), %r11d
+   0.46%  ││    0x00007f89e3af85b4:   movsbl		0x12(%rdi, %rdx), %r9d
+   0.43%  ││    0x00007f89e3af85ba:   movl		%r11d, %eax
+   0.29%  ││    0x00007f89e3af85bd:   imull		%r10d, %eax
+   0.62%  ││    0x00007f89e3af85c1:   addl		%r10d, %r11d
+   1.21%  ││    0x00007f89e3af85c4:   imull		%r11d, %r9d
+   0.72%  ││    0x00007f89e3af85c8:   addl		%eax, %r9d
+   1.18%  ││    0x00007f89e3af85cb:   movsbl		%r9b, %r9d
+   0.65%  ││    0x00007f89e3af85cf:   xorl		%r8d, %r9d
+   0.46%  ││    0x00007f89e3af85d2:   movsbl		0x13(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.65%  ││    0x00007f89e3af85d7:   movsbl		0x13(%rcx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.65%  ││    0x00007f89e3af85dd:   movsbl		0x13(%rdi, %rdx), %r11d
+   0.43%  ││    0x00007f89e3af85e3:   movl		%r10d, %r8d
+   0.79%  ││    0x00007f89e3af85e6:   imull		%eax, %r8d
+   0.59%  ││    0x00007f89e3af85ea:   addl		%eax, %r10d
+   0.65%  ││    0x00007f89e3af85ed:   imull		%r10d, %r11d
+   0.62%  ││    0x00007f89e3af85f1:   addl		%r8d, %r11d
+   0.82%  ││    0x00007f89e3af85f4:   movsbl		%r11b, %r8d
+   0.56%  ││    0x00007f89e3af85f8:   xorl		%r9d, %r8d
+   0.75%  ││    0x00007f89e3af85fb:   movsbl		0x14(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.56%  ││    0x00007f89e3af8600:   movsbl		0x14(%rcx, %rdx), %r10d
+   0.62%  ││    0x00007f89e3af8606:   movsbl		0x14(%rdi, %rdx), %r11d
+   0.49%  ││    0x00007f89e3af860c:   movl		%r10d, %r9d
+   0.62%  ││    0x00007f89e3af860f:   imull		%eax, %r9d
+   0.56%  ││    0x00007f89e3af8613:   addl		%eax, %r10d
+   0.62%  ││    0x00007f89e3af8616:   imull		%r10d, %r11d
+   0.62%  ││    0x00007f89e3af861a:   addl		%r9d, %r11d
+   1.11%  ││    0x00007f89e3af861d:   movsbl		%r11b, %r9d
+   0.59%  ││    0x00007f89e3af8621:   xorl		%r8d, %r9d
+   0.62%  ││    0x00007f89e3af8624:   movsbl		0x15(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.39%  ││    0x00007f89e3af8629:   movsbl		0x15(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.33%  ││    0x00007f89e3af862f:   movsbl		0x15(%rdi, %rdx), %r11d
+   0.49%  ││    0x00007f89e3af8635:   movl		%r10d, %r8d
+   0.49%  ││    0x00007f89e3af8638:   imull		%eax, %r8d
+   0.69%  ││    0x00007f89e3af863c:   addl		%eax, %r10d
+   0.69%  ││    0x00007f89e3af863f:   imull		%r10d, %r11d
+   0.72%  ││    0x00007f89e3af8643:   addl		%r8d, %r11d
+   0.43%  ││    0x00007f89e3af8646:   movsbl		%r11b, %r8d
+   0.39%  ││    0x00007f89e3af864a:   xorl		%r9d, %r8d
+   0.59%  ││    0x00007f89e3af864d:   movsbl		0x16(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.62%  ││    0x00007f89e3af8652:   movsbl		0x16(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.65%  ││    0x00007f89e3af8658:   movsbl		0x16(%rdi, %rdx), %r11d
+   0.62%  ││    0x00007f89e3af865e:   movl		%r10d, %r9d
+   0.79%  ││    0x00007f89e3af8661:   imull		%eax, %r9d
+   0.56%  ││    0x00007f89e3af8665:   addl		%eax, %r10d
+   0.33%  ││    0x00007f89e3af8668:   imull		%r10d, %r11d
+   0.52%  ││    0x00007f89e3af866c:   addl		%r9d, %r11d
+   0.39%  ││    0x00007f89e3af866f:   movsbl		%r11b, %r9d
+   0.62%  ││    0x00007f89e3af8673:   xorl		%r8d, %r9d
+   0.62%  ││    0x00007f89e3af8676:   movsbl		0x17(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.49%  ││    0x00007f89e3af867b:   movsbl		0x17(%rbx, %rdx), %r10d
+   0.95%  ││    0x00007f89e3af8681:   movsbl		0x17(%rdi, %rdx), %r11d
+   0.62%  ││    0x00007f89e3af8687:   movl		%r10d, %r8d
+   0.82%  ││    0x00007f89e3af868a:   imull		%eax, %r8d
+   0.65%  ││    0x00007f89e3af868e:   addl		%eax, %r10d         ;   {other}
+   0.43%  ││    0x00007f89e3af8691:   imull		%r10d, %r11d
+   0.65%  ││    0x00007f89e3af8695:   addl		%r8d, %r11d
+   0.56%  ││    0x00007f89e3af8698:   movsbl		%r11b, %r8d
+   0.59%  ││    0x00007f89e3af869c:   xorl		%r9d, %r8d
+   0.39%  ││    0x00007f89e3af869f:   movsbl		0x18(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.43%  ││    0x00007f89e3af86a4:   movsbl		0x18(%rcx, %rdx), %r10d
+   0.62%  ││    0x00007f89e3af86aa:   movsbl		0x18(%rdi, %rdx), %r11d
+   0.62%  ││    0x00007f89e3af86b0:   movl		%r10d, %r9d
+   0.39%  ││    0x00007f89e3af86b3:   imull		%eax, %r9d
+   0.59%  ││    0x00007f89e3af86b7:   addl		%eax, %r10d
+   0.52%  ││    0x00007f89e3af86ba:   imull		%r10d, %r11d
+   0.59%  ││    0x00007f89e3af86be:   addl		%r9d, %r11d
+   0.69%  ││    0x00007f89e3af86c1:   movsbl		%r11b, %r9d
+   0.26%  ││    0x00007f89e3af86c5:   xorl		%r8d, %r9d
+   0.56%  ││    0x00007f89e3af86c8:   movsbl		0x19(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.36%  ││    0x00007f89e3af86cd:   movsbl		0x19(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.36%  ││    0x00007f89e3af86d3:   movsbl		0x19(%rdi, %rdx), %r11d
+   0.49%  ││    0x00007f89e3af86d9:   movl		%r10d, %r8d
+   0.33%  ││    0x00007f89e3af86dc:   imull		%eax, %r8d
+   0.59%  ││    0x00007f89e3af86e0:   addl		%eax, %r10d
+   0.62%  ││    0x00007f89e3af86e3:   imull		%r10d, %r11d
+   0.49%  ││    0x00007f89e3af86e7:   addl		%r8d, %r11d
+   0.59%  ││    0x00007f89e3af86ea:   movsbl		%r11b, %r8d
+   0.26%  ││    0x00007f89e3af86ee:   xorl		%r9d, %r8d
+   0.62%  ││    0x00007f89e3af86f1:   movsbl		0x1a(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.62%  ││    0x00007f89e3af86f6:   movsbl		0x1a(%rbx, %rdx), %r10d
+   0.52%  ││    0x00007f89e3af86fc:   movsbl		0x1a(%rdi, %rdx), %r11d
+   0.49%  ││    0x00007f89e3af8702:   movl		%r10d, %r9d
+   0.49%  ││    0x00007f89e3af8705:   imull		%eax, %r9d
+   0.72%  ││    0x00007f89e3af8709:   addl		%eax, %r10d
+   0.62%  ││    0x00007f89e3af870c:   imull		%r10d, %r11d
+   0.69%  ││    0x00007f89e3af8710:   addl		%r9d, %r11d
+   0.65%  ││    0x00007f89e3af8713:   movsbl		%r11b, %r9d
+   0.62%  ││    0x00007f89e3af8717:   xorl		%r8d, %r9d
+   0.59%  ││    0x00007f89e3af871a:   movsbl		0x1b(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.56%  ││    0x00007f89e3af871f:   movsbl		0x1b(%rcx, %rdx), %r10d
+   0.46%  ││    0x00007f89e3af8725:   movsbl		0x1b(%rdi, %rdx), %r11d
+   0.65%  ││    0x00007f89e3af872b:   movl		%r10d, %r8d
+   0.69%  ││    0x00007f89e3af872e:   imull		%eax, %r8d
+   0.33%  ││    0x00007f89e3af8732:   addl		%eax, %r10d
+   0.56%  ││    0x00007f89e3af8735:   imull		%r10d, %r11d
+   0.49%  ││    0x00007f89e3af8739:   addl		%r8d, %r11d
+   0.75%  ││    0x00007f89e3af873c:   movsbl		%r11b, %r8d
+   0.69%  ││    0x00007f89e3af8740:   xorl		%r9d, %r8d
+   0.49%  ││    0x00007f89e3af8743:   movsbl		0x1c(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.33%  ││    0x00007f89e3af8748:   movsbl		0x1c(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.79%  ││    0x00007f89e3af874e:   movsbl		0x1c(%rdi, %rdx), %r11d
+   0.36%  ││    0x00007f89e3af8754:   movl		%r10d, %r9d
+   0.65%  ││    0x00007f89e3af8757:   imull		%eax, %r9d
+   0.52%  ││    0x00007f89e3af875b:   addl		%eax, %r10d
+   0.49%  ││    0x00007f89e3af875e:   imull		%r10d, %r11d
+   0.75%  ││    0x00007f89e3af8762:   addl		%r9d, %r11d
+   0.62%  ││    0x00007f89e3af8765:   movsbl		%r11b, %r9d
+   0.43%  ││    0x00007f89e3af8769:   xorl		%r8d, %r9d
+   0.69%  ││    0x00007f89e3af876c:   movsbl		0x1d(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.72%  ││    0x00007f89e3af8771:   movsbl		0x1d(%rbx, %rdx), %r10d
+   0.56%  ││    0x00007f89e3af8777:   movsbl		0x1d(%rdi, %rdx), %r11d
+   0.33%  ││    0x00007f89e3af877d:   movl		%r10d, %r8d
+   0.52%  ││    0x00007f89e3af8780:   imull		%eax, %r8d
+   0.46%  ││    0x00007f89e3af8784:   addl		%eax, %r10d
+   0.62%  ││    0x00007f89e3af8787:   imull		%r10d, %r11d
+   0.56%  ││    0x00007f89e3af878b:   addl		%r8d, %r11d
+   0.46%  ││    0x00007f89e3af878e:   movsbl		%r11b, %r8d         ;   {other}
+   0.46%  ││    0x00007f89e3af8792:   xorl		%r9d, %r8d
+   0.72%  ││    0x00007f89e3af8795:   movsbl		0x1e(%rdi, %rdx), %eax
+   0.62%  ││    0x00007f89e3af879a:   movsbl		0x1e(%rbx, %rdx), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.65%  ││    0x00007f89e3af87a0:   movsbl		0x1e(%rcx, %rdx), %r11d
+   0.56%  ││    0x00007f89e3af87a6:   movsbl		0x1f(%rdi, %rdx), %r9d
+   0.85%  ││    0x00007f89e3af87ac:   movsbl		0x1f(%rcx, %rdx), %edx;*baload {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.59%  ││    0x00007f89e3af87b1:   leal		(%r11, %r10), %ebp
+   0.52%  ││    0x00007f89e3af87b5:   imull		%ebp, %eax
+   0.59%  ││    0x00007f89e3af87b8:   imull		%r10d, %r11d
+   0.56%  ││    0x00007f89e3af87bc:   addl		%eax, %r11d
+   0.26%  ││    0x00007f89e3af87bf:   movsbl		%r11b, %r10d
+   0.75%  ││    0x00007f89e3af87c3:   xorl		%r8d, %r10d
+   0.52%  ││    0x00007f89e3af87c6:   leal		(%rsi, %rdx), %r11d
+   0.72%  ││    0x00007f89e3af87ca:   imull		%r11d, %r9d
+   0.43%  ││    0x00007f89e3af87ce:   imull		%edx, %esi
+   0.59%  ││    0x00007f89e3af87d1:   addl		%r9d, %esi
+   0.29%  ││    0x00007f89e3af87d4:   movsbl		%sil, %r8d
+   0.43%  ││    0x00007f89e3af87d8:   xorl		%r10d, %r8d
+   0.65%  ││    0x00007f89e3af87db:   xorl		%r8d, %r14d         ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 309)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.49%  ││    0x00007f89e3af87de:   addl		$0x10, %r13d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 307)
+          ││                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.79%  ││    0x00007f89e3af87e2:   cmpl		0x48(%rsp), %r13d
+          ╰│    0x00007f89e3af87e7:   jl		0x7f89e3af8550      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+           │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 307)
+           │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%   │    0x00007f89e3af87ed:   movq		0x30(%r15), %r10    ; ImmutableOopMap {rcx=Oop rbx=Oop rdi=Oop xmm0=Oop xmm1=Oop xmm2=Oop xmm3=Oop }
+           │                                                              ;*goto {reexecute=1 rethrow=0 return_oop=0}
+           │                                                              ; - (reexecute) org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@65 (line 307)
+           │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.03%   │    0x00007f89e3af87f1:   testl		%eax, (%r10)        ;*goto {reexecute=0 rethrow=0 return_oop=0}
+           │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@65 (line 307)
+           │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+           │                                                              ;   {poll}
+   0.20%   │    0x00007f89e3af87f4:   cmpl		0x44(%rsp), %r13d
+           ╰    0x00007f89e3af87f9:   jl		0x7f89e3af851d
+                0x00007f89e3af87ff:   nop		
+                0x00007f89e3af8800:   cmpl		0x40(%rsp), %r13d
+            ╭   0x00007f89e3af8805:   jge		0x7f89e3af883f
+            │   0x00007f89e3af8807:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+            │                                                             ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@12 (line 308)
+            │                                                             ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.10%    │↗  0x00007f89e3af8808:   movslq		%r13d, %r8          ;*baload {reexecute=0 rethrow=0 return_oop=0}
+            ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@17 (line 308)
+            ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.07%    ││  0x00007f89e3af880b:   movsbl		0x10(%rcx, %r8), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+            ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+            ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.10%    ││  0x00007f89e3af8811:   movsbl		0x10(%rdi, %r8), %r11d
+            ││  0x00007f89e3af8817:   movsbl		0x10(%rbx, %r8), %r9d;*baload {reexecute=0 rethrow=0 return_oop=0}
+            ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+            ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.10%    ││  0x00007f89e3af881d:   movl		%r10d, %r8d
+   0.10%    ││  0x00007f89e3af8820:   imull		%r9d, %r8d
+   0.13%    ││  0x00007f89e3af8824:   addl		%r9d, %r10d
+   0.16%    ││  0x00007f89e3af8827:   imull		%r10d, %r11d
+   0.07%    ││  0x00007f89e3af882b:   addl		%r11d, %r8d
+   0.10%    ││  0x00007f89e3af882e:   movsbl		%r8b, %r10d
+   0.10%    ││  0x00007f89e3af8832:   xorl		%r10d, %r14d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+            ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 309)
+            ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.16%    ││  0x00007f89e3af8835:   incl		%r13d               ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+            ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 307)
+            ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.13%    ││  0x00007f89e3af8838:   cmpl		0x40(%rsp), %r13d
+            │╰  0x00007f89e3af883d:   jl		0x7f89e3af8808
+            ↘   0x00007f89e3af883f:   vmovq		%xmm0, %rbx
+                0x00007f89e3af8844:   vmovq		%xmm1, %r9
+                0x00007f89e3af8849:   vmovq		%xmm2, %r8
+                0x00007f89e3af884e:   vmovq		%xmm3, %rcx
+                0x00007f89e3af8853:   vmovq		%xmm4, %rbp         ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                          ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 307)
+                                                                          ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+....................................................................................................
+  96.86%  <total for region 1>
+#+end_src
+
+shortXorBig snippet:
+#+begin_src bash
+          │  0x00007f449baf87b9:   addl		%r9d, %r14d
+          │  0x00007f449baf87bc:   movswl	%r14w, %r11d
+   1.62%  │  0x00007f449baf87dd:   xorl		%r11d, %r10d
+
+   1.20%  │  0x00007f449baf87f1:   vmovd	%xmm10, %r10d
+          │  0x00007f449baf87f6:   xorl		%edi, %r10d
+#+end_src
+
+byteXorBig snippet:
+#+begin_src bash
+   0.49%  ││    0x00007f89e3af8739:   addl		%r8d, %r11d
+   0.75%  ││    0x00007f89e3af873c:   movsbl		%r11b, %r8d
+   0.69%  ││    0x00007f89e3af8740:   xorl		%r9d, %r8d
+
+// no vmovd
+#+end_src
+
+is reassociation happening?
+what is the branch?
 * 3.3.26
 Compiler single-thread linux, after merge master:
 #+begin_src bash
