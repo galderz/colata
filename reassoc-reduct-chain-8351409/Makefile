@@ -15,8 +15,8 @@ JMH_FORKS ?= 1
 default: run-gen
 
 TOPDIR = ..
-include $(TOPDIR)/nix-make/MakeBase.gmk
-include $(TOPDIR)/nix-make/OpenJDK.gmk
+include $(TOPDIR)/make/MakeBase.gmk
+include $(TOPDIR)/make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
