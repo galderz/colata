@@ -6,6 +6,7 @@
 ** Vectorization
 - [WIP] 8366531: Add vector size checks for IRNode.VECTOR_REINTERPRET https://bugs.openjdk.org/browse/JDK-8366531
 - [ ] 8380928: C2 SuperWord: PopulateIndex for NEON/aarch64 https://bugs.openjdk.org/browse/JDK-8380928
+- [ ] 8309458: AArch64: jdk/incubator/vector tests failing when MaxVectorSize is 128B https://bugs.openjdk.org/browse/JDK-8309458
 * Completed
 - [X] 8382316: Unused xtmp in long_to_maskLE8_avx https://bugs.openjdk.org/browse/JDK-8382316
 - [X] 8382777: PrintMethodData not showing BranchData https://bugs.openjdk.org/browse/JDK-8382777
