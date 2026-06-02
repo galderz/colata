@@ -67,12 +67,12 @@ CONF=release make clean-csv
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.reassoc-reduct-chain" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.reassoc-reduct-chain" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain" "" "noprof"
-benchmark_branch "topic.reassoc-reduct-chain.base" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.base" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.all-add" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "" "noprof"
 
 zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
 zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
