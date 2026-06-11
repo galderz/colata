@@ -30,3 +30,6 @@ tools:
 repos:
   - url: https://github.com/SirYwell/jdk
     path: ~/jdk
+    branch: redo-involutions-simplify
+  - url: https://github.com/galderz/colata
+    path: ~/colata

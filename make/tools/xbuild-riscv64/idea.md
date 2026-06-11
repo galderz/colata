@@ -6,6 +6,9 @@ You want to explore cross building on the current platform for that target archi
 with the aim of running the IR tests in the https://github.com/openjdk/jdk/pull/26823
 in the riscv64 board.
 
+The ~/jdk folder already contains a clone of repository that we want to build,
+and it has the correct branch checked out.
+
 There could be multiple ways to achieve this,
 so explore them until we find a working solution.
 
