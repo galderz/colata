@@ -12,5 +12,12 @@ so explore them until we find a working solution.
 You don't have access to the riscv64 board,
 but create zip files for any prototypes that need copying over and we will take of that separately and provide feedback.
 
-The IR test might have assertion failures in the riscv64 environment, but that is fine as this has been hinted by Manuel in the PR.
-However, the built JDK should run fine otherwise in the target environment.
+According to Manuel's comments, The IR test might have assertion failures in the riscv64 environment if running with `-XX:UseZbb`.
+So, we will want to run the test with both `-XX:+UseZbb` and `-XX:-UseZbb` and see if anything fails.
+
+Aside from potential IR assertion failures, the built JDK should run fine otherwise in the target environment.
+
+Create a set of scripts for each option explored so that once a working solution is found,
+it can be easily be reused in the future.
+
+You have sudo access so you can install any tools you need to achieve this.
