@@ -26,6 +26,7 @@ packages:
   - zip
   - unzip
 tools:
+  - pi
   - ssh
 repos:
   - url: https://github.com/SirYwell/jdk
