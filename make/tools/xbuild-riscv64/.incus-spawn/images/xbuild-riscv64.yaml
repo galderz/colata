@@ -1,0 +1,32 @@
+name: tpl-xbuild-riscv64
+description: Cross build OpenJDK for riscv64
+parent: tpl-dev
+packages:
+  - java-26-openjdk-devel
+  - autoconf
+  - alsa-lib-devel
+  - capstone-devel
+  - cups-devel
+  - fontconfig-devel
+  - freetype-devel
+  - libXtst-devel
+  - libXt-devel
+  - libXrender-devel
+  - libXrandr-devel
+  - libXi-devel
+  - libjpeg-turbo-devel
+  - libpng-devel
+  - giflib-devel
+  - lcms2-devel
+  - libffi-devel
+  - gcc
+  - gcc-c++
+  - make
+  - gdb
+  - zip
+  - unzip
+tools:
+  - ssh
+repos:
+  - url: https://github.com/SirYwell/jdk
+    path: ~/jdk
