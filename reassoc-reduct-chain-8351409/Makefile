@@ -48,8 +48,9 @@ comp_jvm_args += -XX:CompileCommand=print,$(CLASS)::test*
 
 ideal_jvm_args += -XX:+PrintIdeal
 
-asm_jvm_args += -XX:+PrintNMethods
+#asm_jvm_args += -XX:+PrintNMethods
 #asm_jvm_args += -XX:+PrintAssembly
+asm_jvm_args += -XX:CompileCommand=PrintAssembly,$(CLASS)::test*
 
 #loop_jvm_args += -XX:+TraceLoopOpts
 #loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
@@ -84,6 +85,10 @@ ifdef LOOP_ARGS
   jvm_args += $(loop_jvm_args)
 endif
 
+ifdef TRACE_LOOP_ARGS
+  jvm_args += -XX:+TraceLoopOpts
+endif
+
 ifdef GVN_ARGS
   jvm_args += $(gvn_jvm_args)
 endif
@@ -98,6 +103,10 @@ endif
 
 ifdef BRANCH_NEVER_MIN
   jvm_args += -XX:+UseNewCode2
+endif
+
+ifdef PEEPHOLE_ARGS
+  jvm_args += -XX:+PrintOptoPeephole
 endif
 
 # E.g. IGV=3 (0 print nothing except IGVPrintLevel directives, 6 all details)
