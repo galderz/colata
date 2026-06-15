@@ -181,6 +181,8 @@ In the baseline assembly I observed that the array base was stable accross the l
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
 * 15.6.26
+Why are in short all XOR instructions clustered at the end of the loop body, but for byte they are spread out?
+
 Replicated on amd server:
 #+begin_src bash
 Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
