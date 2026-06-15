@@ -2,6 +2,8 @@ import static java.lang.IO.*;
 import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.*;
 
+import java.util.Random;
+
 public class TestXor
 {
     static final int ITER = 100_000;
@@ -44,9 +46,9 @@ public class TestXor
         var s3 = new short[SIZE];
         init(b1, b2, b3, s1, s2, s3);
         var expectedB = expectB(b1, b2, b3);
-        validateB(expected, b1, b2, b3);
+        validateB(expectedB, b1, b2, b3);
         var expectedS = expectS(s1, s2, s3);
-        validateS(expected, s1, s2, s3);
+        validateS(expectedS, s1, s2, s3);
 
         println("Warmup");
         for (int i = 0; i < ITER; i++)
