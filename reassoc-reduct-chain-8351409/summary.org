@@ -180,6 +180,13 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
+* 15.6.26
+Replicated on amd server:
+#+begin_src bash
+Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig     2048       0  thrpt    3  589.620  579.657  ops/ms   -2%
+VectorReduction2.NoSuperword.shortXorBig    2048       0  thrpt    3  554.976  327.601  ops/ms  -41%
+#+end_src
 * 2.6.26
 Replicated the performance difference:
 #+begin_src bash
