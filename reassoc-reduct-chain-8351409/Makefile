@@ -21,7 +21,7 @@ include $(TOPDIR)/make/OpenJDK.gmk
 base_jvm_args += -Xbatch
 base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
-base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test
+base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
 base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
 ifneq ($(CONF),release)
   base_jvm_args += -XX:VerifyIterativeGVN=1000
@@ -43,8 +43,8 @@ ifdef NO_LOOP_UNROLL
   base_jvm_args += -XX:LoopMaxUnroll=0
 endif
 
-comp_jvm_args += -XX:CompileCommand=print,$(CLASS)::test
-#comp_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::test
+comp_jvm_args += -XX:CompileCommand=print,$(CLASS)::test*
+#comp_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::test*
 
 ideal_jvm_args += -XX:+PrintIdeal
 
@@ -52,12 +52,12 @@ asm_jvm_args += -XX:+PrintNMethods
 #asm_jvm_args += -XX:+PrintAssembly
 
 #loop_jvm_args += -XX:+TraceLoopOpts
-#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
-#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
-#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,BEFORE_MACRO_EXPANSION"
-#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,ITER_GVN2,AFTER_LOOP_OPTS"
-#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"AFTER_LOOP_OPTS"
-loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"PHASEIDEALLOOP_ITERATIONS,AFTER_LOOP_OPTS"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"BEFORE_LOOP_UNROLLING,AFTER_LOOP_UNROLLING"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"AFTER_LOOP_OPTS,BEFORE_MACRO_EXPANSION"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"PHASEIDEALLOOP_ITERATIONS,BEFORE_MACRO_EXPANSION"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"PHASEIDEALLOOP_ITERATIONS,ITER_GVN2,AFTER_LOOP_OPTS"
+#loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"AFTER_LOOP_OPTS"
+loop_jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"PHASEIDEALLOOP_ITERATIONS,AFTER_LOOP_OPTS"
 
 gvn_jvm_args += -XX:+TraceIterativeGVN
 #gvn_jvm_args += -XX:+Verbose
@@ -65,7 +65,7 @@ gvn_jvm_args += -XX:+TraceIterativeGVN
 super_jvm_args += -XX:+TraceSuperWord
 
 ifdef PHASE
-  jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test,"$(PHASE)"
+  jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,"$(PHASE)"
 endif
 
 ifdef COMP_ARGS
