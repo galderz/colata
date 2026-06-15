@@ -3,7 +3,7 @@
 set -ex
 
 echo "=== PATCH RUN ==="
-BRANCH=topic.reassoc-reduct-chain.all-add.base make checkout
+BRANCH=topic.reassoc-reduct-chain.all-add make checkout
 TEST=TestXorByte make run
 TEST=TestXorShort make run
 
