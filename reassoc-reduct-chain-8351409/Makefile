@@ -19,7 +19,7 @@ include $(TOPDIR)/make/MakeBase.gmk
 include $(TOPDIR)/make/OpenJDK.gmk
 
 base_jvm_args += -Xbatch
-base_jvm_args += -Xlog:os
+#base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
 base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
