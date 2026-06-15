@@ -1,8 +1,13 @@
 import static java.lang.IO.*;
 import static java.lang.System.nanoTime;
+import static java.util.concurrent.TimeUnit.*;
 
 public class TestXor
 {
+    static final int ITER = 100_000;
+
+    static final int NUM_RUNS = 10;
+
     static final int SIZE = 10_000;
 
     static final Random RND = new Random(42);
