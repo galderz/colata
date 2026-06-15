@@ -84,11 +84,8 @@ public class TestXorShort
         , short[] s2
         , short[] s3
     ) {
-        for (int i = 0; i < b1.length; i++)
+        for (int i = 0; i < s1.length; i++)
         {
-            b1[i] = (byte) RND.nextInt();
-            b2[i] = (byte) RND.nextInt();
-            b3[i] = (byte) RND.nextInt();
             s1[i] = (short) RND.nextInt();
             s2[i] = (short) RND.nextInt();
             s3[i] = (short) RND.nextInt();
