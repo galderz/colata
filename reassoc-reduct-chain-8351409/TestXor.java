@@ -111,7 +111,7 @@ public class TestXor
 
     static void validateB(byte expected, byte[] a1, byte[] a2, byte[] a3)
     {
-        println("Validate B");
+        println("Validate");
         var value = testByte(a1, a2, a3);
         assertEquals(expected, value);
     }
@@ -129,7 +129,7 @@ public class TestXor
 
     static void validateS(short expected, short[] a1, short[] a2, short[] a3)
     {
-        println("Validate B");
+        println("Validate");
         var value = testShort(a1, a2, a3);
         assertEquals(expected, value);
     }
