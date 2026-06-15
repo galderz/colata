@@ -14,8 +14,8 @@ IDEAL_ARGS=true CLASS=TestXorShort make run 2>&1 | grep -c "LShiftI\|RShiftI\|Xo
 
 # Step 4: Confirm Unrolling Is the Same
 echo "=== PATCH UNROLL ==="
-TRACE_LOOPS_ARGS=true CLASS=TestXorByte make run 2>&1 | grep -c "Unroll"
-TRACE_LOOPS_ARGS=true CLASS=TestXorShort make run 2>&1 | grep -c "Unroll"
+TRACE_LOOP_ARGS=true CLASS=TestXorByte make run 2>&1 | grep -c "Unroll"
+TRACE_LOOP_ARGS=true CLASS=TestXorShort make run 2>&1 | grep -c "Unroll"
 
 # Step 6: Compare Generated Assembly — The Smoking Gun
 echo "=== PATCH ASM ==="
@@ -43,7 +43,7 @@ sed -n '/Compiled method (c2).*%/,/Compiled method/p' asm_patch_short.txt | \
 echo "=== PATCH Byte: peephole ==="
 PEEPHOLE_ARGS=true CLASS=TestXorByte make run 2>&1 | grep "peephole" | sort | uniq -c | sort -rn
 echo "=== PATCH Short: peephole ==="
-PEEPHOLE_ARGS=true CLASS=TestXorShort make run 2>&1 > grep "peephole" | sort | uniq -c | sort -rn
+PEEPHOLE_ARGS=true CLASS=TestXorShort make run 2>&1 | grep "peephole" | sort | uniq -c | sort -rn
 
 echo "=== BASE RUN ==="
 BRANCH=topic.reassoc-reduct-chain.all-add.base make checkout
