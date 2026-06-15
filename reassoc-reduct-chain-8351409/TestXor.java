@@ -2,6 +2,8 @@ public class TestXor
 {
     static final int SIZE = 10_000;
 
+    static final Random RND = new Random(42);
+
     static byte testByte(byte[] a1, byte[] a2, byte[] a3) {
         byte result = 0;
         for (int i = 0; i < a1.length; i++) {
@@ -86,7 +88,7 @@ public class TestXor
 
     static void validateB(byte expected, byte[] a1, byte[] a2, byte[] a3) {
         println("Validate B");
-        var value = testB(a1, a2, a3);
+        var value = testByte(a1, a2, a3);
         assertEquals(expected, value);
     }
 
@@ -101,7 +103,7 @@ public class TestXor
 
     static void validateS(short expected, short[] a1, short[] a2, short[] a3) {
         println("Validate B");
-        var value = testS(a1, a2, a3);
+        var value = testShort(a1, a2, a3);
         assertEquals(expected, value);
     }
 
