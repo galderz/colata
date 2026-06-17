@@ -21,6 +21,7 @@ include $(TOPDIR)/make/OpenJDK.gmk
 base_jvm_args += -Xbatch
 #base_jvm_args += -Xlog:os
 base_jvm_args += -XX:-BackgroundCompilation
+base_jvm_args += -XX:-UseOnStackReplacement
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
 base_jvm_args += -XX:CompileCommand=dontinline,*::*dontinline*
 ifneq ($(CONF),release)
@@ -97,7 +98,7 @@ ifdef SUPER_ARGS
   jvm_args += $(super_jvm_args)
 endif
 
-ifdef REASSOC
+ifdef REASSOC             `
   jvm_args += -XX:+UseNewCode
 endif
 
@@ -117,6 +118,10 @@ endif
 
 ifdef NO_UNROLL
   jvm_args += -XX:LoopMaxUnroll=0
+endif
+
+ifdef PIPELINING
+  jvm_args += -XX:+TraceOptoPipelining
 endif
 
 AVX ?=
