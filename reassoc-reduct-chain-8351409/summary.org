@@ -180,8 +180,661 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
+* 17.6.26
+** trace opto pipelining
+Why the difference?
+
+byte (chosen?):
+#+begin_src bash
+// Indirect Memory Plus Index Register Plus Offset Operand
+operand indIndexOffset(any_RegP reg, rRegL lreg, immL32 off)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  match(AddP (AddP reg lreg) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $lreg]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($lreg);
+    scale(0x0);
+    disp($off);
+  %}
+%}
+#+end_src
+
+byte (ideally but not chosen):
+#+begin_src bash
+// Indirect Memory Plus Positive Index Register Plus Offset Operand
+operand indPosIndexOffset(any_RegP reg, immL32 off, rRegI idx)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  predicate(n->in(2)->in(3)->as_Type()->type()->is_long()->_lo >= 0);
+  match(AddP (AddP reg (ConvI2L idx)) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $idx]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($idx);
+    scale(0x0);
+    disp($off);
+  %}
+%}
+#+end_src
+
+short:
+#+begin_src ad
+// Indirect Memory Times Scale Plus Positive Index Register Plus Offset Operand
+operand indPosIndexScaleOffset(any_RegP reg, immL32 off, rRegI idx, immI2 scale)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  predicate(n->in(2)->in(3)->in(1)->as_Type()->type()->is_long()->_lo >= 0);
+  match(AddP (AddP reg (LShiftL (ConvI2L idx) scale)) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $idx << $scale]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($idx);
+    scale($scale);
+    disp($off);
+  %}
+%}
+#+end_src
+
+byteXorBig summary:
+#+begin_src bash
+B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
+ 138  Phi  === 131 139 136  [[ 136 359 ]]  #int:1..maxint-16, widen: 3 !jvms: VectorReduction2::byteXorBig @ bci:12 (line 308)
+ 359  convI2L_reg_reg  === _ 138  [[ 356 360 155 363 364 168 177 365 366 188 367 368 199 369 370 210 371 372 221 373 374 232 375 376 243 377 378 254 379 380 265 381 382 276 383 384 287 385 386 298 387 388 309 389 390 319 391 392 ]]  !jvms: VectorReduction2::byteXorBig @ bci:17 (line 308)
+ 356  loadB  === 474 60 357 359  [[ 152 158 ]] #31/0x000000000000001f !jvms: VectorReduction2::byteXorBig @ bci:23 (line 308)
+ 392  loadB  === 472 60 361 359  [[ 320 323 ]] #16/0x0000000000000010 !jvms: VectorReduction2::byteXorBig @ bci:36 (line 308)
+ 391  loadB  === 474 60 357 359  [[ 320 323 ]] #16/0x0000000000000010 !jvms: VectorReduction2::byteXorBig @ bci:23 (line 308)
+ 319  loadB  === 476 60 156 359  [[ 318 ]] #16/0x0000000000000010
+ ...
+
+#   ready cnt:  1  latency:  0   356: loadB
+#   ready cnt:  1  latency:  0   392: loadB
+#   ready cnt:  1  latency:  0   391: loadB
+#   ready cnt:  1  latency:  0   319: loadB
+#+end_src
+
+shortXorBig:
+#+begin_src bash
+B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
+ 140  Phi  === 133 141 138  [[ 138 358 361 157 364 365 170 179 366 367 190 368 369 201 370 371 212 372 373 223 374 375 234 376 377 378 379 249 380 381 258 382 383 271 384 385 280 289 386 387 300 388 389 311 390 391 321 392 393 ]]  #int:1..maxint-16, widen: 3 !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+ 393  loadS  === 470 60 362 140  [[ 322 325 ]] #1/0x00000001#16/0x0000000000000010 !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 392  loadS  === 472 60 359 140  [[ 322 325 ]] #1/0x00000001#16/0x0000000000000010 !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 358  loadS  === 472 60 359 140  [[ 154 160 ]] #1/0x00000001#46/0x000000000000002e !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ ...
+#   ready cnt:  0  latency:  0   393: loadS
+#   ready cnt:  0  latency:  0   392: loadS
+#   ready cnt:  0  latency:  0   321: loadS
+ ...
+#+end_src
+* 16.6.26
+** draft xeon on data 2.6
+Here are the benchmark numbers on the machine I carried out this investigation:
+```
+Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig     2048       0  thrpt    3  344.809  344.230  ops/ms    0%
+VectorReduction2.NoSuperword.shortXorBig    2048       0  thrpt    3  304.868  174.448  ops/ms  -43%
+```
+
+The reason why short performs worse than byte is because of register spilling.
+This can be observed by from the amount of mov instructions from xmm registers:
+
+short (patch):
+```
+   1.12%  │  0x00007f78838f45ad:   vmovq		%xmm5, %r10
+   0.03%  │  0x00007f78838f45b2:   movswl		0x16(%r10, %rcx, 2), %r10d
+          │  0x00007f78838f45b8:   vmovq		%xmm14, %r8
+   0.03%  │  0x00007f78838f45bd:   movswl		0x16(%r8, %rcx, 2), %r9d
+   1.44%  │  0x00007f78838f45c3:   leal		(%r11, %r10), %r8d
+   0.03%  │  0x00007f78838f45c7:   imull		%r9d, %r8d
+          │  0x00007f78838f45cb:   imull		%r10d, %r11d
+```
+
+byte (patch):
+```
+   0.59%  │    0x00007fd8e38f96d3:   movsbl		0x19(%rdi, %rdx), %r11d
+   0.42%  │    0x00007fd8e38f96d9:   movl		%r10d, %r8d
+   0.36%  │    0x00007fd8e38f96dc:   imull		%eax, %r8d
+   0.36%  │    0x00007fd8e38f96e0:   addl		%eax, %r10d
+   0.72%  │    0x00007fd8e38f96e3:   imull		%r10d, %r11d
+```
+
+Why is this register spilling happening for short?
+The primary reason is that with byte the xor operations are still chained sequentially,
+while for short they don't and instead all the xor operations are clustered:
+
+short (patch) xor clustering:
+```
+   0.46%  │  0x00007f78838f465a:   xorl		%r9d, %r11d
+   1.41%  │  0x00007f78838f465d:   xorl		%r11d, %r10d
+   2.07%  │  0x00007f78838f4660:   xorl		%r10d, %eax
+   5.22%  │  0x00007f78838f4663:   xorl		%eax, %r13d
+   4.53%  │  0x00007f78838f4666:   xorl		%r13d, %ebp
+   4.99%  │  0x00007f78838f4669:   xorl		%ebp, %edx
+   3.18%  │  0x00007f78838f466b:   xorl		%edx, %esi
+   1.57%  │  0x00007f78838f466d:   xorl		%esi, %ebx
+   1.44%  │  0x00007f78838f466f:   xorl		%ebx, %edi
+   1.21%  │  0x00007f78838f4671:   vmovd		%xmm10, %r10d
+          │  0x00007f78838f4676:   xorl		%edi, %r10d
+   1.05%  │  0x00007f78838f4679:   vmovd		%xmm11, %r11d
+   0.07%  │  0x00007f78838f467e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f4681:   vmovd		%xmm8, %r10d
+          │  0x00007f78838f4686:   xorl		%r11d, %r10d
+   1.12%  │  0x00007f78838f4689:   vmovd		%xmm9, %r11d
+          │  0x00007f78838f468e:   xorl		%r10d, %r11d
+   1.18%  │  0x00007f78838f4691:   vmovd		%xmm6, %r10d
+          │  0x00007f78838f4696:   xorl		%r11d, %r10d
+   1.67%  │  0x00007f78838f4699:   vmovd		%xmm7, %r11d
+          │  0x00007f78838f469e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f46a1:   vmovd		%xmm13, %r10d
+          │  0x00007f78838f46a6:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@59 (line 735)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+short (patch) xor sequential:
+```
+   0.52%  │    0x00007fd8e38f967b:   movsbl		0x17(%rbx, %rdx), %r10d
+   0.55%  │    0x00007fd8e38f9681:   movsbl		0x17(%rdi, %rdx), %r11d
+   0.65%  │    0x00007fd8e38f9687:   movl		%r10d, %r8d
+   0.39%  │    0x00007fd8e38f968a:   imull		%eax, %r8d
+   0.49%  │    0x00007fd8e38f968e:   addl		%eax, %r10d         ;   {other}
+   0.42%  │    0x00007fd8e38f9691:   imull		%r10d, %r11d
+   0.72%  │    0x00007fd8e38f9695:   addl		%r8d, %r11d
+   0.46%  │    0x00007fd8e38f9698:   movsbl		%r11b, %r8d
+   0.59%  │    0x00007fd8e38f969c:   xorl		%r9d, %r8d
+   0.49%  │    0x00007fd8e38f969f:   movsbl		0x18(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.52%  │    0x00007fd8e38f96a4:   movsbl		0x18(%rcx, %rdx), %r10d
+   0.46%  │    0x00007fd8e38f96aa:   movsbl		0x18(%rdi, %rdx), %r11d
+   0.81%  │    0x00007fd8e38f96b0:   movl		%r10d, %r9d
+   0.75%  │    0x00007fd8e38f96b3:   imull		%eax, %r9d
+   0.39%  │    0x00007fd8e38f96b7:   addl		%eax, %r10d
+   0.42%  │    0x00007fd8e38f96ba:   imull		%r10d, %r11d
+   0.42%  │    0x00007fd8e38f96be:   addl		%r9d, %r11d
+   0.68%  │    0x00007fd8e38f96c1:   movsbl		%r11b, %r9d
+   0.59%  │    0x00007fd8e38f96c5:   xorl		%r8d, %r9d
+   0.68%  │    0x00007fd8e38f96c8:   movsbl		0x19(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+The clustering observed with short is logical since that is what reassocation is trying to enable.
+It can potentially do more xor operations in paralell, but here it's being constrained by the number of registers.
+
+Why does the clustering does not happen for byte?
+
+** draft amd on data 15.6
+Here are the benchmark numbers on the machine I carried out this investigation:
+```
+Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig     2048       0  thrpt    3  589.620  579.657  ops/ms   -2%
+VectorReduction2.NoSuperword.shortXorBig    2048       0  thrpt    3  554.976  327.601  ops/ms  -41%
+```
+
+The reason why short performs worse than byte is because of register spilling.
+This can be observed by from the amount of mov instructions that short shows versus byte:
+
+patch short:
+```
+...
+```
+
+But why is this register spilling happening for short?
+
+The primary reason is that with byte the xor operations are still chained sequentially,
+while for short they don't and instead all the xor operations are clustered.
+This clustering is what reassociation enables, but the question here is why the clustering does not happen for byte.
+
+There are 1 big and 1 small reason why byte performance differs from short.
+
+The big reason is the difference in instruction scheduling that happens with short vs byte:
+
+With short we
+```
+```
+
+There is also a secondary reason but this is small in comparison since it only affects 1 register.
+The difference is in how SIB addressing works: [base + index * scale + displacement].
+With byte, scale=1 and so the base and index can be folded into 1:
+
+```
+...
+```
+
+With short, scale=2 and the so the index needs to be kept separate from base:
+```
+...
+```
+
+With byte, the scale factor with SIB addressing is 1, so the index can be folded into the base:
+
+```
+```
+** ir differences
+byte:
+#+begin_src bash
+#+end_src
+
+short:
+#+begin_src bash
+  310  LShiftI  === _ 308 309  [[ 311 ]]  !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  311  RShiftI  === _ 310 309  [[ 1658 ]]  !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  315  AddI  === _ 1512 309  [[ 389 381 1512 756 1686 1698 ]]  !orig=[380],... !jvms: VectorReduction2::shortXorBig @ bci:62 (line 733)
+  318  ThreadLocal  === 0  [[ 319 ]]  !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
+  319  AddP  === _ 1 318 147  [[ 390 ]]  !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
+  326  IfTrue  === 383  [[ 1500 ]] #1 !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  332  Phi  === 36 586 22  [[ 371 340 ]]  #short, widen: 3 !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  333  CmpP  === _ 11 109  [[ 334 ]]  !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  334  Bool  === _ 333  [[ 337 ]] [ne] !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  337  If  === 36 334  [[ 338 339 ]] P=0.999999, C=-1.000000 !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  338  IfTrue  === 337  [[ 371 ]] #1 !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  339  IfFalse  === 337  [[ 340 ]] #0 !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  340  CallStaticJava  === 339 6 7 8 9 (117 1 1 1 1 1 109 332 ) [[ 341 ]] # Static uncommon_trap(reason='null_check' action='maybe_recompile' debug_id='0')  void ( int ) C=0.000100 VectorReduction2::shortXorBig @ bci:70 (line 737) !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  341  Proj  === 340  [[ 344 ]] #0 !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  344  Halt  === 341 1 1 8 1  [[ 0 ]]  !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
+  371  Blackhole  === 338 332  [[ 372 ]]  !jvms: Blackhole::consume @ bci:7 (line 375) VectorReduction2::shortXorBig @ bci:70 (line 737)
+  372  Proj  === 371  [[ 375 ]] #0 !jvms: Blackhole::consume @ bci:7 (line 375) VectorReduction2::shortXorBig @ bci:70 (line 737)
+  375  Return  === 372 6 7 8 9  [[ 0 ]] 
+  381  CmpI  === _ 315 1360  [[ 382 ]]  !orig=[323] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  382  Bool  === _ 381  [[ 1754 ]] [lt] !orig=[324] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  383  CountedLoopEnd  === 1500 1699  [[ 1515 326 ]] [lt] P=0.999512, C=12415373.000000 !orig=[325] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  386  IfTrue  === 1754  [[ 387 ]] #1
+  387  OuterStripMinedLoop  === 387 1716 386  [[ 387 1500 1685 1686 ]] 
+  389  SafePoint  === 1515 1 7 1 1 390 10 11 1659 315 1  [[ 1754 ]]  SafePoint  !orig=316 !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
+  390  LoadP  === 1515 7 319  [[ 389 ]]  @rawptr:BotPTR, idx=Raw; #rawptr:BotPTR (does not depend only on test, raw access) !orig=[320] !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
+  391  Region  === 391 493 395 522 411 437 536 452 478 551  [[ 391 54 ]]  !orig=[50] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  393  If  === 33 111  [[ 394 395 ]] P=0.999999, C=-1.000000
+  394  IfTrue  === 393  [[ 1733 1453 1407 125 434 564 732 1487 922 1216 1470 1049 1436 1390 1066 1424 1182 1373 1233 1199 ]] #1
+  395  IfFalse  === 393  [[ 391 ]] #0
+  403  ConvI2L  === _ 25  [[ 524 1560 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !orig=[445]
+  406  ConvI2L  === _ 125  [[ 407 ]]  #long:>=0
+  407  CmpUL  === _ 524 406  [[ 408 ]] 
+  408  Bool  === _ 407  [[ 409 ]] [lt]
+  409  If  === 521 408  [[ 410 411 ]] P=0.999999, C=-1.000000
+  410  IfTrue  === 409  [[ 435 732 ]] #1 !orig=[420],[432]
+  411  IfFalse  === 409  [[ 391 ]] #0
+  434  LoadS  === 1720 7 144  |394  [[ 1012 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  435  If  === 410 152  [[ 436 437 ]] P=0.999999, C=-1.000000
+  436  IfTrue  === 435  [[ 1737 1393 1478 165 474 568 736 1492 926 1224 1376 1057 1441 1404 1071 1427 1187 1461 1238 1207 ]] #1
+  437  IfFalse  === 435  [[ 391 ]] #0
+  447  ConvI2L  === _ 165  [[ 448 ]]  #long:>=0
+  448  CmpUL  === _ 524 447  [[ 449 ]] 
+  449  Bool  === _ 448  [[ 450 ]] [lt]
+  450  If  === 535 449  [[ 451 452 ]] P=0.999999, C=-1.000000
+  451  IfTrue  === 450  [[ 476 736 ]] #1 !orig=[461]
+  452  IfFalse  === 450  [[ 391 ]] #0
+  474  LoadS  === 1724 7 182  |436  [[ 307 1011 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  476  If  === 451 218  [[ 477 478 ]] P=0.999999, C=-1.000000
+  477  IfTrue  === 476  [[ 1741 1458 1370 480 515 571 739 1241 929 1410 1475 1054 1387 1074 1444 1421 1190 1221 1495 1204 ]] #1
+  478  IfFalse  === 476  [[ 391 ]] #0
+  479  AddP  === _ 1740 1740 23  [[ 480 ]]  !orig=[230] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  480  LoadRange  === 477 7 479  [[ 540 488 1681 1671 627 609 ]]  @aryptr:bottom[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR+12,iid=bot [narrow], idx=6; #int:>=0 !orig=[231] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  488  ConvI2L  === _ 480  [[ 489 ]]  #long:>=0
+  489  CmpUL  === _ 524 488  [[ 490 ]] 
+  490  Bool  === _ 489  [[ 491 ]] [lt]
+  491  If  === 550 490  [[ 492 493 ]] P=0.999999, C=-1.000000
+  492  IfTrue  === 491  [[ 1674 739 ]] #1 !orig=[502],[514] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  493  IfFalse  === 491  [[ 391 ]] #0
+  515  LoadS  === 1728 7 248  |477  [[ 307 1011 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  517  CmpU  === _ 125 22  [[ 519 ]]  !orig=[398]
+  519  Bool  === _ 517  [[ 1733 ]] [le]
+  521  IfFalse  === 1733  [[ 409 ]] #0 !orig=[401]
+  522  IfTrue  === 1733  [[ 391 ]] #1 !orig=[402]
+  523  ConL  === 0  [[ 524 ]]  #long:-1
+  524  AddL  === _ 403 523  [[ 407 448 489 ]]  !orig=[405]
+  525  ConI  === 0  [[ ]]  #int:-1
+  531  CmpU  === _ 165 22  [[ 533 ]]  !orig=[440]
+  533  Bool  === _ 531  [[ 1737 ]] [le]
+  535  IfFalse  === 1737  [[ 450 ]] #0 !orig=[443]
+  536  IfTrue  === 1737  [[ 391 ]] #1 !orig=[444]
+  540  CmpU  === _ 480 22  [[ 548 ]]  !orig=[481]
+  548  Bool  === _ 540  [[ 1741 ]] [le]
+  550  IfFalse  === 1741  [[ 491 ]] #0 !orig=[484]
+  551  IfTrue  === 1741  [[ 391 ]] #1 !orig=[485]
+  555  Bool  === _ 556  [[ 580 ]] [lt] !orig=382,[324] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  556  CmpI  === _ 575 25  [[ 555 ]]  !orig=381,[323] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  557  XorI  === _ 579 558  [[ 579 586 ]]  !orig=[312],[314] !jvms: VectorReduction2::shortXorBig @ bci:59 (line 735)
+  558  RShiftI  === _ 559 309  [[ 557 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  559  LShiftI  === _ 560 309  [[ 558 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  560  AddI  === _ 567 985  [[ 559 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+  564  LoadS  === 721 7 565  |394  [[ 985 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  565  AddP  === _ 1732 566 139  [[ 564 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  566  AddP  === _ 1732 1732 574  [[ 565 ]]  !orig=[145],[211] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  567  MulI  === _ 568 571  [[ 560 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+  568  LoadS  === 678 7 569  |436  [[ 984 567 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  569  AddP  === _ 1736 570 139  [[ 568 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  570  AddP  === _ 1736 1736 574  [[ 569 ]]  !orig=[183],[278] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  571  LoadS  === 635 7 572  |477  [[ 984 567 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  572  AddP  === _ 1740 573 139  [[ 571 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  573  AddP  === _ 1740 1740 574  [[ 572 ]]  !orig=[249],[305] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  574  LShiftL  === _ 577 37  [[ 566 570 573 ]]  !orig=[143],[209] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  575  AddI  === _ 578 37  [[ 556 578 ]]  !orig=315,... !jvms: VectorReduction2::shortXorBig @ bci:62 (line 733)
+  576  CountedLoop  === 576 617 581  [[ 576 578 579 580 ]] inner stride: 1 post of N388 !orig=[388],[379],[98] !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+  577  ConvI2L  === _ 578  [[ 574 ]]  #long:1..maxint-1, widen: 3 !orig=[142],[208] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  578  Phi  === 576 1683 575  [[ 575 577 ]]  #int:1..maxint-1, widen: 3 #tripcount !orig=102,[433],[141],[207] !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+  579  Phi  === 576 754 557  [[ 557 ]]  #short, widen: 3 !orig=101 !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+  580  CountedLoopEnd  === 576 555  [[ 581 582 ]] [lt] P=0.500000, C=12415373.000000 !orig=383,[325] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  581  IfTrue  === 580  [[ 576 ]] #1 !orig=326 !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  582  IfFalse  === 580  [[ 584 ]] #0 !orig=[384],[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  584  Region  === 584 582 585  [[ 584 36 586 ]]  !orig=[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  585  IfFalse  === 591  [[ 584 ]] #0 !orig=[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+  586  Phi  === 584 557 754  [[ 332 ]]  #short, widen: 3
+  589  CmpI  === _ 756 25  [[ 590 ]] 
+  590  Bool  === _ 589  [[ 591 ]] [lt]
+  591  If  === 752 590  [[ 585 592 ]] P=0.500000, C=-1.000000
+  592  IfTrue  === 591  [[ 1748 1683 ]] #1 !orig=[712]
+  609  CmpU  === _ 1684 480  [[ 610 ]]  !orig=[507]
+  610  Bool  === _ 609  [[ 1753 ]] [lt] !orig=[508]
+  614  IfFalse  === 1753  [[ 616 ]] #0
+  616  Halt  === 614 1 1 8 1  [[ 0 ]] 
+  617  IfTrue  === 1753  [[ 576 ]] #1
+  627  CmpU  === _ 756 480  [[ 628 ]]  !orig=[495]
+  628  Bool  === _ 627  [[ 1752 ]] [lt] !orig=[496]
+  632  IfFalse  === 1752  [[ 634 ]] #0
+  634  Halt  === 632 1 1 8 1  [[ 0 ]] 
+  635  IfTrue  === 1752  [[ 571 1753 ]] #1 !orig=[605]
+  652  CmpU  === _ 1684 165  [[ 653 ]]  !orig=[466]
+  653  Bool  === _ 652  [[ 1751 ]] [lt] !orig=[467]
+  657  IfFalse  === 1751  [[ 659 ]] #0
+  659  Halt  === 657 1 1 8 1  [[ 0 ]] 
+  660  IfTrue  === 1751  [[ 1752 ]] #1 !orig=[626]
+  670  CmpU  === _ 756 165  [[ 671 ]]  !orig=[454]
+  671  Bool  === _ 670  [[ 1750 ]] [lt] !orig=[455]
+  675  IfFalse  === 1750  [[ 677 ]] #0
+  677  Halt  === 675 1 1 8 1  [[ 0 ]] 
+  678  IfTrue  === 1750  [[ 568 1751 ]] #1 !orig=[648]
+  695  CmpU  === _ 1684 125  [[ 696 ]]  !orig=[425]
+  696  Bool  === _ 695  [[ 1749 ]] [lt] !orig=[426]
+  700  IfFalse  === 1749  [[ 702 ]] #0
+  702  Halt  === 700 1 1 8 1  [[ 0 ]] 
+  703  IfTrue  === 1749  [[ 1750 ]] #1 !orig=[669]
+  713  CmpU  === _ 756 125  [[ 714 ]]  !orig=[413]
+  714  Bool  === _ 713  [[ 1748 ]] [lt] !orig=[414]
+  718  IfFalse  === 1748  [[ 720 ]] #0
+  720  Halt  === 718 1 1 8 1  [[ 0 ]] 
+  721  IfTrue  === 1748  [[ 1684 564 1749 ]] #1 !orig=[691]
+  726  RShiftI  === _ 727 309  [[ 1685 754 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  727  LShiftI  === _ 728 309  [[ 726 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  728  AddI  === _ 735 996  [[ 727 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+  732  LoadS  === 410 7 733  |394  [[ 996 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  733  AddP  === _ 1732 1732 139  [[ 732 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  735  MulI  === _ 736 739  [[ 728 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+  736  LoadS  === 451 7 737  |436  [[ 995 735 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  737  AddP  === _ 1736 1736 139  [[ 736 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  739  LoadS  === 492 7 740  |477  [[ 995 735 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  740  AddP  === _ 1740 1740 139  [[ 739 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  752  Region  === 752 1676 753  [[ 752 591 754 756 ]]  !orig=[587]
+  753  IfFalse  === 1754  [[ 752 ]] #0 !orig=[587]
+  754  Phi  === 752 726 1659  [[ 579 586 ]]  #short, widen: 3
+  756  Phi  === 752 37 315  [[ 713 1683 1684 589 670 627 ]]  #int:>=1, widen: 3 !orig=[588]
+  817  Halt  === 1729 1 1 8 1  [[ 0 ]] 
+  860  Halt  === 1725 1 1 8 1  [[ 0 ]] 
+  903  Halt  === 1721 1 1 8 1  [[ 0 ]] 
+  910  ConL  === 0  [[ 1701 1703 ]]  #long:minint
+  918  AddI  === _ 925 1009  [[ 917 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+  922  LoadS  === 1720 7 923  |394  [[ 1009 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  923  AddP  === _ 1732 1489 105  [[ 922 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+  925  MulI  === _ 926 929  [[ 918 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+  926  LoadS  === 1724 7 927  |436  [[ 1008 925 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  927  AddP  === _ 1736 1494 105  [[ 926 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+  929  LoadS  === 1728 7 930  |477  [[ 1008 925 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  930  AddP  === _ 1740 1497 105  [[ 929 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+  984  AddI  === _ 568 571  [[ 985 ]] 
+  985  MulI  === _ 564 984  [[ 560 ]]  !orig=[561],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+  995  AddI  === _ 736 739  [[ 996 ]] 
+  996  MulI  === _ 732 995  [[ 728 ]]  !orig=[729],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1008  AddI  === _ 926 929  [[ 1009 ]] 
+ 1009  MulI  === _ 922 1008  [[ 918 ]]  !orig=[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1011  AddI  === _ 474 515  [[ 1012 ]] 
+ 1012  MulI  === _ 434 1011  [[ 308 ]]  !orig=[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1037  ConL  === 0  [[ 1471 1476 1479 ]]  #long:18
+ 1045  RShiftI  === _ 1046 309  [[ 1656 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1046  LShiftI  === _ 1047 309  [[ 1045 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1047  AddI  === _ 1048 1052  [[ 1046 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1048  MulI  === _ 1049 1053  [[ 1047 ]]  !orig=1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1049  LoadS  === 1720 7 1050  |394  [[ 1048 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1050  AddP  === _ 1732 1489 1629  [[ 1049 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1052  MulI  === _ 1054 1057  [[ 1047 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1053  AddI  === _ 1054 1057  [[ 1048 ]]  !orig=1011
+ 1054  LoadS  === 1728 7 1055  |477  [[ 1052 1053 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1055  AddP  === _ 1740 1497 1629  [[ 1054 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1057  LoadS  === 1724 7 1058  |436  [[ 1052 1053 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1058  AddP  === _ 1736 1494 1629  [[ 1057 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1062  RShiftI  === _ 1063 309  [[ 1655 ]]  !orig=916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1063  LShiftI  === _ 1064 309  [[ 1062 ]]  !orig=917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1064  AddI  === _ 1065 1070  [[ 1063 ]]  !orig=918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1065  MulI  === _ 1066 1069  [[ 1064 ]]  !orig=1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1066  LoadS  === 1720 7 1067  |394  [[ 1065 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1067  AddP  === _ 1732 1489 1623  [[ 1066 ]]  !orig=923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1069  AddI  === _ 1071 1074  [[ 1065 ]]  !orig=1008
+ 1070  MulI  === _ 1071 1074  [[ 1064 ]]  !orig=925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1071  LoadS  === 1724 7 1072  |436  [[ 1069 1070 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1072  AddP  === _ 1736 1494 1623  [[ 1071 ]]  !orig=927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1074  LoadS  === 1728 7 1075  |477  [[ 1069 1070 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1075  AddP  === _ 1740 1497 1623  [[ 1074 ]]  !orig=930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1093  ConI  === 0  [[ ]]  #int:4
+ 1133  ConL  === 0  [[ ]]  #long:-3
+ 1168  ConL  === 0  [[ 1437 1442 1445 ]]  #long:22
+ 1169  ConL  === 0  [[ 1454 1459 1462 ]]  #long:20
+ 1171  ConL  === 0  [[ ]]  #long:4
+ 1178  RShiftI  === _ 1179 309  [[ 1654 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1179  LShiftI  === _ 1180 309  [[ 1178 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1180  AddI  === _ 1181 1185  [[ 1179 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1181  MulI  === _ 1182 1186  [[ 1180 ]]  !orig=1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1182  LoadS  === 1720 7 1183  |394  [[ 1181 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1183  AddP  === _ 1732 1489 1607  [[ 1182 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1185  MulI  === _ 1187 1190  [[ 1180 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1186  AddI  === _ 1187 1190  [[ 1181 ]]  !orig=1011
+ 1187  LoadS  === 1724 7 1188  |436  [[ 1185 1186 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1188  AddP  === _ 1736 1494 1607  [[ 1187 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1190  LoadS  === 1728 7 1191  |477  [[ 1185 1186 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1191  AddP  === _ 1740 1497 1607  [[ 1190 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1195  RShiftI  === _ 1196 309  [[ 1653 ]]  !orig=916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1196  LShiftI  === _ 1197 309  [[ 1195 ]]  !orig=917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1197  AddI  === _ 1198 1203  [[ 1196 ]]  !orig=918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1198  MulI  === _ 1199 1202  [[ 1197 ]]  !orig=1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1199  LoadS  === 1720 7 1200  |394  [[ 1198 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1200  AddP  === _ 1732 1489 1604  [[ 1199 ]]  !orig=923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1202  AddI  === _ 1204 1207  [[ 1198 ]]  !orig=1008
+ 1203  MulI  === _ 1204 1207  [[ 1197 ]]  !orig=925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1204  LoadS  === 1728 7 1205  |477  [[ 1202 1203 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1205  AddP  === _ 1740 1497 1604  [[ 1204 ]]  !orig=930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1207  LoadS  === 1724 7 1208  |436  [[ 1202 1203 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1208  AddP  === _ 1736 1494 1604  [[ 1207 ]]  !orig=927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1212  RShiftI  === _ 1213 309  [[ 1652 ]]  !orig=1045,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1213  LShiftI  === _ 1214 309  [[ 1212 ]]  !orig=1046,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1214  AddI  === _ 1215 1219  [[ 1213 ]]  !orig=1047,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1215  MulI  === _ 1216 1220  [[ 1214 ]]  !orig=1048,1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1216  LoadS  === 1720 7 1217  |394  [[ 1215 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1049,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1217  AddP  === _ 1732 1489 1641  [[ 1216 ]]  !orig=1050,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1219  MulI  === _ 1221 1224  [[ 1214 ]]  !orig=1052,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1220  AddI  === _ 1221 1224  [[ 1215 ]]  !orig=1053,1011
+ 1221  LoadS  === 1728 7 1222  |477  [[ 1219 1220 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1054,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1222  AddP  === _ 1740 1497 1641  [[ 1221 ]]  !orig=1055,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1224  LoadS  === 1724 7 1225  |436  [[ 1219 1220 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1057,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1225  AddP  === _ 1736 1494 1641  [[ 1224 ]]  !orig=1058,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1229  RShiftI  === _ 1230 309  [[ 1651 ]]  !orig=1062,916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1230  LShiftI  === _ 1231 309  [[ 1229 ]]  !orig=1063,917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1231  AddI  === _ 1232 1237  [[ 1230 ]]  !orig=1064,918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1232  MulI  === _ 1233 1236  [[ 1231 ]]  !orig=1065,1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1233  LoadS  === 1720 7 1234  |394  [[ 1232 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1066,922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1234  AddP  === _ 1732 1489 1643  [[ 1233 ]]  !orig=1067,923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1236  AddI  === _ 1238 1241  [[ 1232 ]]  !orig=1069,1008
+ 1237  MulI  === _ 1238 1241  [[ 1231 ]]  !orig=1070,925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1238  LoadS  === 1724 7 1239  |436  [[ 1236 1237 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1071,926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1239  AddP  === _ 1736 1494 1643  [[ 1238 ]]  !orig=1072,927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1241  LoadS  === 1728 7 1242  |477  [[ 1236 1237 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1074,929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1242  AddP  === _ 1740 1497 1643  [[ 1241 ]]  !orig=1075,930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1262  ConI  === 0  [[ ]]  #int:8
+ 1299  ConL  === 0  [[ ]]  #long:-4
+ 1302  ConL  === 0  [[ ]]  #long:-7
+ 1307  ConI  === 0  [[ ]]  #int:7
+ 1333  ConL  === 0  [[ ]]  #long:8
+ 1349  ConL  === 0  [[ 1411 1405 1408 ]]  #long:26
+ 1350  ConL  === 0  [[ 1371 1374 1377 ]]  #long:30
+ 1352  ConL  === 0  [[ 1425 1422 1428 ]]  #long:24
+ 1354  ConL  === 0  [[ 1388 1394 1391 ]]  #long:28
+ 1360  ConvL2I  === _ 1703  [[ 381 1669 1689 1688 ]]  #int:minint..maxint-15, 0u..maxuint, widen: 3 !orig=[771]
+ 1364  RShiftI  === _ 1365 309  [[ 1650 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1365  LShiftI  === _ 1366 309  [[ 1364 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1366  AddI  === _ 1367 1368  [[ 1365 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1367  MulI  === _ 1370 1376  [[ 1366 ]]  !orig=307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1368  MulI  === _ 1369 1373  [[ 1366 ]]  !orig=1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1369  AddI  === _ 1370 1376  [[ 1368 ]]  !orig=1011
+ 1370  LoadS  === 1728 7 1371  |477  [[ 1367 1369 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1371  AddP  === _ 1740 1497 1350  [[ 1370 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1373  LoadS  === 1720 7 1374  |394  [[ 1368 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1374  AddP  === _ 1732 1489 1350  [[ 1373 ]]  !orig=144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1376  LoadS  === 1724 7 1377  |436  [[ 1367 1369 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1377  AddP  === _ 1736 1494 1350  [[ 1376 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1381  RShiftI  === _ 1382 309  [[ 1649 ]]  !orig=916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1382  LShiftI  === _ 1383 309  [[ 1381 ]]  !orig=917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1383  AddI  === _ 1384 1386  [[ 1382 ]]  !orig=918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1384  MulI  === _ 1385 1390  [[ 1383 ]]  !orig=1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1385  AddI  === _ 1387 1393  [[ 1384 ]]  !orig=1008
+ 1386  MulI  === _ 1387 1393  [[ 1383 ]]  !orig=925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1387  LoadS  === 1728 7 1388  |477  [[ 1385 1386 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1388  AddP  === _ 1740 1497 1354  [[ 1387 ]]  !orig=930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1390  LoadS  === 1720 7 1391  |394  [[ 1384 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1391  AddP  === _ 1732 1489 1354  [[ 1390 ]]  !orig=923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1393  LoadS  === 1724 7 1394  |436  [[ 1385 1386 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1394  AddP  === _ 1736 1494 1354  [[ 1393 ]]  !orig=927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1398  RShiftI  === _ 1399 309  [[ 1648 ]]  !orig=1045,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1399  LShiftI  === _ 1400 309  [[ 1398 ]]  !orig=1046,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1400  AddI  === _ 1401 1402  [[ 1399 ]]  !orig=1047,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1401  MulI  === _ 1404 1410  [[ 1400 ]]  !orig=1052,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1402  MulI  === _ 1403 1407  [[ 1400 ]]  !orig=1048,1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1403  AddI  === _ 1404 1410  [[ 1402 ]]  !orig=1053,1011
+ 1404  LoadS  === 1724 7 1405  |436  [[ 1401 1403 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1057,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1405  AddP  === _ 1736 1494 1349  [[ 1404 ]]  !orig=1058,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1407  LoadS  === 1720 7 1408  |394  [[ 1402 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1049,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1408  AddP  === _ 1732 1489 1349  [[ 1407 ]]  !orig=1050,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1410  LoadS  === 1728 7 1411  |477  [[ 1401 1403 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1054,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1411  AddP  === _ 1740 1497 1349  [[ 1410 ]]  !orig=1055,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1415  RShiftI  === _ 1416 309  [[ 1647 ]]  !orig=1062,916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1416  LShiftI  === _ 1417 309  [[ 1415 ]]  !orig=1063,917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1417  AddI  === _ 1418 1420  [[ 1416 ]]  !orig=1064,918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1418  MulI  === _ 1419 1424  [[ 1417 ]]  !orig=1065,1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1419  AddI  === _ 1421 1427  [[ 1418 ]]  !orig=1069,1008
+ 1420  MulI  === _ 1421 1427  [[ 1417 ]]  !orig=1070,925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1421  LoadS  === 1728 7 1422  |477  [[ 1419 1420 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1074,929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1422  AddP  === _ 1740 1497 1352  [[ 1421 ]]  !orig=1075,930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1424  LoadS  === 1720 7 1425  |394  [[ 1418 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1066,922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1425  AddP  === _ 1732 1489 1352  [[ 1424 ]]  !orig=1067,923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1427  LoadS  === 1724 7 1428  |436  [[ 1419 1420 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1071,926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1428  AddP  === _ 1736 1494 1352  [[ 1427 ]]  !orig=1072,927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1432  RShiftI  === _ 1433 309  [[ 1646 ]]  !orig=1178,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1433  LShiftI  === _ 1434 309  [[ 1432 ]]  !orig=1179,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1434  AddI  === _ 1435 1439  [[ 1433 ]]  !orig=1180,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1435  MulI  === _ 1436 1440  [[ 1434 ]]  !orig=1181,1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1436  LoadS  === 1720 7 1437  |394  [[ 1435 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1182,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1437  AddP  === _ 1732 1489 1168  [[ 1436 ]]  !orig=1183,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1439  MulI  === _ 1441 1444  [[ 1434 ]]  !orig=1185,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1440  AddI  === _ 1441 1444  [[ 1435 ]]  !orig=1186,1011
+ 1441  LoadS  === 1724 7 1442  |436  [[ 1439 1440 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1187,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1442  AddP  === _ 1736 1494 1168  [[ 1441 ]]  !orig=1188,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1444  LoadS  === 1728 7 1445  |477  [[ 1439 1440 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1190,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1445  AddP  === _ 1740 1497 1168  [[ 1444 ]]  !orig=1191,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1449  RShiftI  === _ 1450 309  [[ 1645 ]]  !orig=1195,916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1450  LShiftI  === _ 1451 309  [[ 1449 ]]  !orig=1196,917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1451  AddI  === _ 1452 1457  [[ 1450 ]]  !orig=1197,918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1452  MulI  === _ 1453 1456  [[ 1451 ]]  !orig=1198,1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1453  LoadS  === 1720 7 1454  |394  [[ 1452 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1199,922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1454  AddP  === _ 1732 1489 1169  [[ 1453 ]]  !orig=1200,923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1456  AddI  === _ 1458 1461  [[ 1452 ]]  !orig=1202,1008
+ 1457  MulI  === _ 1458 1461  [[ 1451 ]]  !orig=1203,925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1458  LoadS  === 1728 7 1459  |477  [[ 1456 1457 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1204,929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1459  AddP  === _ 1740 1497 1169  [[ 1458 ]]  !orig=1205,930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1461  LoadS  === 1724 7 1462  |436  [[ 1456 1457 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1207,926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1462  AddP  === _ 1736 1494 1169  [[ 1461 ]]  !orig=1208,927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1466  RShiftI  === _ 1467 309  [[ 1644 ]]  !orig=1212,1045,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1467  LShiftI  === _ 1468 309  [[ 1466 ]]  !orig=1213,1046,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1468  AddI  === _ 1469 1473  [[ 1467 ]]  !orig=1214,1047,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1469  MulI  === _ 1470 1474  [[ 1468 ]]  !orig=1215,1048,1012,[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1470  LoadS  === 1720 7 1471  |394  [[ 1469 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1216,1049,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1471  AddP  === _ 1732 1489 1037  [[ 1470 ]]  !orig=1217,1050,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1473  MulI  === _ 1475 1478  [[ 1468 ]]  !orig=1219,1052,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1474  AddI  === _ 1475 1478  [[ 1469 ]]  !orig=1220,1053,1011
+ 1475  LoadS  === 1728 7 1476  |477  [[ 1473 1474 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1221,1054,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1476  AddP  === _ 1740 1497 1037  [[ 1475 ]]  !orig=1222,1055,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1478  LoadS  === 1724 7 1479  |436  [[ 1473 1474 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1224,1057,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1479  AddP  === _ 1736 1494 1037  [[ 1478 ]]  !orig=1225,1058,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1483  RShiftI  === _ 1484 309  [[ 1644 ]]  !orig=1229,1062,916,311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1484  LShiftI  === _ 1485 309  [[ 1483 ]]  !orig=1230,1063,917,310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1485  AddI  === _ 1486 1491  [[ 1484 ]]  !orig=1231,1064,918,308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
+ 1486  MulI  === _ 1487 1490  [[ 1485 ]]  !orig=1232,1065,1009,[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
+ 1487  LoadS  === 1720 7 1488  |394  [[ 1486 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1233,1066,922,434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1488  AddP  === _ 1732 1489 139  [[ 1487 ]]  !orig=1234,1067,923,144,[210] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1489  AddP  === _ 1732 1732 1498  [[ 1488 144 1200 1217 1183 1234 923 1050 1067 1425 1408 1391 1437 1374 1454 1471 ]]  !orig=[1235],[1068],[924],[145],[211] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1490  AddI  === _ 1492 1495  [[ 1486 ]]  !orig=1236,1069,1008
+ 1491  MulI  === _ 1492 1495  [[ 1485 ]]  !orig=1237,1070,925,307 !jvms: VectorReduction2::shortXorBig @ bci:51 (line 734)
+ 1492  LoadS  === 1724 7 1493  |436  [[ 1490 1491 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1238,1071,926,474,[184],[279] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1493  AddP  === _ 1736 1494 139  [[ 1492 ]]  !orig=1239,1072,927,182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1494  AddP  === _ 1736 1736 1498  [[ 1493 182 1208 1225 1188 1239 927 1058 1072 1428 1405 1394 1442 1377 1462 1479 ]]  !orig=[1240],[1073],[928],[183],[278] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 1495  LoadS  === 1728 7 1496  |477  [[ 1490 1491 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=1241,1074,929,515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1496  AddP  === _ 1740 1497 139  [[ 1495 ]]  !orig=1242,1075,930,248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1497  AddP  === _ 1740 1740 1498  [[ 1496 248 1205 1222 1191 1242 930 1055 1075 1422 1411 1388 1371 1459 1476 1445 ]]  !orig=[1243],[1076],[931],[249],[305] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 1498  LShiftL  === _ 1507 37  [[ 1489 1494 1497 ]]  !orig=[1244],[1077],[932],[143],[209] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1500  CountedLoop  === 1500 387 326  [[ 1500 383 1503 1512 ]] inner stride: 16 main of N1500 strip mined !orig=[1251],[1079],[934],[388],[379],[98] !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+ 1507  ConvI2L  === _ 1512  [[ 1498 ]]  #long:1..maxint-16, widen: 3 !orig=[1248],[1084],[935],[142],[208] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
+ 1512  Phi  === 1500 1686 315  [[ 315 1507 ]]  #int:1..maxint-16, widen: 3 #tripcount !orig=1250,1085,936,102,[433],[141],[207] !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+ 1515  IfFalse  === 383  [[ 389 390 ]] #0 !orig=[1257],[1088],[942],[384],[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
+ 1530  Halt  === 1717 1 1 8 1  [[ 0 ]] 
+ 1542  Halt  === 1713 1 1 8 1  [[ 0 ]] 
+ 1554  Halt  === 1709 1 1 8 1  [[ 0 ]] 
+ 1556  ConL  === 0  [[ ]]  #long:-8
+ 1559  ConL  === 0  [[ 1560 ]]  #long:-15
+ 1560  AddL  === _ 403 1559  [[ 1701 1703 ]] 
+ 1564  ConI  === 0  [[ ]]  #int:15
+ 1604  ConL  === 0  [[ 1208 1205 1200 ]]  #long:36
+ 1607  ConL  === 0  [[ 1183 1188 1191 ]]  #long:38
+ 1623  ConL  === 0  [[ 1075 1072 1067 ]]  #long:40
+ 1629  ConL  === 0  [[ 1058 1050 1055 ]]  #long:42
+ 1641  ConL  === 0  [[ 1225 1222 1217 ]]  #long:34
+ 1642  ConL  === 0  [[ 248 144 182 ]]  #long:46
+ 1643  ConL  === 0  [[ 1234 1239 1242 ]]  #long:32
+
+XorI(Phi, XorI(RshiftI, XorI()))
+
+  311  RShiftI  === _ 310 309  [[ 1658 ]]  !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  916  RShiftI  === _ 917 309  [[ 1657 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+  917  LShiftI  === _ 918 309  [[ 916 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
+ 1503  Phi  === 1500 1685 1659  [[ 1659 ]]  #short, widen: 3 !orig=1252,1082,937,101 !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+ 1644  XorI  === _ 1466 1483  [[ 1645 ]] 
+ 1645  XorI  === _ 1449 1644  [[ 1646 ]] 
+ 1646  XorI  === _ 1432 1645  [[ 1647 ]] 
+ 1647  XorI  === _ 1415 1646  [[ 1648 ]] 
+ 1648  XorI  === _ 1398 1647  [[ 1649 ]] 
+ 1649  XorI  === _ 1381 1648  [[ 1650 ]] 
+ 1650  XorI  === _ 1364 1649  [[ 1651 ]] 
+ 1651  XorI  === _ 1229 1650  [[ 1652 ]] 
+ 1652  XorI  === _ 1212 1651  [[ 1653 ]] 
+ 1653  XorI  === _ 1195 1652  [[ 1654 ]] 
+ 1654  XorI  === _ 1178 1653  [[ 1655 ]] 
+ 1655  XorI  === _ 1062 1654  [[ 1656 ]] 
+ 1656  XorI  === _ 1045 1655  [[ 1657 ]] 
+ 1657  XorI  === _ 916 1656  [[ 1658 ]] 
+ 1658  XorI  === _ 311 1657  [[ 1659 ]] 
+ 1659  XorI  === _ 1503 1658  [[ 754 389 1503 1685 ]]  !orig=[312],[314] !jvms: VectorReduction2::shortXorBig @ bci:59 (line 735)
+#+end_src
 * 15.6.26
 Why are in short all XOR instructions clustered at the end of the loop body, but for byte they are spread out?
+
+XorRepro:
+#+begin_src bash
+byteXorBig:  150 ms for 500000 iters # before patch
+shortXorBig: 170 ms for 500000 iters # before patch
+byteXorBig:  454 ms for 500000 iters # after patch
+shortXorBig: 170 ms for 500000 iters # after patch
+#+end_src
 
 Replicated on amd server:
 #+begin_src bash
@@ -239,12 +892,12 @@ VectorReduction2.NoSuperword.shortXorBig            2048       0  thrpt    3  30
 shortXorBig assembly:
 #+begin_src bash
 ....[Hottest Region 1]..............................................................................
-c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub, version 5, compile id 519 
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub, version 5, compile id 519
 
                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@30 (line 123)
              0x00007f449baf8453:   movl		$1, %ebp
              0x00007f449baf8458:   jmp		0x7f449baf892e
-             0x00007f449baf845d:   nop		
+             0x00007f449baf845d:   nop
           ↗  0x00007f449baf8460:   vmovq		%xmm5, %r9          ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
           │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@12 (line 734)
           │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
@@ -807,7 +1460,7 @@ c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSupe
            │                                                              ;   {poll}
    0.20%   │    0x00007f89e3af87f4:   cmpl		0x44(%rsp), %r13d
            ╰    0x00007f89e3af87f9:   jl		0x7f89e3af851d
-                0x00007f89e3af87ff:   nop		
+                0x00007f89e3af87ff:   nop
                 0x00007f89e3af8800:   cmpl		0x40(%rsp), %r13d
             ╭   0x00007f89e3af8805:   jge		0x7f89e3af883f
             │   0x00007f89e3af8807:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
