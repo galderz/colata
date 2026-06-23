@@ -129,6 +129,10 @@ ifdef AVX
   jvm_args += -XX:UseAVX=$(AVX)
 endif
 
+ifdef MATCHING
+  jvm_args += -XX:CompileCommand=PrintIdealPhase,$(CLASS)::test*,MATCHING
+endif
+
 jvm_args += $(base_jvm_args)
 
 compile: $(java)
