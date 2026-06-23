@@ -180,31 +180,162 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
-* 17.6.26
-** trace opto pipelining
-Why the difference?
-
-byte (chosen?):
+* 22.6.26
+Roland on 19.6:
+#+begin_quote
+Does the ConvI2L have uses that are not address computation expressions?
+If yes, then have a look at pd_clone_address_expressions()
+#+end_quote
+** nake conv fix
+before:
 #+begin_src bash
-// Indirect Memory Plus Index Register Plus Offset Operand
-operand indIndexOffset(any_RegP reg, rRegL lreg, immL32 off)
-%{
-  constraint(ALLOC_IN_RC(ptr_reg));
-  match(AddP (AddP reg lreg) off);
-
-  op_cost(10);
-  format %{"[$reg + $off + $lreg]" %}
-  interface(MEMORY_INTER) %{
-    base($reg);
-    index($lreg);
-    scale(0x0);
-    disp($off);
-  %}
-%}
+[matcher-share] parent=AddP(497) child=ConvI2L(498) is_shared=1 match_into_reg=1 outcnt=4 → REGISTER (standalone)
+[matcher-find-shared] ConvI2L(498) marked SHARED (outcnt=4). Users:
+[matcher-find-shared]   → AddP(495) (classname=AddP)
+[matcher-find-shared]   → AddP(496) (classname=AddP)
+[matcher-find-shared]   → AddP(497) (classname=AddP)
+[matcher-find-shared]   → loadB(421) (classname=Mach)
+[matcher] LoadB(492) → instr rule: loadB, addr=AddP(493)
+[matcher]   AddP(493) children: in(1)=Parm(12) in(2)=AddP(497) in(3)=ConL(139)
+[matcher]   AddP(493).in(2) = AddP(497), its children: in(1)=Parm(12) in(2)=Parm(12) in(3)=ConvI2L(498)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
 #+end_src
 
-byte (ideally but not chosen):
+after:
 #+begin_src bash
+[matcher-share] parent=AddP(497) child=ConvI2L(498) is_shared=0 match_into_reg=0 outcnt=3 → FOLD (into parent tree)
+[matcher-find-shared] ConvI2L(498) marked SHARED (outcnt=3). Users:
+[matcher-find-shared]   → AddP(495) (classname=AddP)
+[matcher-find-shared]   → AddP(496) (classname=AddP)
+[matcher-find-shared]   → AddP(497) (classname=AddP)
+[ad-predicate] indPosIndexOffset AddP(493): _lo=1 → PASS
+[matcher] LoadB(492) → instr rule: loadB, addr=AddP(493)
+[matcher]   AddP(493) children: in(1)=Parm(12) in(2)=AddP(497) in(3)=ConL(139)
+[matcher]   AddP(493).in(2) = AddP(497), its children: in(1)=Parm(12) in(2)=Parm(12) in(3)=ConvI2L(498)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXOFFSET
+#+end_src
+** pd clone fix
+byte:
+#+begin_src bash
+[pd-clone] AddP(493)
+...
+[matcher] LoadB(492) → instr rule: loadB, addr=AddP(493)
+[matcher]   AddP(493) children: in(1)=Parm(12) in(2)=AddP(497) in(3)=ConL(139)
+[matcher]   AddP(493).in(2) = AddP(497), its children: in(1)=Parm(12) in(2)=Parm(12) in(3)=ConvI2L(498)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+#+end_src
+
+short:
+#+begin_src bash
+[pd-clone] AddP(494)
+[clone-shift] LShiftL(496) protecting ConvI2L(499) via address_visited (outcnt=1, is_visited=0)
+...
+[matcher] LoadS(493) → instr rule: loadS, addr=AddP(494)
+[matcher]   AddP(494) children: in(1)=Parm(12) in(2)=AddP(495) in(3)=ConL(139)
+[matcher]   AddP(494).in(2) = AddP(495), its children: in(1)=Parm(12) in(2)=Parm(12) in(3)=LShiftL(496)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+#+end_src
+** ir before matching
+#+begin_src bash
+  568  AddP  === _ 1686 1686 577  [[ 567 ]]  !orig=[145],[211] !jvms: VectorReduction2::byteXorBig @ bci:17 (line 308)
+  574  AddP  === _ 1690 1690 577  [[ 573 ]]  !orig=[183],[278] !jvms: VectorReduction2::byteXorBig @ bci:23 (line 308)
+  575  AddP  === _ 1694 1694 577  [[ 571 ]]  !orig=[249],[305] !jvms: VectorReduction2::byteXorBig @ bci:36 (line 308)
+  577  ConvI2L  === _ 578  [[ 568 574 575 ]]  #long:1..maxint-1, widen: 3 !orig=[142],[208] !jvms: VectorReduction2::byteXorBig @ bci:17 (line 308)
+
+[matcher-find-shared] ConvI2L(577) marked SHARED (outcnt=4). Users:
+[matcher-find-shared]   → AddP(568) (classname=AddP)
+[matcher-find-shared]   → AddP(574) (classname=AddP)
+[matcher-find-shared]   → AddP(575) (classname=AddP)
+[matcher-find-shared]   → loadB(441) (classname=Mach)
+[matcher] LoadB(572) → instr rule: loadB, addr=AddP(573)
+[matcher]   AddP(573) children: in(1)=DecodeN(1690) in(2)=AddP(574) in(3)=ConL(139)
+[matcher]   AddP(573).in(2) = AddP(574), its children: in(1)=DecodeN(1690) in(2)=DecodeN(1690) in(3)=ConvI2L(577)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+#+end_src
+** find-shared
+byte
+#+begin_src bash
+[matcher-share] parent=AddP(574) child=ConvI2L(577) is_shared=1 match_into_reg=1 outcnt=4 → REGISTER (standalone)
+[matcher-find-shared] ConvI2L(577) marked SHARED (outcnt=4). Users:
+[matcher-find-shared]   → AddP(568)
+[matcher-find-shared]   → AddP(574)
+[matcher-find-shared]   → AddP(575)
+[matcher-find-shared]   → loadB(441)
+...
+[matcher] LoadB(572) → instr rule: loadB, addr=AddP(573)
+[matcher]   AddP(573) children: in(1)=DecodeN(1690) in(2)=AddP(574) in(3)=ConL(139)
+[matcher]   AddP(573).in(2) = AddP(574), its children: in(1)=DecodeN(1690) in(2)=DecodeN(1690) in(3)=ConvI2L(577)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+#+end_src
+
+short
+#+begin_src bash
+[matcher-share] parent=AddP(573) child=LShiftL(574) is_shared=0 match_into_reg=0 outcnt=3 → FOLD (into parent tree)
+[matcher-find-shared] LShiftL(574) marked SHARED (outcnt=3). Users:
+[matcher-find-shared]   → AddP(566)
+[matcher-find-shared]   → AddP(570)
+[matcher-find-shared]   → AddP(573)
+[matcher-share] parent=LShiftL(574) child=ConvI2L(577) is_shared=0 match_into_reg=0 outcnt=1 → FOLD (into parent tree)
+[matcher-find-shared] ConvI2L(577) marked SHARED (outcnt=1). Users:
+[matcher-find-shared]   → LShiftL(574)
+...
+[matcher] LoadS(571) → instr rule: loadS, addr=AddP(572)
+[matcher]   AddP(572) children: in(1)=DecodeN(1740) in(2)=AddP(573) in(3)=ConL(139)
+[matcher]   AddP(572).in(2) = AddP(573), its children: in(1)=DecodeN(1740) in(2)=DecodeN(1740) in(3)=LShiftL(574)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+#+end_src
+* 19.6.26
+short:
+#+begin_src bash
+[matcher-share] parent=LShiftL(574) child=ConvI2L(577) is_shared=0 match_into_reg=0 outcnt=1 → FOLD (into parent tree)
+[dfa-conv] ConvI2L(577): kids[0] valid for RREGI=1, outcnt=1
+[dfa-lshift] LShiftL(574): kids[0](_CONVI2L_RREGI_)=1, kids[1](IMMI2)=1
+[dfa-inner-scale] AddP(573): _ANY_REGP__LSHIFTL_CONVI2L check: kids[0](ANY_REGP)=1, kids[1](_LSHIFTL__CONVI2L_RREGI__IMMI2)=1
+[dfa-match] AddP(572): indPosIndexScaleOffset structural=YES predicate(PASS) _lo=1
+[matcher] LoadS(571) → instr rule: loadS, addr=AddP(572)
+[matcher]   AddP(572) children: in(1)=DecodeN(1740) in(2)=AddP(573) in(3)=ConL(139)
+[matcher]   AddP(572).in(2) = AddP(573), its children: in(1)=DecodeN(1740) in(2)=DecodeN(1740) in(3)=LShiftL(574)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+#+end_src
+#+begin_src bash
+[matcher-share] parent=AddP(573) child=LShiftL(574) is_shared=0 match_into_reg=0 outcnt=3 → FOLD (into parent tree)
+[matcher-share] parent=LShiftL(574) child=ConvI2L(577) is_shared=0 match_into_reg=0 outcnt=1 → FOLD (into parent tree)
+[dfa-conv] ConvI2L(577): kids[0] valid for RREGI=1, outcnt=1
+[dfa-lshift] LShiftL(574): kids[0](_CONVI2L_RREGI_)=1, kids[1](IMMI2)=1
+[dfa-match-scale] AddP(573): indPosIndexScaleOffset: kids[0](_ADDP_ANY_REGP__LSHIFTL__CONVI2L_RREGI__IMMI2)=0, kids[1](IMML32)=0
+[dfa-inner-scale] AddP(573): _ANY_REGP__LSHIFTL_CONVI2L check: kids[0](ANY_REGP)=1, kids[1](_LSHIFTL__CONVI2L_RREGI__IMMI2)=1
+[dfa-match-scale] AddP(572): indPosIndexScaleOffset: kids[0](_ADDP_ANY_REGP__LSHIFTL__CONVI2L_RREGI__IMMI2)=1, kids[1](IMML32)=1
+[dfa-inner-scale] AddP(572): _ANY_REGP__LSHIFTL_CONVI2L check: kids[0](ANY_REGP)=1, kids[1](_LSHIFTL__CONVI2L_RREGI__IMMI2)=0
+[dfa-match] AddP(572): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=1)
+[dfa-inner] AddP(572): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(572): indIndexOffset structural=YES (no predicate, takes rRegL)
+[matcher] LoadS(571) → instr rule: loadS, addr=AddP(572)
+[matcher]   AddP(572) children: in(1)=DecodeN(1740) in(2)=AddP(573) in(3)=ConL(139)
+[matcher]   AddP(572).in(2) = AddP(573), its children: in(1)=DecodeN(1740) in(2)=DecodeN(1740) in(3)=LShiftL(574)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+#+end_src
+
+byte:
+#+begin_src bash
+[dfa-conv] ConvI2L(577): kids[0] valid for RREGI=1, outcnt=5
+^ ConvI2L matched
+[matcher-share] parent=AddP(574) child=ConvI2L(577) is_shared=1 match_into_reg=1 outcnt=4 → REGISTER (standalone)
+^ but the matching logic decides it should be standalone, not folded
+[dfa-inner] AddP(574): _DECODEN_RREGN___CONVI2L_RREGI_ check: kids[0](_DECODEN_RREGN_)=1, kids[1](_CONVI2L_RREGI_)=0
+^ so CONVI2L_RREGI=0 instead of 1
+[dfa-match] AddP(574): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=0)
+[dfa-inner] AddP(574): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(573): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=1)
+[dfa-inner] AddP(573): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(573): indIndexOffset structural=YES (no predicate, takes rRegL)
+[matcher] LoadB(572) → instr rule: loadB, addr=AddP(573)
+[matcher]   AddP(573) children: in(1)=DecodeN(1690) in(2)=AddP(574) in(3)=ConL(139)
+[matcher]   AddP(573).in(2) = AddP(574), its children: in(1)=DecodeN(1690) in(2)=DecodeN(1690) in(3)=ConvI2L(577)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+#+end_src
+* 17.6.26
+** why does loadB use indIndexOffset and not indPosIndexOffset?
+#+begin_src ad
 // Indirect Memory Plus Positive Index Register Plus Offset Operand
 operand indPosIndexOffset(any_RegP reg, immL32 off, rRegI idx)
 %{
@@ -222,9 +353,83 @@ operand indPosIndexOffset(any_RegP reg, immL32 off, rRegI idx)
   %}
 %}
 #+end_src
+** what effect does the ConvI2L node have in scheduling?
+byte
+#+begin_src bash
+[sched] convI2L_reg_reg(359) choice=2 lat=0 score=2(req=2) ready=2
+# ^ unblocks all 48 loadB?
+[sched] loadB(356) choice=2 lat=0 score=1(req=4) ready=49
+[sched] loadB(390) choice=2 lat=0 score=1(req=4) ready=45
+[sched] loadB(389) choice=2 lat=0 score=1(req=4) ready=44
+[sched] loadB(309) choice=2 lat=0 score=1(req=4) ready=45
+[sched] mulI_rReg(313) choice=2 lat=0 score=1(req=3) ready=44
+[sched] addI_rReg(310) choice=2 lat=0 score=4(req=3) ready=43
+[sched] mulI_rReg(308) choice=2 lat=0 score=5(req=3) ready=43
+[sched] addI_rReg(307) choice=2 lat=0 score=5(req=3) ready=43
+[sched] i2b(306) choice=2 lat=0 score=2(req=2) ready=43.
+[sched] xorI_rReg(305) choice=2 lat=0 score=5(req=3) ready=43 inputs=[null, RShiftI(306), RShiftI(316)]
+[sched] loadB(388) choice=2 lat=0 score=1(req=4) ready=42
+[sched] loadB(387) choice=2 lat=0 score=1(req=4) ready=41
+[sched] loadB(298) choice=2 lat=0 score=1(req=4) ready=42
+[sched] mulI_rReg(302) choice=2 lat=0 score=1(req=3) ready=41
+[sched] addI_rReg(299) choice=2 lat=0 score=4(req=3) ready=40
+[sched] mulI_rReg(297) choice=2 lat=0 score=5(req=3) ready=40
+[sched] addI_rReg(296) choice=2 lat=0 score=5(req=3) ready=40
+[sched] i2b(295) choice=2 lat=0 score=2(req=2) ready=40
+[sched] xorI_rReg(294) choice=2 lat=0 score=5(req=3) ready=40 inputs=[null, RShiftI(295), XorI(305)]
+# first xorI, 43 nodes still ready
+#+end_src
 
 short:
+#+begin_src bash
+[sched] convI2L_reg_reg(47) choice=2 lat=0 score=2(req=2) ready=2
+[sched] loadS(357) choice=2 lat=0 score=3(req=3) ready=9
+...
+[sched] xorI_rReg(307) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(308), RShiftI(318)]
+[sched] xorI_rReg(296) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(297), XorI(307)]
+[sched] xorI_rReg(285) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(286), XorI(296)]
+[sched] xorI_rReg(274) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(275), XorI(285)]
+[sched] xorI_rReg(263) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(264), XorI(274)]
+[sched] xorI_rReg(252) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(253), XorI(263)]
+[sched] xorI_rReg(241) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(242), XorI(252)]
+[sched] xorI_rReg(230) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(231), XorI(241)]
+[sched] xorI_rReg(219) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(220), XorI(230)]
+[sched] xorI_rReg(208) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(209), XorI(219)]
+[sched] xorI_rReg(197) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(198), XorI(208)]
+[sched] xorI_rReg(186) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(187), XorI(197)]
+[sched] xorI_rReg(175) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(176), XorI(186)]
+[sched] xorI_rReg(164) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(165), XorI(175)]
+[sched] xorI_rReg(151) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(152), XorI(164)]
+[sched] xorI_rReg(150) choice=2 lat=0 score=3(req=3) ready=2 inputs=[null, Phi(344), XorI(151)]
+#+end_src
+** why is there a ConvI2L node in byte but not in short?
+byte does not consume ConvI2L node:
+#+begin_src bash
+[matcher] LoadB(572) → instr rule: loadB
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+
+// Indirect Memory Plus Index Register Plus Offset Operand
+operand indIndexOffset(any_RegP reg, rRegL lreg, immL32 off)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  match(AddP (AddP reg lreg) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $lreg]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($lreg);
+    scale(0x0);
+    disp($off);
+  %}
+%}
+#+end_src
+
+short does consume it and it's folder into the matched instruction:
 #+begin_src ad
+[matcher] LoadS(571) → instr rule: loadS
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+
 // Indirect Memory Times Scale Plus Positive Index Register Plus Offset Operand
 operand indPosIndexScaleOffset(any_RegP reg, immL32 off, rRegI idx, immI2 scale)
 %{
@@ -242,7 +447,7 @@ operand indPosIndexScaleOffset(any_RegP reg, immL32 off, rRegI idx, immI2 scale)
   %}
 %}
 #+end_src
-
+** trace opto pipelining differences
 byteXorBig summary:
 #+begin_src bash
 B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
@@ -272,6 +477,85 @@ B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
 #   ready cnt:  0  latency:  0   392: loadS
 #   ready cnt:  0  latency:  0   321: loadS
  ...
+#+end_src
+** clustering
+#+begin_src bash
+short (patch) xor clustering:
+   0.46%  │  0x00007f78838f465a:   xorl		%r9d, %r11d
+   1.41%  │  0x00007f78838f465d:   xorl		%r11d, %r10d
+   2.07%  │  0x00007f78838f4660:   xorl		%r10d, %eax
+   5.22%  │  0x00007f78838f4663:   xorl		%eax, %r13d
+   4.53%  │  0x00007f78838f4666:   xorl		%r13d, %ebp
+   4.99%  │  0x00007f78838f4669:   xorl		%ebp, %edx
+   3.18%  │  0x00007f78838f466b:   xorl		%edx, %esi
+   1.57%  │  0x00007f78838f466d:   xorl		%esi, %ebx
+   1.44%  │  0x00007f78838f466f:   xorl		%ebx, %edi
+   1.21%  │  0x00007f78838f4671:   vmovd		%xmm10, %r10d
+          │  0x00007f78838f4676:   xorl		%edi, %r10d
+   1.05%  │  0x00007f78838f4679:   vmovd		%xmm11, %r11d
+   0.07%  │  0x00007f78838f467e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f4681:   vmovd		%xmm8, %r10d
+          │  0x00007f78838f4686:   xorl		%r11d, %r10d
+   1.12%  │  0x00007f78838f4689:   vmovd		%xmm9, %r11d
+          │  0x00007f78838f468e:   xorl		%r10d, %r11d
+   1.18%  │  0x00007f78838f4691:   vmovd		%xmm6, %r10d
+          │  0x00007f78838f4696:   xorl		%r11d, %r10d
+   1.67%  │  0x00007f78838f4699:   vmovd		%xmm7, %r11d
+          │  0x00007f78838f469e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f46a1:   vmovd		%xmm13, %r10d
+          │  0x00007f78838f46a6:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@59 (line 735)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+
+byte (patch) xor sequential:
+   0.52%  │    0x00007fd8e38f967b:   movsbl		0x17(%rbx, %rdx), %r10d
+   0.55%  │    0x00007fd8e38f9681:   movsbl		0x17(%rdi, %rdx), %r11d
+   0.65%  │    0x00007fd8e38f9687:   movl		%r10d, %r8d
+   0.39%  │    0x00007fd8e38f968a:   imull		%eax, %r8d
+   0.49%  │    0x00007fd8e38f968e:   addl		%eax, %r10d         ;   {other}
+   0.42%  │    0x00007fd8e38f9691:   imull		%r10d, %r11d
+   0.72%  │    0x00007fd8e38f9695:   addl		%r8d, %r11d
+   0.46%  │    0x00007fd8e38f9698:   movsbl		%r11b, %r8d
+   0.59%  │    0x00007fd8e38f969c:   xorl		%r9d, %r8d
+   0.49%  │    0x00007fd8e38f969f:   movsbl		0x18(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.52%  │    0x00007fd8e38f96a4:   movsbl		0x18(%rcx, %rdx), %r10d
+   0.46%  │    0x00007fd8e38f96aa:   movsbl		0x18(%rdi, %rdx), %r11d
+   0.81%  │    0x00007fd8e38f96b0:   movl		%r10d, %r9d
+   0.75%  │    0x00007fd8e38f96b3:   imull		%eax, %r9d
+   0.39%  │    0x00007fd8e38f96b7:   addl		%eax, %r10d
+   0.42%  │    0x00007fd8e38f96ba:   imull		%r10d, %r11d
+   0.42%  │    0x00007fd8e38f96be:   addl		%r9d, %r11d
+   0.68%  │    0x00007fd8e38f96c1:   movsbl		%r11b, %r9d
+   0.59%  │    0x00007fd8e38f96c5:   xorl		%r8d, %r9d
+   0.68%  │    0x00007fd8e38f96c8:   movsbl		0x19(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+#+end_src
+** register spilling
+#+begin_src bash
+short (patch):
+   1.12%  │  0x00007f78838f45ad:   vmovq		%xmm5, %r10
+   0.03%  │  0x00007f78838f45b2:   movswl		0x16(%r10, %rcx, 2), %r10d
+          │  0x00007f78838f45b8:   vmovq		%xmm14, %r8
+   0.03%  │  0x00007f78838f45bd:   movswl		0x16(%r8, %rcx, 2), %r9d
+   1.44%  │  0x00007f78838f45c3:   leal		(%r11, %r10), %r8d
+   0.03%  │  0x00007f78838f45c7:   imull		%r9d, %r8d
+          │  0x00007f78838f45cb:   imull		%r10d, %r11d
+
+byte (patch):
+   0.59%  │    0x00007fd8e38f96d3:   movsbl		0x19(%rdi, %rdx), %r11d
+   0.42%  │    0x00007fd8e38f96d9:   movl		%r10d, %r8d
+   0.36%  │    0x00007fd8e38f96dc:   imull		%eax, %r8d
+   0.36%  │    0x00007fd8e38f96e0:   addl		%eax, %r10d
+   0.72%  │    0x00007fd8e38f96e3:   imull		%r10d, %r11d
+#+end_src
+** performance differences
+#+begin_src bash
+Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig     2048       0  thrpt    3  344.809  344.230  ops/ms    0%
+VectorReduction2.NoSuperword.shortXorBig    2048       0  thrpt    3  304.868  174.448  ops/ms  -43%
 #+end_src
 * 16.6.26
 ** draft xeon on data 2.6
