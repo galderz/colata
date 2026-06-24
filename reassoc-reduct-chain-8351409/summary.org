@@ -622,7 +622,7 @@ short (patch) xor clustering:
           │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
 ```
 
-short (patch) xor sequential:
+byte (patch) xor sequential:
 ```
    0.52%  │    0x00007fd8e38f967b:   movsbl		0x17(%rbx, %rdx), %r10d
    0.55%  │    0x00007fd8e38f9681:   movsbl		0x17(%rdi, %rdx), %r11d
