@@ -5,8 +5,9 @@
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <freq_mhz>"
+  echo "  e.g. $0 2200  (2.2 GHz, Ryzen 3 3970X base, Radka Server)"
   echo "  e.g. $0 2300  (2.3 GHz, matches perf-lab Xeon Gold 5218)"
-  echo "  e.g. $0 4300  (4.3 GHz, Ryzen 9 7950X base)"
+  echo "  e.g. $0 4300  (4.3 GHz, Ryzen 7 7950X base)"
   exit 1
 fi
 
