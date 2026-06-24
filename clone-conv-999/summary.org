@@ -1,0 +1,510 @@
+#+STARTUP: overview
+#+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
+
+* 23.6.26
+** issue
+While working on JDK-8351409, I decided to implement reassociation for all commutative AddNode instances,
+as an experiment to see what the effects of reassociation would be beyond min/max long.
+
+One thing that Emanuel observed in the benchmark results was that char/short demonstrated performance regression due to register spilling,
+but byte didn't. E.g. in the xorBig use case.
+
+The TLDR is  byte on x86 is not using the most optimal instruction operand to access data in the array.
+This leads to additional instructions which create a throttle on the byteXorBig use case.
+For char/short the optimal instruction kicks in, which means it takes full of advantage of reassociation,
+but it's penalised by register spilling.
+
+Now we will try to demonstrate how this can be seen with reassociation.
+First, if we look at the benchmark results we see these results where `Base` is no reassociation work,
+and `Patch` is with the reassociation work in JDK-8351409 applied to Xor:
+
+```
+Benchmark                                 (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig     2048       0  thrpt    3  589.620  579.657  ops/ms   -2%
+VectorReduction2.NoSuperword.shortXorBig    2048       0  thrpt    3  554.976  327.601  ops/ms  -41%
+```
+
+The reason why short performs worse than byte is because of register spilling.
+This can be observed by from the amount of mov instructions from xmm registers:
+
+shortXorBig (reassciation patch):
+```
+   1.12%  │  0x00007f78838f45ad:   vmovq		%xmm5, %r10
+   0.03%  │  0x00007f78838f45b2:   movswl		0x16(%r10, %rcx, 2), %r10d
+          │  0x00007f78838f45b8:   vmovq		%xmm14, %r8
+   0.03%  │  0x00007f78838f45bd:   movswl		0x16(%r8, %rcx, 2), %r9d
+   1.44%  │  0x00007f78838f45c3:   leal		(%r11, %r10), %r8d
+   0.03%  │  0x00007f78838f45c7:   imull		%r9d, %r8d
+          │  0x00007f78838f45cb:   imull		%r10d, %r11d
+```
+
+byteXorBig (reassociation patch):
+```
+   0.59%  │    0x00007fd8e38f96d3:   movsbl		0x19(%rdi, %rdx), %r11d
+   0.42%  │    0x00007fd8e38f96d9:   movl		%r10d, %r8d
+   0.36%  │    0x00007fd8e38f96dc:   imull		%eax, %r8d
+   0.36%  │    0x00007fd8e38f96e0:   addl		%eax, %r10d
+   0.72%  │    0x00007fd8e38f96e3:   imull		%r10d, %r11d
+```
+
+Why is this register spilling happening for short?
+The primary reason is that with byte the xor operations are still chained sequentially,
+while for short they don't and instead all the xor operations are clustered:
+
+shortXorBig (reassociation patch) xor clustering:
+```
+   0.46%  │  0x00007f78838f465a:   xorl		%r9d, %r11d
+   1.41%  │  0x00007f78838f465d:   xorl		%r11d, %r10d
+   2.07%  │  0x00007f78838f4660:   xorl		%r10d, %eax
+   5.22%  │  0x00007f78838f4663:   xorl		%eax, %r13d
+   4.53%  │  0x00007f78838f4666:   xorl		%r13d, %ebp
+   4.99%  │  0x00007f78838f4669:   xorl		%ebp, %edx
+   3.18%  │  0x00007f78838f466b:   xorl		%edx, %esi
+   1.57%  │  0x00007f78838f466d:   xorl		%esi, %ebx
+   1.44%  │  0x00007f78838f466f:   xorl		%ebx, %edi
+   1.21%  │  0x00007f78838f4671:   vmovd		%xmm10, %r10d
+          │  0x00007f78838f4676:   xorl		%edi, %r10d
+   1.05%  │  0x00007f78838f4679:   vmovd		%xmm11, %r11d
+   0.07%  │  0x00007f78838f467e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f4681:   vmovd		%xmm8, %r10d
+          │  0x00007f78838f4686:   xorl		%r11d, %r10d
+   1.12%  │  0x00007f78838f4689:   vmovd		%xmm9, %r11d
+          │  0x00007f78838f468e:   xorl		%r10d, %r11d
+   1.18%  │  0x00007f78838f4691:   vmovd		%xmm6, %r10d
+          │  0x00007f78838f4696:   xorl		%r11d, %r10d
+   1.67%  │  0x00007f78838f4699:   vmovd		%xmm7, %r11d
+          │  0x00007f78838f469e:   xorl		%r10d, %r11d
+   1.31%  │  0x00007f78838f46a1:   vmovd		%xmm13, %r10d
+          │  0x00007f78838f46a6:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::shortXorBig@59 (line 735)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_shortXorBig_jmhTest::shortXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+byteXorBig (reassociation patch) xor sequential:
+```
+   0.52%  │    0x00007fd8e38f967b:   movsbl		0x17(%rbx, %rdx), %r10d
+   0.55%  │    0x00007fd8e38f9681:   movsbl		0x17(%rdi, %rdx), %r11d
+   0.65%  │    0x00007fd8e38f9687:   movl		%r10d, %r8d
+   0.39%  │    0x00007fd8e38f968a:   imull		%eax, %r8d
+   0.49%  │    0x00007fd8e38f968e:   addl		%eax, %r10d         ;   {other}
+   0.42%  │    0x00007fd8e38f9691:   imull		%r10d, %r11d
+   0.72%  │    0x00007fd8e38f9695:   addl		%r8d, %r11d
+   0.46%  │    0x00007fd8e38f9698:   movsbl		%r11b, %r8d
+   0.59%  │    0x00007fd8e38f969c:   xorl		%r9d, %r8d
+   0.49%  │    0x00007fd8e38f969f:   movsbl		0x18(%rbx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.52%  │    0x00007fd8e38f96a4:   movsbl		0x18(%rcx, %rdx), %r10d
+   0.46%  │    0x00007fd8e38f96aa:   movsbl		0x18(%rdi, %rdx), %r11d
+   0.81%  │    0x00007fd8e38f96b0:   movl		%r10d, %r9d
+   0.75%  │    0x00007fd8e38f96b3:   imull		%eax, %r9d
+   0.39%  │    0x00007fd8e38f96b7:   addl		%eax, %r10d
+   0.42%  │    0x00007fd8e38f96ba:   imull		%r10d, %r11d
+   0.42%  │    0x00007fd8e38f96be:   addl		%r9d, %r11d
+   0.68%  │    0x00007fd8e38f96c1:   movsbl		%r11b, %r9d
+   0.59%  │    0x00007fd8e38f96c5:   xorl		%r8d, %r9d
+   0.68%  │    0x00007fd8e38f96c8:   movsbl		0x19(%rcx, %rdx), %eax;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 308)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+The clustering observed with short is logical since that is what reassocation is trying to enable.
+It can potentially do more xor operations in paralell, but here it's being constrained by the number of registers.
+
+Why does the clustering does not happen for byte?
+If we look at `TraceOptoPipelining` we observe that in the case of byte,
+a convI2L is holding up all of the `loadB` instructions.
+
+```
+B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
+ 138  Phi  === 131 139 136  [[ 136 359 ]]  #int:1..maxint-16, widen: 3 !jvms: VectorReduction2::byteXorBig @ bci:12 (line 308)
+ 359  convI2L_reg_reg  === _ 138  [[ 356 360 155 363 364 168 177 365 366 188 367 368 199 369 370 210 371 372 221 373 374 232 375 376 243 377 378 254 379 380 265 381 382 276 383 384 287 385 386 298 387 388 309 389 390 319 391 392 ]]  !jvms: VectorReduction2::byteXorBig @ bci:17 (line 308)
+ 356  loadB  === 474 60 357 359  [[ 152 158 ]] #31/0x000000000000001f !jvms: VectorReduction2::byteXorBig @ bci:23 (line 308)
+ 392  loadB  === 472 60 361 359  [[ 320 323 ]] #16/0x0000000000000010 !jvms: VectorReduction2::byteXorBig @ bci:36 (line 308)
+ 391  loadB  === 474 60 357 359  [[ 320 323 ]] #16/0x0000000000000010 !jvms: VectorReduction2::byteXorBig @ bci:23 (line 308)
+ 319  loadB  === 476 60 156 359  [[ 318 ]] #16/0x0000000000000010
+ ...
+
+#   ready cnt:  1  latency:  0   356: loadB
+#   ready cnt:  1  latency:  0   392: loadB
+#   ready cnt:  1  latency:  0   391: loadB
+#   ready cnt:  1  latency:  0   319: loadB
+```
+
+While for shortXorBig the `loadS` instructions are ready to be scheduled without any convI2L holding it up:
+```
+B61: #	out( B65 B62 ) <- in( N132 N522 )  Freq: 4.19629e+06
+ 140  Phi  === 133 141 138  [[ 138 358 361 157 364 365 170 179 366 367 190 368 369 201 370 371 212 372 373 223 374 375 234 376 377 378 379 249 380 381 258 382 383 271 384 385 280 289 386 387 300 388 389 311 390 391 321 392 393 ]]  #int:1..maxint-16, widen: 3 !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
+ 393  loadS  === 470 60 362 140  [[ 322 325 ]] #1/0x00000001#16/0x0000000000000010 !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
+ 392  loadS  === 472 60 359 140  [[ 322 325 ]] #1/0x00000001#16/0x0000000000000010 !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ 358  loadS  === 472 60 359 140  [[ 154 160 ]] #1/0x00000001#46/0x000000000000002e !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
+ ...
+#   ready cnt:  0  latency:  0   393: loadS
+#   ready cnt:  0  latency:  0   392: loadS
+#   ready cnt:  0  latency:  0   321: loadS
+ ...
+```
+
+So the next question is: why is there a convI2L node for byte but not for short?
+The cause is in differences in operand matching.
+For byte we see that it selects `indIndexOffSet` which does not match the ConvI2L node.
+byteXorBig should be using `indPosIndexOffset` which matches the ConvI2L node:
+
+```
+[matcher] LoadB(572) → instr rule: loadB
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+
+// Indirect Memory Plus Index Register Plus Offset Operand
+operand indIndexOffset(any_RegP reg, rRegL lreg, immL32 off)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  match(AddP (AddP reg lreg) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $lreg]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($lreg);
+    scale(0x0);
+    disp($off);
+  %}
+%}
+
+operand indPosIndexOffset(any_RegP reg, immL32 off, rRegI idx)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  predicate(({
+    bool result = n->in(2)->in(3)->as_Type()->type()->is_long()->_lo >= 0;
+    if (UseNewCode) {
+      tty->print("[ad-predicate] indPosIndexOffset AddP(%d): _lo=%ld → %s\n",
+                 n->_idx,
+                 (long)n->in(2)->in(3)->as_Type()->type()->is_long()->_lo,
+                 result ? "PASS" : "FAIL");
+    }
+    result;
+  }));
+  match(AddP (AddP reg (ConvI2L idx)) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $idx]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($idx);
+    scale(0x0);
+    disp($off);
+  %}
+%}
+```
+
+For shortXorBig, we observe that it uses `indPosIndexScaleOffset`.
+That is the optimal operand which matches the ConvI2L node:
+
+```
+[matcher] LoadS(571) → instr rule: loadS
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+
+// Indirect Memory Times Scale Plus Positive Index Register Plus Offset Operand
+operand indPosIndexScaleOffset(any_RegP reg, immL32 off, rRegI idx, immI2 scale)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  predicate(n->in(2)->in(3)->in(1)->as_Type()->type()->is_long()->_lo >= 0);
+  match(AddP (AddP reg (LShiftL (ConvI2L idx) scale)) off);
+
+  op_cost(10);
+  format %{"[$reg + $off + $idx << $scale]" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($idx);
+    scale($scale);
+    disp($off);
+  %}
+%}
+```
+
+What effect does the ConvI2L node have in scheduling?
+For byte, this causes the scheduler to interleave the array loads and xor instructions,
+blocking any possible reassociation:
+
+```
+[sched] convI2L_reg_reg(359) choice=2 lat=0 score=2(req=2) ready=2
+# ^ unblocks all 48 loadB?
+[sched] loadB(356) choice=2 lat=0 score=1(req=4) ready=49
+[sched] loadB(390) choice=2 lat=0 score=1(req=4) ready=45
+[sched] loadB(389) choice=2 lat=0 score=1(req=4) ready=44
+[sched] loadB(309) choice=2 lat=0 score=1(req=4) ready=45
+[sched] mulI_rReg(313) choice=2 lat=0 score=1(req=3) ready=44
+[sched] addI_rReg(310) choice=2 lat=0 score=4(req=3) ready=43
+[sched] mulI_rReg(308) choice=2 lat=0 score=5(req=3) ready=43
+[sched] addI_rReg(307) choice=2 lat=0 score=5(req=3) ready=43
+[sched] i2b(306) choice=2 lat=0 score=2(req=2) ready=43.
+[sched] xorI_rReg(305) choice=2 lat=0 score=5(req=3) ready=43 inputs=[null, RShiftI(306), RShiftI(316)]
+[sched] loadB(388) choice=2 lat=0 score=1(req=4) ready=42
+[sched] loadB(387) choice=2 lat=0 score=1(req=4) ready=41
+[sched] loadB(298) choice=2 lat=0 score=1(req=4) ready=42
+[sched] mulI_rReg(302) choice=2 lat=0 score=1(req=3) ready=41
+[sched] addI_rReg(299) choice=2 lat=0 score=4(req=3) ready=40
+[sched] mulI_rReg(297) choice=2 lat=0 score=5(req=3) ready=40
+[sched] addI_rReg(296) choice=2 lat=0 score=5(req=3) ready=40
+[sched] i2b(295) choice=2 lat=0 score=2(req=2) ready=40
+[sched] xorI_rReg(294) choice=2 lat=0 score=5(req=3) ready=40 inputs=[null, RShiftI(295), XorI(305)]
+# first xorI, 43 nodes still ready
+```
+
+For for short there is no such hold up.
+So the loads can be scheduled early and reasociation can kick in.
+Granted, this use case doesn't perform well due to register spilling, but that's a env issue:
+
+```
+[sched] convI2L_reg_reg(47) choice=2 lat=0 score=2(req=2) ready=2
+[sched] loadS(357) choice=2 lat=0 score=3(req=3) ready=9
+...
+[sched] xorI_rReg(307) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(308), RShiftI(318)]
+[sched] xorI_rReg(296) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(297), XorI(307)]
+[sched] xorI_rReg(285) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(286), XorI(296)]
+[sched] xorI_rReg(274) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(275), XorI(285)]
+[sched] xorI_rReg(263) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(264), XorI(274)]
+[sched] xorI_rReg(252) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(253), XorI(263)]
+[sched] xorI_rReg(241) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(242), XorI(252)]
+[sched] xorI_rReg(230) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(231), XorI(241)]
+[sched] xorI_rReg(219) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(220), XorI(230)]
+[sched] xorI_rReg(208) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(209), XorI(219)]
+[sched] xorI_rReg(197) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(198), XorI(208)]
+[sched] xorI_rReg(186) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(187), XorI(197)]
+[sched] xorI_rReg(175) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(176), XorI(186)]
+[sched] xorI_rReg(164) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(165), XorI(175)]
+[sched] xorI_rReg(151) choice=2 lat=0 score=4(req=3) ready=2 inputs=[null, RShiftI(152), XorI(164)]
+[sched] xorI_rReg(150) choice=2 lat=0 score=3(req=3) ready=2 inputs=[null, Phi(344), XorI(151)]
+```
+
+So, what causes short to end up selecting `indPosIndexScaleOffset`?
+For short, the ConvI2L is wrapped in a LShiftL.
+The only use of ConvI2L is the LShiftL, and this in turn only has 1 other use,
+so they all fold up and that results in `indPosIndexScaleOffset` being selected:
+
+```
+[matcher-share] parent=AddP(573) child=LShiftL(574) is_shared=0 match_into_reg=0 outcnt=3 → FOLD (into parent tree)
+[matcher-share] parent=LShiftL(574) child=ConvI2L(577) is_shared=0 match_into_reg=0 outcnt=1 → FOLD (into parent tree)
+[dfa-conv] ConvI2L(577): kids[0] valid for RREGI=1, outcnt=1
+[dfa-lshift] LShiftL(574): kids[0](_CONVI2L_RREGI_)=1, kids[1](IMMI2)=1
+[dfa-match-scale] AddP(573): indPosIndexScaleOffset: kids[0](_ADDP_ANY_REGP__LSHIFTL__CONVI2L_RREGI__IMMI2)=0, kids[1](IMML32)=0
+[dfa-inner-scale] AddP(573): _ANY_REGP__LSHIFTL_CONVI2L check: kids[0](ANY_REGP)=1, kids[1](_LSHIFTL__CONVI2L_RREGI__IMMI2)=1
+[dfa-match-scale] AddP(572): indPosIndexScaleOffset: kids[0](_ADDP_ANY_REGP__LSHIFTL__CONVI2L_RREGI__IMMI2)=1, kids[1](IMML32)=1
+[dfa-inner-scale] AddP(572): _ANY_REGP__LSHIFTL_CONVI2L check: kids[0](ANY_REGP)=1, kids[1](_LSHIFTL__CONVI2L_RREGI__IMMI2)=0
+[dfa-match] AddP(572): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=1)
+[dfa-inner] AddP(572): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(572): indIndexOffset structural=YES (no predicate, takes rRegL)
+[matcher] LoadS(571) → instr rule: loadS, addr=AddP(572)
+[matcher]   AddP(572) children: in(1)=DecodeN(1740) in(2)=AddP(573) in(3)=ConL(139)
+[matcher]   AddP(572).in(2) = AddP(573), its children: in(1)=DecodeN(1740) in(2)=DecodeN(1740) in(3)=LShiftL(574)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXSCALEOFFSET
+```
+
+However, for byte the matches seens the ConvI2L as being shared, so having multiple uses other than AddP nodes.
+Therefore it decides to not to fold it and instead keep it as a separate register.
+This is why indIndexOffset gets chosen, because the ConvI2L node cannot be folded.
+
+```
+[dfa-conv] ConvI2L(577): kids[0] valid for RREGI=1, outcnt=5
+^ ConvI2L matched
+[matcher-share] parent=AddP(574) child=ConvI2L(577) is_shared=1 match_into_reg=1 outcnt=4 → REGISTER (standalone)
+^ but the matching logic decides it should be standalone, not folded
+[dfa-inner] AddP(574): _DECODEN_RREGN___CONVI2L_RREGI_ check: kids[0](_DECODEN_RREGN_)=1, kids[1](_CONVI2L_RREGI_)=0
+^ so CONVI2L_RREGI=0 instead of 1
+[dfa-match] AddP(574): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=0)
+[dfa-inner] AddP(574): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(573): indPosIndexOffset structural=NO (kids[0] valid for CONVI2L_RREGI=0, kids[1] valid for IMML32=1)
+[dfa-inner] AddP(573): _ANY_REGP__CONVI2L_RREGI_ check: kids[0](ANY_REGP)=1, kids[1](_CONVI2L_RREGI_)=0
+[dfa-match] AddP(573): indIndexOffset structural=YES (no predicate, takes rRegL)
+[matcher] LoadB(572) → instr rule: loadB, addr=AddP(573)
+[matcher]   AddP(573) children: in(1)=DecodeN(1690) in(2)=AddP(574) in(3)=ConL(139)
+[matcher]   AddP(573).in(2) = AddP(574), its children: in(1)=DecodeN(1690) in(2)=DecodeN(1690) in(3)=ConvI2L(577)
+[matcher]   operand[0]: class=MEMORY instance=INDINDEXOFFSET
+````
+
+This is where Roland gave me a hand and pointed me to the logic in `pd_clone_address_expressions` and related `clone_shift` methods.
+For short, these methods cause the ConvI2L wrapped in an LShift to be subsumed into comprex address expressions,
+and this enables short to fold them and end up selecting `indPosIndexScaleOffset`.
+
+However, these methods don't cover the potential case of having a naked ConvI2L without LShiftL like you have in the case of byte.
+With the following patch:
+
+```
+diff --git a/src/hotspot/cpu/x86/x86.ad b/src/hotspot/cpu/x86/x86.ad
+index 7f888ac2382..761f380c021 100644
+--- a/src/hotspot/cpu/x86/x86.ad
++++ b/src/hotspot/cpu/x86/x86.ad
+@@ -3931,6 +3931,23 @@ uint Matcher::vector_ideal_reg(int size) {
+   return 0;
+ }
+ 
++static bool clone_conv(Node* conv, Matcher* matcher, Matcher::MStack& mstack, VectorSet& address_visited) {
++  if (conv->Opcode() == Op_ConvI2L &&
++      conv->as_Type()->type()->is_long()->_lo >= 0 &&
++      // Are there other uses besides address expressions?
++      !matcher->is_visited(conv)) {
++    if (UseNewCode) {
++      tty->print("[clone-conv] ConvI2L(%d)"
++                 " (outcnt=%d, is_visited=%d)\n",
++                 conv->_idx, conv->outcnt(), matcher->is_visited(conv));
++    }
++    address_visited.set(conv->_idx); // Flag as address_visited
++    mstack.push(conv->in(1), Matcher::Pre_Visit);
++    return true;
++  }
++  return false;
++}
++
+ // Check for shift by small constant as well
+ static bool clone_shift(Node* shift, Matcher* matcher, Matcher::MStack& mstack, VectorSet& address_visited) {
+   if (shift->Opcode() == Op_LShiftX && shift->in(2)->is_Con() &&
+@@ -4101,7 +4118,8 @@ bool Matcher::pd_clone_address_expressions(AddPNode* m, Matcher::MStack& mstack,
+         !is_visited(adr)) {
+       address_visited.set(adr->_idx); // Flag as address_visited
+       Node *shift = adr->in(AddPNode::Offset);
+-      if (!clone_shift(shift, this, mstack, address_visited)) {
++      if (!clone_shift(shift, this, mstack, address_visited) &&
++          !clone_conv(shift, this, mstack, address_visited)) {
+         mstack.push(shift, Pre_Visit);
+       }
+       mstack.push(adr->in(AddPNode::Address), Pre_Visit);
+@@ -4114,7 +4132,8 @@ bool Matcher::pd_clone_address_expressions(AddPNode* m, Matcher::MStack& mstack,
+     mstack.push(off, Visit);
+     mstack.push(m->in(AddPNode::Base), Pre_Visit);
+     return true;
+-  } else if (clone_shift(off, this, mstack, address_visited)) {
++  } else if (clone_shift(off, this, mstack, address_visited) ||
++             clone_conv(off, this, mstack, address_visited)) {
+     address_visited.test_set(m->_idx); // Flag as address_visited
+     mstack.push(m->in(AddPNode::Address), Pre_Visit);
+     mstack.push(m->in(AddPNode::Base), Pre_Visit);
+```
+
+You observe that the ConvI2L gets folded and `indPosIndexOffset` gets selected for byteXorBig:
+
+```
+[matcher-share] parent=AddP(497) child=ConvI2L(498) is_shared=0 match_into_reg=0 outcnt=3 → FOLD (into parent tree)
+[matcher-find-shared] ConvI2L(498) marked SHARED (outcnt=3). Users:
+[matcher-find-shared]   → AddP(495) (classname=AddP)
+[matcher-find-shared]   → AddP(496) (classname=AddP)
+[matcher-find-shared]   → AddP(497) (classname=AddP)
+[ad-predicate] indPosIndexOffset AddP(493): _lo=1 → PASS
+[matcher] LoadB(492) → instr rule: loadB, addr=AddP(493)
+[matcher]   AddP(493) children: in(1)=Parm(12) in(2)=AddP(497) in(3)=ConL(139)
+[matcher]   AddP(493).in(2) = AddP(497), its children: in(1)=Parm(12) in(2)=Parm(12) in(3)=ConvI2L(498)
+[matcher]   operand[0]: class=MEMORY instance=INDPOSINDEXOFFSET
+```
+
+If you then apply the fix on top of the reassociation work,
+you see that both byte perfoms the same as short:
+
+```
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  327.657 ± 7.823  ops/ms
+```
+
+I have not been able to find a way to print the operands and get the chosen operands be asserted by the IR framework.
+But Roland suggested matching the `convI2L_reg_reg` nodes.
+With the following IR changes:
+
+```
+
+```
+diff --git a/test/hotspot/jtreg/compiler/lib/ir_framework/IRNode.java b/test/hotspot/jtreg/compiler/lib/ir_framework/IRNode.java
+index a76853016d9..12ca9850ce1 100644
+--- a/test/hotspot/jtreg/compiler/lib/ir_framework/IRNode.java
++++ b/test/hotspot/jtreg/compiler/lib/ir_framework/IRNode.java
+@@ -2883,6 +2883,11 @@ public class IRNode {
+         machOnlyNameRegex(X86_SCONV_F2L, "convF2L_reg_reg");
+     }
+ 
++    public static final String X86_SCONV_I2L = PREFIX + "X86_SCONV_I2L" + POSTFIX;
++    static {
++        machOnlyNameRegex(X86_SCONV_I2L, "convI2L_reg_reg");
++    }
++
+     public static final String X86_SCONV_D2I_AVX10_2 = PREFIX + "X86_SCONV_D2I_AVX10_2" + POSTFIX;
+     static {
+         machOnlyNameRegex(X86_SCONV_D2I_AVX10_2, "convD2I_(reg_reg|reg_mem)_avx10_2");
+diff --git a/test/hotspot/jtreg/compiler/loopopts/superword/TestReductions.java b/test/hotspot/jtreg/compiler/loopopts/superword/TestReductions.java
+index 599e95bd6ab..31a012cea6b 100644
+--- a/test/hotspot/jtreg/compiler/loopopts/superword/TestReductions.java
++++ b/test/hotspot/jtreg/compiler/loopopts/superword/TestReductions.java
+@@ -746,6 +746,9 @@ private static byte byteOrBig() {
+         applyIf = {"AutoVectorizationOverrideProfitability", "> 0"})
+     @IR(failOn = IRNode.LOAD_VECTOR_B,
+         applyIf = {"AutoVectorizationOverrideProfitability", "= 0"})
++    @IR(counts = {IRNode.X86_SCONV_I2L, "= 4"},
++        applyIfPlatform = {"x64", "true"},
++        phase = CompilePhase.MATCHING)
+     private static byte byteXorBig() {
+         byte acc = 0; // neutral element
+         for (int i = 0; i < SIZE; i++) {
+@@ -992,6 +995,9 @@ private static char charOrBig() {
+ 
+     @Test
+     @IR(failOn = IRNode.LOAD_VECTOR_C) // does not vectorize for now, might in the future.
++    @IR(counts = {IRNode.X86_SCONV_I2L, "= 4"},
++        applyIfPlatform = {"x64", "true"},
++        phase = CompilePhase.MATCHING)
+     private static char charXorBig() {
+         char acc = 0; // neutral element
+         for (int i = 0; i < SIZE; i++) {
+@@ -1304,6 +1310,9 @@ private static short shortOrBig() {
+         applyIf = {"AutoVectorizationOverrideProfitability", "> 0"})
+     @IR(failOn = IRNode.LOAD_VECTOR_S,
+         applyIf = {"AutoVectorizationOverrideProfitability", "= 0"})
++    @IR(counts = {IRNode.X86_SCONV_I2L, "= 4"},
++        applyIfPlatform = {"x64", "true"},
++        phase = CompilePhase.MATCHING)
+     private static short shortXorBig() {
+         short acc = 0; // neutral element
+         for (int i = 0; i < SIZE; i++) {
+```
+
+I get the expected failure in byteXorBig, but I'm unsure how deterministic this counts are:
+
+```
+1) Method "compiler.loopopts.superword.TestReductions::byteXorBig" - [Failed IR rules: 1]:
+   * @IR rule 3: "@compiler.lib.ir_framework.IR(phase={MATCHING}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#X86_SCONV_I2L#_", "= 4"}, failOn={}, applyIfPlatform={"x64", "true"}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "After Matching":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(convI2L_reg_reg.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 8 = 4 [given]
+             - Matched nodes (8):
+               * 57  convI2L_reg_reg  === _ 100  [[ 56 ]]  long:>=0
+               * 67  convI2L_reg_reg  === _ 98  [[ 66 ]]  long:>=0
+               * 77  convI2L_reg_reg  === _ 93  [[ 76 ]]  long:>=0
+               * 96  convI2L_reg_reg  === _ 89  [[ 94 50 111 214 ]]  long:minint..maxint, 0u..maxulong, widen: 3
+               * 151  convI2L_reg_reg  === _ 104  [[ 148 152 139 ]]  long:0..3 !jvms: TestReductions::byteXorBig @ bci:15 (line 755)
+               * 191  convI2L_reg_reg  === _ 120  [[ 161 193 195 170 197 199 179 201 203 188 205 207 ]]  long:1..maxint-32, widen: 3 !jvms: TestReductions::byteXorBig @ bci:15 (line 755)
+               * 343  convI2L_reg_reg  === _ 274  [[ 340 345 347 ]]  long:33..maxint-1, widen: 3 !jvms: TestReductions::byteXorBig @ bci:15 (line 755)
+               * 350  convI2L_reg_reg  === _ 310  [[ 349 351 322 ]]  long:0..maxint-1, widen: 3 !jvms: TestReductions::byteXorBig @ bci:15 (line 755)
+```
+** temporary patch
+byte
+#+begin_src bash
+  68  convI2L_reg_reg  === _ 96  [[ 66 ]]  long:>=0
+#+end_src
+
+short
+#+begin_src bash
+ 108  convI2LAndI_reg_immIbitmask  === _ 109 117  [[ 118 107 ]] #7/0x00000007 long:0..7, widen: 3
+ 120  convI2L_reg_reg  === _ 94  [[ 67 66 ]]  long:>=0
+#+end_src
+** temporary patch in reassoc
+byte (no output)
+short (no output)
+** no patch
+byte
+#+begin_src bash
+  68  convI2L_reg_reg  === _ 96  [[ 66 ]]  long:>=0
+ 147  convI2L_reg_reg  === _ 106  [[ 146 148 139 ]]  long:0..3 !jvms: TestXorByte::testByte @ bci:15 (line 22)
+ 187  convI2L_reg_reg  === _ 118  [[ 186 189 156 191 193 165 195 197 175 202 204 183 ]]  long:1..maxint-32, widen: 3 !jvms: TestXorByte::testByte @ bci:15 (line 22)
+ 329  convI2L_reg_reg  === _ 254  [[ 328 331 325 ]]  long:33..maxint-1, widen: 3 !jvms: TestXorByte::testByte @ bci:15 (line 22)
+ 334  convI2L_reg_reg  === _ 294  [[ 333 335 306 ]]  long:0..maxint-1, widen: 3 !jvms: TestXorByte::testByte @ bci:15 (line 22)
+#+end_src
+
+short
+#+begin_src bash
+ 108  convI2LAndI_reg_immIbitmask  === _ 109 117  [[ 118 107 ]] #7/0x00000007 long:0..7, widen: 3
+ 120  convI2L_reg_reg  === _ 94  [[ 67 66 ]]  long:>=0
+#+end_src

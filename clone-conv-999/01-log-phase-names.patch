@@ -1,0 +1,51 @@
+From 15c52e0100ee4dc5c71a56882a252b9d44f02253 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Galder=20Zamarre=C3=B1o?= <galder@openjdk.org>
+Date: Tue, 23 Jun 2026 14:05:13 +0200
+Subject: [PATCH 1/2] Fix: Log phase names
+
+---
+ src/hotspot/share/opto/compile.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/hotspot/share/opto/compile.cpp b/src/hotspot/share/opto/compile.cpp
+index 8c9c0bb9d88..72afdea0a28 100644
+--- a/src/hotspot/share/opto/compile.cpp
++++ b/src/hotspot/share/opto/compile.cpp
+@@ -5119,7 +5119,7 @@ void Compile::sort_macro_nodes() {
+ void Compile::print_method(CompilerPhaseType compile_phase, int level, Node* n) {
+   // === ADD LOGGING ===
+   if (UseNewCode) {
+-    tty->print("[phase] %s\n", CompilerPhaseTypeHelper::to_description(cpt));
++    tty->print("[phase] %s\n", CompilerPhaseTypeHelper::to_description(compiler_phase));
+   }
+   // === END LOGGING ===
+   if (failing_internal()) { return; } // failing_internal to not stress bailouts from printing code.
+-- 
+2.51.2
+
+
+From fe3fe5c241bc0064ad9dfc81779dd15e29665979 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Galder=20Zamarre=C3=B1o?= <galder@openjdk.org>
+Date: Tue, 23 Jun 2026 14:05:50 +0200
+Subject: [PATCH 2/2] Fix: Log phase names
+
+---
+ src/hotspot/share/opto/compile.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/hotspot/share/opto/compile.cpp b/src/hotspot/share/opto/compile.cpp
+index 72afdea0a28..0323b7e7a13 100644
+--- a/src/hotspot/share/opto/compile.cpp
++++ b/src/hotspot/share/opto/compile.cpp
+@@ -5119,7 +5119,7 @@ void Compile::sort_macro_nodes() {
+ void Compile::print_method(CompilerPhaseType compile_phase, int level, Node* n) {
+   // === ADD LOGGING ===
+   if (UseNewCode) {
+-    tty->print("[phase] %s\n", CompilerPhaseTypeHelper::to_description(compiler_phase));
++    tty->print("[phase] %s\n", CompilerPhaseTypeHelper::to_description(compile_phase));
+   }
+   // === END LOGGING ===
+   if (failing_internal()) { return; } // failing_internal to not stress bailouts from printing code.
+-- 
+2.51.2
+
