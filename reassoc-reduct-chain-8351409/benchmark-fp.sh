@@ -23,7 +23,7 @@ benchmark_all()
     local extra_args=$2
     local rff_prefix=$3
 
-    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword.\\\(short\\\|byte\\\)XorBig\" MICRO=\"OPTIONS=-rff ${rff_prefix}-xor.csv ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword.\\\(double\\\|float\\\)\\\(Max\\\|Min\\\)\" MICRO=\"OPTIONS=-rff ${rff_prefix}-xor.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
