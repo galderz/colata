@@ -7,7 +7,7 @@ if [[ "$1" == "--clean=true" ]]; then
 fi
 
 tests=(
-    "test/hotspot/jtreg/compiler/loopopts/superword/TestReductions.java"
+    "test/hotspot/jtreg/compiler/c2/TestByteArrayAddressing.java"
 )
 
 TEST="${tests[*]}" make jtreg
