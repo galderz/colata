@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ---- 1) Download google-java-format jar once (cache in TMPDIR) ----
-GJF_VERSION="1.32.0"
+GJF_VERSION="1.35.0"
 GJF_JAR="google-java-format-${GJF_VERSION}-all-deps.jar"
 GJF_URL="https://github.com/google/google-java-format/releases/download/v${GJF_VERSION}/${GJF_JAR}"
 
