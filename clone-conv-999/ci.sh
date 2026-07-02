@@ -12,4 +12,4 @@ tests=(
     "test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java"
 )
 
-TEST="${tests[*]}" make jtreg
+TEST="${tests[*]}" make jtreg jtreg-format
