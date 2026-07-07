@@ -67,6 +67,9 @@ CONF=release make clean-csv
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof ${ASM_PROFILER}" "perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "" "noprof"
 benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof ${ASM_PROFILER}" "perfasm"
 benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS}" "perfnorm"
 benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 " "noprof"
