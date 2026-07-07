@@ -27,7 +27,8 @@ disable_hyperthreading() {
         if [[ $dry_run == "true" ]]; then
            echo "Dry-run mode: Hyper-threading would be disabled if not in dry-run mode."
         else
-            echo "Run mode: disabled hyper threading in BIOS."
+            echo "Run mode: disable hyper threading via command line"
+            echo off | sudo tee /sys/devices/system/cpu/smt/control
         fi
     fi
 }
