@@ -7,8 +7,6 @@ Still gets considerable performance improvement.
 Improvement of binary tree only on big enough unrolls (see 2, 4, 8, 16).
 Can reassociate to non-power-of-2 chains.
 * Next steps
-- [ ] merge two tests into 1 and use different @run to make sure both are run
-- [ ] refactor to a different class
 * PR draft
 The following PR reassociates reduction chains for long Min/Max nodes to improve performance of unrolled loops.
 
@@ -180,6 +178,61 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
+* 1.7.26
++UseNewCode2
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt    Score    Error   Units
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  252.520 ±  8.841  ops/ms
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  417.742 ± 15.615  ops/ms
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  489.980 ± 55.125  ops/ms
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  271.418 ± 39.604  ops/ms
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  501.639 ± 42.588  ops/ms
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  469.650 ± 19.236  ops/ms
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  265.909 ± 40.957  ops/ms
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  388.100 ±  2.249  ops/ms
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  476.254 ± 12.855  ops/ms
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  253.717 ± 25.212  ops/ms
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  367.939 ± 52.772  ops/ms
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  462.122 ± 18.217  ops/ms
+#+end_src
+
+-UseNewCode2
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt    Score    Error   Units
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  176.527 ± 13.295  ops/ms
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  180.751 ±  0.640  ops/ms
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  166.092 ±  0.938  ops/ms
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  176.200 ±  0.446  ops/ms
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  193.632 ±  0.301  ops/ms
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  148.480 ±  0.270  ops/ms
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  175.709 ±  1.311  ops/ms
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  182.912 ±  0.792  ops/ms
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  169.936 ±  0.692  ops/ms
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  171.403 ±  0.966  ops/ms
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  204.108 ±  0.299  ops/ms
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  148.550 ±  1.268  ops/ms
+#+end_src
+
+UseNewCode2 usage:
+#+begin_src cpp
+bool VLoopReductions::is_reduction(const Node* n) {
+  if (UseNewCode2) {
+    return true;
+  }
+
+  if (!is_reduction_operator(n)) {
+    return false;
+  }
+  // Test whether there is a reduction cycle via every edge index
+  // (typically indices 1 and 2).
+  for (uint input = 1; input < n->req(); input++) {
+    if (in_reduction_cycle(n, input)) {
+      return true;
+    }
+  }
+  return false;
+}
+#+end_src
 * 22.6.26
 Roland on 19.6:
 #+begin_quote
