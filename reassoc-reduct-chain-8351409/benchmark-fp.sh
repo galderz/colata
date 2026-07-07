@@ -44,11 +44,7 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    if [[ $branch != *base ]]; then
-        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "patch-${rff_suffix}"
-    else
-        benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "base-${rff_suffix}"
-    fi
+    benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "${rff_suffix}"
 }
 
 log()
@@ -67,15 +63,15 @@ CONF=release make clean-csv
 # DisableIntrinsic requires UnlockDiagnosticVMOptions
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
-benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "" "noprof"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 " "noprof"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-prof ${ASM_PROFILER}" "perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-prof perfnorm:events=${EVENTS}" "perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof ${ASM_PROFILER}" "base-perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:events=${EVENTS}" "base-perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "" "base-noprof"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof ${ASM_PROFILER}" "newcode2-perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS}" "newcode2-perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 " "newcode2-noprof"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-prof ${ASM_PROFILER}" "patch-perfasm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-prof perfnorm:events=${EVENTS}" "patch-perfnorm"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "" "patch-noprof"
 
 zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
 zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
