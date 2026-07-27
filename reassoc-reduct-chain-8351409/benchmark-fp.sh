@@ -3,7 +3,7 @@
 set -ex
 
 CLEAN="false"
-EVENTS="cycles,instructions,branch-misses,br_mis_pred,inst_retired"
+EVENTS="cycles,instructions,branches,branch-misses,idq_uops_not_delivered.core,int_misc.recovery_cycles"
 ASM_PROFILER="perfasm"
 
 # Check for clean parameter
