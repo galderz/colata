@@ -72,7 +72,7 @@ benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:event
 benchmark_branch "topic.reassoc-reduct-chain.all-add.base" "-prof perfnorm:events=${EVENTS_3}" "base-perfnorm-fe"
 benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS_1}" "newcode2-perfnorm-dyw"
 benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS_2}" "newcode2-perfnorm-dybr"
-benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS_3}" "newcode2-perfnorm-fr"
+benchmark_branch "topic.reassoc-reduct-chain.all-add.fp" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode2 -prof perfnorm:events=${EVENTS_3}" "newcode2-perfnorm-fe"
 
 zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
 zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
