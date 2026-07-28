@@ -178,6 +178,2302 @@ Every other regression is due to register spilling.
 In the baseline assembly I observed that the array base was stable accross the loop,
 but with my changes the array base was kept in XMM registers and that it reloads the same base repeateadly.
 All my x86_64 benchmarks are run on a bare metal Xeon cascade lake machine (~5 year old architecture).
+* 27.7.26
+** PR draft 2
+#+begin_src markdown
+> float/double: what if you hard-coded VLoopReductions::is_reduction to true? Would that help? If so, we could implement a new backen is_reduction matching method that also detects your new "simple reassociation" patterns. Maybe that would fix the regression here?
+
+First of all, let me remind everyone that float/double max is out of the scope of this PR.
+
+Hardcoding `VLoopReductions::is_reduction` to `true` does improve the results compared to the patched version, but it does still regress in some cases:
+
+```
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base  UseNewCode2   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  240.478      236.441  ops/ms   -2%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  347.131      346.172  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  708.219      446.644  ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  226.864      262.359  ops/ms  +16%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  518.402      471.005  ops/ms   -9%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  379.500      352.745  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  239.499      239.971  ops/ms    0%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  333.463      306.600  ops/ms   -8%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  487.406      442.693  ops/ms   -9%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.594      225.696  ops/ms  -25%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  477.042      320.599  ops/ms  -33%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.593      356.010  ops/ms   -1%
+```
+
+The environment is an Cascade Lake (Intel(R) Xeon(R) Bronze 3204 CPU @ 1.90GHz).
+
+The biggest regression is found in `doubleMaxSimple` so I've been focusing on that to understand it better. The difference between the assemblies is really down to the reassociation, but that alone does not explain the difference. At a high level, the baseline for this use case works like this:
+
+```
+acc = max(acc, a0)
+acc = max(acc, a1)
+...
+acc = max(acc, a15)
+```
+
+And we can observe that in its summarised assembly where the `acc` is `xmm0`:
+
+```
+  0x00007fc1d4add8c2:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add903:   vucomisd		%xmm2, %xmm0
+  0x00007fc1d4add942:   vucomisd		%xmm3, %xmm0
+  0x00007fc1d4addcc7:   vmovq		%rax, %xmm0
+...
+```
+
+For the patched version with `VLoopReductions::is_reduction` returning true it works like this at a high level:
+
+```
+tmp = max(a0, a1)
+tmp = max(tmp, a2)
+...
+tmp = max(tmp, a15)
+acc = max(acc, localMax)
+```
+
+In this case `acc` is `%xmm15` and `%xmm0` is a `tmp`:
+```
+  0x00007fd4b0add8f2:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add933:   vucomisd		%xmm2, %xmm0
+  0x00007fd4b0add972:   vucomisd		%xmm3, %xmm0
+
+  0x00007fd4b0addcf4:   vmovq		%rax, %xmm15
+  0x00007fd4b0addcfe:   vmovapd		%xmm0, %xmm15       ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+```
+
+The difference between the two options is observed when we look at the perf counters. With reassociation more instructions are executed, and about 1/2 of those the additional instructions are branches:
+
+```
+Benchmark                                                                   (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                     2048       0  thrpt        7165.862     9410.634       #/op  +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:branches                         2048       0  thrpt        2209.558     3413.912       #/op  +55%
+```
+
+The front-end struggles with reassociation and branching, and the instructions per cycle goes down:
+
+```
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units   Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                                2048       0  thrpt           2.673        2.197  insns/clk   -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles                             2048       0  thrpt        2681.320     4282.625       #/op   +60%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                       2048       0  thrpt        7165.862     9410.634       #/op   +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:idq_uops_not_delivered.core        2048       0  thrpt        3442.751     7701.761       #/op  +124%
+```
+
+Although branch prediction is better with reassociation, this improvement is small compared with the cost of executing more correctly predicted branches:
+
+```
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses                      2048       0  thrpt           3.234        1.269       #/op  -61%
+VectorReduction2.NoSuperword.doubleMaxSimple:int_misc.recovery_cycles           2048       0  thrpt          19.217        3.080       #/op  -84%
+```
+
+The bottom line is that with reassociation and branching, longer control-flow paths are executed and front-end throughput decreases.
+#+end_src
+** PR draft 1
+I've been looking at
+
+#+begin_src markdown
+I've been exploring the effects of hardcoding `` to return to true and the impact that has on the double/float min/max performance.
+Overall you seen an improvement compared to the current `` impl, but there is still some regressions comparing to the baseline.
+
+```
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base  UseNewCode2   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  240.478      236.441  ops/ms   -2%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  347.131      346.172  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  708.219      446.644  ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  226.864      262.359  ops/ms  +16%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  518.402      471.005  ops/ms   -9%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  379.500      352.745  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  239.499      239.971  ops/ms    0%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  333.463      306.600  ops/ms   -8%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  487.406      442.693  ops/ms   -9%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.594      225.696  ops/ms  -25%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  477.042      320.599  ops/ms  -33%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.593      356.010  ops/ms   -1%
+```
+
+The biggest regression is found in `doubleMaxSimple` so I've been focusing on that to understand it better.
+
+The difference between the assemblies is really down to the reassociation, but that alone does not explain the difference.
+
+At a high level, the baseline for this use case works like this:
+
+```
+acc = max(acc, a0)
+acc = max(acc, a1)
+...
+acc = max(acc, a15)
+```
+
+And we can observe that in its summarised assembly where the `acc` is `xmm0`:
+
+```
+  0x00007fc1d4add8c2:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add903:   vucomisd		%xmm2, %xmm0
+  0x00007fc1d4add942:   vucomisd		%xmm3, %xmm0
+  0x00007fc1d4addcc7:   vmovq		%rax, %xmm0
+...
+```
+
+
+For the patched version with `` returning true it works like this at a high level:
+
+```
+tmp = max(a0, a1)
+tmp = max(tmp, a2)
+...
+tmp = max(tmp, a15)
+acc = max(acc, localMax)
+```
+
+In this case `acc` is `%xmm15` and `%xmm0` is a `tmp`:
+```
+  0x00007fd4b0add8f2:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add933:   vucomisd		%xmm2, %xmm0
+  0x00007fd4b0add972:   vucomisd		%xmm3, %xmm0
+
+  0x00007fd4b0addcf4:   vmovq		%rax, %xmm15
+  0x00007fd4b0addcfe:   vmovapd		%xmm0, %xmm15       ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+```
+
+The difference between the two options is observed when we look at the perf counters.
+With reassociation more instructions are executed, and about 1/2 of those the additional instructions are branches:
+
+```
+Benchmark                                                                   (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                     2048       0  thrpt        7165.862     9410.634       #/op  +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:branches                         2048       0  thrpt        2209.558     3413.912       #/op  +55%
+```
+
+The front-end struggles with reassociation and branch and the instructions per cycle goes down:
+
+```
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units   Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                                2048       0  thrpt           2.673        2.197  insns/clk   -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles                             2048       0  thrpt        2681.320     4282.625       #/op   +60%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                       2048       0  thrpt        7165.862     9410.634       #/op   +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:idq_uops_not_delivered.core        2048       0  thrpt        3442.751     7701.761       #/op  +124%
+```
+
+Although branch prediction is better with reassociation, this improvement is small compared with the cost of executing more correctly predicted branches:
+
+```
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses                      2048       0  thrpt           3.234        1.269       #/op  -61%
+VectorReduction2.NoSuperword.doubleMaxSimple:int_misc.recovery_cycles           2048       0  thrpt          19.217        3.080       #/op  -84%
+```
+
+The bottom line is that with reassociation and branching, longer control-flow paths are executed and front-end througput decreases.
+
+
+#+end_src
+** Howard - no logging
+*** VR2 fp perfnorm
+#+begin_src bash
+Benchmark                                                       (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig                         2048       0  thrpt    3    240.098      237.020     ops/ms   -1%
+VectorReduction2.NoSuperword.doubleMaxBig:CPI                     2048       0  thrpt           0.285        0.323  clks/insn  +13%
+VectorReduction2.NoSuperword.doubleMaxBig:IPC                     2048       0  thrpt           3.507        3.098  insns/clk  -12%
+VectorReduction2.NoSuperword.doubleMaxBig:branch-misses           2048       0  thrpt           4.135        2.445       #/op  -41%
+VectorReduction2.NoSuperword.doubleMaxBig:cycles                  2048       0  thrpt        7910.803     8077.306       #/op   +2%
+VectorReduction2.NoSuperword.doubleMaxBig:instructions            2048       0  thrpt       27746.668    25021.783       #/op  -10%
+VectorReduction2.NoSuperword.doubleMaxDotProduct                  2048       0  thrpt    3    346.803      347.786     ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxDotProduct:CPI              2048       0  thrpt           0.433        0.433  clks/insn    0%
+VectorReduction2.NoSuperword.doubleMaxDotProduct:IPC              2048       0  thrpt           2.310        2.311  insns/clk    0%
+VectorReduction2.NoSuperword.doubleMaxDotProduct:branch-misses    2048       0  thrpt           2.199        0.750       #/op  -66%
+VectorReduction2.NoSuperword.doubleMaxDotProduct:cycles           2048       0  thrpt        5474.085     5503.893       #/op   +1%
+VectorReduction2.NoSuperword.doubleMaxDotProduct:instructions     2048       0  thrpt       12645.348    12719.235       #/op   +1%
+VectorReduction2.NoSuperword.doubleMaxSimple                      2048       0  thrpt    3    708.667      446.504     ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMaxSimple:CPI                  2048       0  thrpt           0.374        0.455  clks/insn  +22%
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                  2048       0  thrpt           2.673        2.196  insns/clk  -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses        2048       0  thrpt           3.158        1.324       #/op  -58%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles               2048       0  thrpt        2679.956     4287.812       #/op  +60%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions         2048       0  thrpt        7163.469     9415.198       #/op  +31%
+VectorReduction2.NoSuperword.doubleMinBig                         2048       0  thrpt    3    227.494      255.521     ops/ms  +12%
+VectorReduction2.NoSuperword.doubleMinBig:CPI                     2048       0  thrpt           0.331        0.297  clks/insn  -10%
+VectorReduction2.NoSuperword.doubleMinBig:IPC                     2048       0  thrpt           3.021        3.361  insns/clk  +11%
+VectorReduction2.NoSuperword.doubleMinBig:branch-misses           2048       0  thrpt           4.460        6.052       #/op  +36%
+VectorReduction2.NoSuperword.doubleMinBig:cycles                  2048       0  thrpt        8349.115     7489.588       #/op  -10%
+VectorReduction2.NoSuperword.doubleMinBig:instructions            2048       0  thrpt       25225.047    25175.913       #/op    0%
+VectorReduction2.NoSuperword.doubleMinDotProduct                  2048       0  thrpt    3    520.255      470.346     ops/ms  -10%
+VectorReduction2.NoSuperword.doubleMinDotProduct:CPI              2048       0  thrpt           0.380        0.371  clks/insn   -2%
+VectorReduction2.NoSuperword.doubleMinDotProduct:IPC              2048       0  thrpt           2.632        2.692  insns/clk   +2%
+VectorReduction2.NoSuperword.doubleMinDotProduct:branch-misses    2048       0  thrpt           5.067        2.075       #/op  -59%
+VectorReduction2.NoSuperword.doubleMinDotProduct:cycles           2048       0  thrpt        3649.509     4069.700       #/op  +12%
+VectorReduction2.NoSuperword.doubleMinDotProduct:instructions     2048       0  thrpt        9604.253    10956.241       #/op  +14%
+VectorReduction2.NoSuperword.doubleMinSimple                      2048       0  thrpt    3    377.373      353.253     ops/ms   -6%
+VectorReduction2.NoSuperword.doubleMinSimple:CPI                  2048       0  thrpt           0.447        0.453  clks/insn   +1%
+VectorReduction2.NoSuperword.doubleMinSimple:IPC                  2048       0  thrpt           2.237        2.209  insns/clk   -1%
+VectorReduction2.NoSuperword.doubleMinSimple:branch-misses        2048       0  thrpt           5.010        0.652       #/op  -87%
+VectorReduction2.NoSuperword.doubleMinSimple:cycles               2048       0  thrpt        5032.155     5420.204       #/op   +8%
+VectorReduction2.NoSuperword.doubleMinSimple:instructions         2048       0  thrpt       11254.785    11971.213       #/op   +6%
+VectorReduction2.NoSuperword.floatMaxBig                          2048       0  thrpt    3    241.178      237.285     ops/ms   -2%
+VectorReduction2.NoSuperword.floatMaxBig:CPI                      2048       0  thrpt           0.300        0.311  clks/insn   +3%
+VectorReduction2.NoSuperword.floatMaxBig:IPC                      2048       0  thrpt           3.331        3.219  insns/clk   -3%
+VectorReduction2.NoSuperword.floatMaxBig:branch-misses            2048       0  thrpt           4.552        4.348       #/op   -4%
+VectorReduction2.NoSuperword.floatMaxBig:cycles                   2048       0  thrpt        7874.710     8063.864       #/op   +2%
+VectorReduction2.NoSuperword.floatMaxBig:instructions             2048       0  thrpt       26228.170    25957.344       #/op   -1%
+VectorReduction2.NoSuperword.floatMaxDotProduct                   2048       0  thrpt    3    334.111      305.681     ops/ms   -9%
+VectorReduction2.NoSuperword.floatMaxDotProduct:CPI               2048       0  thrpt           0.416        0.464  clks/insn  +12%
+VectorReduction2.NoSuperword.floatMaxDotProduct:IPC               2048       0  thrpt           2.406        2.155  insns/clk  -10%
+VectorReduction2.NoSuperword.floatMaxDotProduct:branch-misses     2048       0  thrpt           7.465        1.310       #/op  -82%
+VectorReduction2.NoSuperword.floatMaxDotProduct:cycles            2048       0  thrpt        5685.369     6263.755       #/op  +10%
+VectorReduction2.NoSuperword.floatMaxDotProduct:instructions      2048       0  thrpt       13677.405    13495.658       #/op   -1%
+VectorReduction2.NoSuperword.floatMaxSimple                       2048       0  thrpt    3    569.347      446.803     ops/ms  -22%
+VectorReduction2.NoSuperword.floatMaxSimple:CPI                   2048       0  thrpt           0.435        0.476  clks/insn   +9%
+VectorReduction2.NoSuperword.floatMaxSimple:IPC                   2048       0  thrpt           2.299        2.100  insns/clk   -9%
+VectorReduction2.NoSuperword.floatMaxSimple:branch-misses         2048       0  thrpt           4.080        0.420       #/op  -90%
+VectorReduction2.NoSuperword.floatMaxSimple:cycles                2048       0  thrpt        3338.739     4282.031       #/op  +28%
+VectorReduction2.NoSuperword.floatMaxSimple:instructions          2048       0  thrpt        7676.089     8991.923       #/op  +17%
+VectorReduction2.NoSuperword.floatMinBig                          2048       0  thrpt    3    299.547      229.975     ops/ms  -23%
+VectorReduction2.NoSuperword.floatMinBig:CPI                      2048       0  thrpt           0.286        0.320  clks/insn  +12%
+VectorReduction2.NoSuperword.floatMinBig:IPC                      2048       0  thrpt           3.499        3.129  insns/clk  -11%
+VectorReduction2.NoSuperword.floatMinBig:branch-misses            2048       0  thrpt           4.394        1.069       #/op  -76%
+VectorReduction2.NoSuperword.floatMinBig:cycles                   2048       0  thrpt        6337.558     8325.859       #/op  +31%
+VectorReduction2.NoSuperword.floatMinBig:instructions             2048       0  thrpt       22176.177    26050.369       #/op  +17%
+VectorReduction2.NoSuperword.floatMinDotProduct                   2048       0  thrpt    3    477.103      320.223     ops/ms  -33%
+VectorReduction2.NoSuperword.floatMinDotProduct:CPI               2048       0  thrpt           0.374        0.479  clks/insn  +28%
+VectorReduction2.NoSuperword.floatMinDotProduct:IPC               2048       0  thrpt           2.671        2.086  insns/clk  -22%
+VectorReduction2.NoSuperword.floatMinDotProduct:branch-misses     2048       0  thrpt           3.078        3.303       #/op   +7%
+VectorReduction2.NoSuperword.floatMinDotProduct:cycles            2048       0  thrpt        3981.308     5979.255       #/op  +50%
+VectorReduction2.NoSuperword.floatMinDotProduct:instructions      2048       0  thrpt       10632.947    12473.707       #/op  +17%
+VectorReduction2.NoSuperword.floatMinSimple                       2048       0  thrpt    3    350.882      357.471     ops/ms   +2%
+VectorReduction2.NoSuperword.floatMinSimple:CPI                   2048       0  thrpt           0.465        0.454  clks/insn   -2%
+VectorReduction2.NoSuperword.floatMinSimple:IPC                   2048       0  thrpt           2.153        2.203  insns/clk   +2%
+VectorReduction2.NoSuperword.floatMinSimple:branch-misses         2048       0  thrpt           4.587        0.538       #/op  -88%
+VectorReduction2.NoSuperword.floatMinSimple:cycles                2048       0  thrpt        5414.750     5358.567       #/op   -1%
+VectorReduction2.NoSuperword.floatMinSimple:instructions          2048       0  thrpt       11656.844    11803.736       #/op   +1%
+#+end_src
+*** doubleMaxSimple more perfnorm
+dynamic work:
+#+begin_src bash
+Benchmark                                                                   (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple                                  2048       0  thrpt    3    707.922      447.732     ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMaxSimple:CPI                              2048       0  thrpt           0.374        0.454  clks/insn  +21%
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                              2048       0  thrpt           2.672        2.202  insns/clk  -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses                    2048       0  thrpt           3.261        0.796       #/op  -76%
+VectorReduction2.NoSuperword.doubleMaxSimple:branches                         2048       0  thrpt        2209.558     3413.912       #/op  +55%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles                           2048       0  thrpt        2681.076     4272.814       #/op  +59%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                     2048       0  thrpt        7163.408     9410.582       #/op  +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:uops_retired.retire_slots        2048       0  thrpt        7022.333     9267.071       #/op  +32%
+#+end_src
+
+dynamic branch:
+#+begin_src bash
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple                                    2048       0  thrpt    3    707.952      446.415     ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMaxSimple:CPI                                2048       0  thrpt           0.374        0.455  clks/insn  +22%
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                                2048       0  thrpt           2.673        2.197  insns/clk  -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:br_inst_retired.conditional        2048       0  thrpt        2208.372     2807.881       #/op  +27%
+VectorReduction2.NoSuperword.doubleMaxSimple:br_inst_retired.near_taken         2048       0  thrpt        2190.445     2797.511       #/op  +28%
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses                      2048       0  thrpt           3.234        1.269       #/op  -61%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles                             2048       0  thrpt        2681.320     4282.625       #/op  +60%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                       2048       0  thrpt        7165.862     9410.634       #/op  +31%
+#+end_src
+
+front end:
+#+begin_src bash
+Benchmark                                                                     (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units    Diff
+VectorReduction2.NoSuperword.doubleMaxSimple                                    2048       0  thrpt    3    706.609      448.553     ops/ms    -37%
+VectorReduction2.NoSuperword.doubleMaxSimple:CPI                                2048       0  thrpt           0.375        0.453  clks/insn    +21%
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                                2048       0  thrpt           2.667        2.208  insns/clk    -17%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles                             2048       0  thrpt        2686.619     4262.825       #/op    +59%
+VectorReduction2.NoSuperword.doubleMaxSimple:idq_uops_not_delivered.core        2048       0  thrpt        3442.751     7701.761       #/op   +124%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions                       2048       0  thrpt        7163.977     9411.466       #/op    +31%
+VectorReduction2.NoSuperword.doubleMaxSimple:int_misc.recovery_cycles           2048       0  thrpt          19.217        3.080       #/op    -84%
+VectorReduction2.NoSuperword.doubleMaxSimple:uops_issued.any                    2048       0  thrpt        7162.143     9288.937       #/op    +30%
+VectorReduction2.NoSuperword.doubleMaxSimple:uops_retired.retire_slots          2048       0  thrpt        7022.909     9267.988       #/op    +32%
+#+end_src
+*** doubleMaxSimple perfnorm compare
+#+begin_src bash
+Benchmark                                                       (SIZE)  (seed)   Mode  Cnt       Base  UseNewCode2      Units  Diff
+VectorReduction2.NoSuperword.doubleMaxSimple                      2048       0  thrpt    3    708.667      446.504     ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMaxSimple:CPI                  2048       0  thrpt           0.374        0.455  clks/insn  +22%
+VectorReduction2.NoSuperword.doubleMaxSimple:IPC                  2048       0  thrpt           2.673        2.196  insns/clk  -18%
+VectorReduction2.NoSuperword.doubleMaxSimple:branch-misses        2048       0  thrpt           3.158        1.324       #/op  -58%
+VectorReduction2.NoSuperword.doubleMaxSimple:cycles               2048       0  thrpt        2679.956     4287.812       #/op  +60%
+VectorReduction2.NoSuperword.doubleMaxSimple:instructions         2048       0  thrpt        7163.469     9415.198       #/op  +31%
+#+end_src
+*** reproduce - compare asm structure
+#+begin_src bash
+$ ~/src/colata/make/compare-max-shape.py 03.inner-asm-base.log 03.inner-asm-usenewcode2.log 
+FILE: 03.inner-asm-base.log
+Primary max comparisons: 16
+ 1. line   33: %xmm0(ACC)  vs  %xmm1(MEM[+0x10])  <== loop-carried value involved
+ 2. line   48: %xmm0(MEM[+0x10])  vs  %xmm2(MEM[+0x18])
+ 3. line   63: %xmm0(MEM[+0x18])  vs  %xmm3(MEM[+0x20])
+ 4. line   78: %xmm0(MEM[+0x20])  vs  %xmm4(MEM[+0x28])
+ 5. line   93: %xmm0(MEM[+0x28])  vs  %xmm5(MEM[+0x30])
+ 6. line  108: %xmm0(MEM[+0x30])  vs  %xmm6(MEM[+0x38])
+ 7. line  123: %xmm0(MEM[+0x38])  vs  %xmm7(MEM[+0x40])
+ 8. line  138: %xmm0(MEM[+0x40])  vs  %xmm8(MEM[+0x48])
+ 9. line  153: %xmm0(MEM[+0x48])  vs  %xmm9(MEM[+0x50])
+10. line  168: %xmm0(MEM[+0x50])  vs  %xmm10(MEM[+0x58])
+11. line  183: %xmm0(MEM[+0x58])  vs  %xmm11(MEM[+0x60])
+12. line  198: %xmm0(MEM[+0x60])  vs  %xmm12(MEM[+0x68])
+13. line  213: %xmm0(MEM[+0x68])  vs  %xmm13(MEM[+0x70])
+14. line  228: %xmm0(MEM[+0x70])  vs  %xmm14(MEM[+0x78])
+15. line  244: %xmm0(MEM[+0x78])  vs  %xmm2(MEM[+0x80])
+16. line  260: %xmm0(MEM[+0x80])  vs  %xmm2(MEM[+0x88])
+Loop-carried accumulator first participates at comparison: 1
+Final inferred expression: max(MEM[+0x80], MEM[+0x88])
+
+================================================================================
+
+FILE: 03.inner-asm-usenewcode2.log
+Primary max comparisons: 16
+ 1. line   50: %xmm0(MEM[+0x10])  vs  %xmm1(MEM[+0x18])
+ 2. line   65: %xmm0(MEM[+0x18])  vs  %xmm2(MEM[+0x20])
+ 3. line   80: %xmm0(MEM[+0x20])  vs  %xmm3(MEM[+0x28])
+ 4. line   95: %xmm0(MEM[+0x28])  vs  %xmm4(MEM[+0x30])
+ 5. line  110: %xmm0(MEM[+0x30])  vs  %xmm5(MEM[+0x38])
+ 6. line  125: %xmm0(MEM[+0x38])  vs  %xmm6(MEM[+0x40])
+ 7. line  140: %xmm0(MEM[+0x40])  vs  %xmm7(MEM[+0x48])
+ 8. line  155: %xmm0(MEM[+0x48])  vs  %xmm8(MEM[+0x50])
+ 9. line  170: %xmm0(MEM[+0x50])  vs  %xmm9(MEM[+0x58])
+10. line  185: %xmm0(MEM[+0x58])  vs  %xmm10(MEM[+0x60])
+11. line  200: %xmm0(MEM[+0x60])  vs  %xmm11(MEM[+0x68])
+12. line  215: %xmm0(MEM[+0x68])  vs  %xmm12(MEM[+0x70])
+13. line  230: %xmm0(MEM[+0x70])  vs  %xmm13(MEM[+0x78])
+14. line  246: %xmm0(MEM[+0x78])  vs  %xmm2(MEM[+0x80])
+15. line  262: %xmm0(MEM[+0x80])  vs  %xmm2(MEM[+0x88])
+16. line  277: %xmm15(ACC)  vs  %xmm0(MEM[+0x88])  <== loop-carried value involved
+Loop-carried accumulator first participates at comparison: 16
+Final inferred expression: max(ACC, MEM[+0x88])
+
+================================================================================
+COMPARISON SUMMARY
+FIRST : 03.inner-asm-base.log
+SECOND: 03.inner-asm-usenewcode2.log
+Accumulator entry point: FIRST=1, SECOND=16
+DIFFERENCE: the reduction is associated differently even if opcode counts match.
+#+end_src
+*** reproduce - compare instruction count
+#+begin_src bash
+$ ~/src/colata/make/compare-instructions.sh 03.inner-asm-base.log 03.inner-asm-usenewcode2.log 
+FIRST : 03.inner-asm-base.log
+SECOND: 03.inner-asm-usenewcode2.log
+
+INSTRUCTION             FIRST     SECOND      DELTA  STATUS
+-----------             -----     ------      -----  ------
+addl                        1          1         +0  SAME
+cmpl                        1          1         +0  SAME
+ja                         16         16         +0  SAME
+jb                         16         16         +0  SAME
+je                         16         16         +0  SAME
+jl                          1          1         +0  SAME
+jmp                        64         64         +0  SAME
+jp                         16         16         +0  SAME
+movabsq                    16         16         +0  SAME
+nop                         7          0         -7  REMOVED
+vmovapd                    18         18         +0  SAME
+vmovq                      16         16         +0  SAME
+vmovsd                     16         16         +0  SAME
+vpand                      16         16         +0  SAME
+vpxor                      16         16         +0  SAME
+vucomisd                   32         32         +0  SAME
+#+end_src
+*** reproduce - assembly
+base
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ ASM_ARGS=true BRANCH_NEVER_MIN=true CLASS=TestDoubleMax make run
+cd /home/g/src/jdk-reassoc-reduct-chain
+git log -1 --pretty=format:'%D%n%h %s'
+HEAD -> topic.reassoc-reduct-chain.all-add.base, tag: jdk-27+5, origin/topic.reassoc-reduct-chain.all-add.base
+f6d26c6b32a 8354853: Clean up x86 registers after 32-bit x86 removal
+rm -f *.log
+/home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:CompileCommand=PrintAssembly,TestDoubleMax::test* -XX:+UseNewCode2 -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,TestDoubleMax::test* -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseNewCode -XX:-UseSuperWord /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+CompileCommand: PrintAssembly TestDoubleMax.test* bool PrintAssembly = true
+CompileCommand: compileonly TestDoubleMax.test* bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+Validate
+Warmup
+...
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N72 strip mined) Freq: 9.99563e+07
+  0x00007fc1d4add850:   vmovsd		0x88(%rsi, %r11, 8), %xmm16
+  0x00007fc1d4add858:   vmovsd		0x80(%rsi, %r11, 8), %xmm17
+  0x00007fc1d4add860:   vmovsd		0x10(%rsi, %r11, 8), %xmm1
+  0x00007fc1d4add867:   vmovsd		0x18(%rsi, %r11, 8), %xmm2
+  0x00007fc1d4add86e:   vmovsd		0x20(%rsi, %r11, 8), %xmm3
+  0x00007fc1d4add875:   vmovsd		0x28(%rsi, %r11, 8), %xmm4
+  0x00007fc1d4add87c:   vmovsd		0x30(%rsi, %r11, 8), %xmm5
+  0x00007fc1d4add883:   vmovsd		0x38(%rsi, %r11, 8), %xmm6
+  0x00007fc1d4add88a:   vmovsd		0x40(%rsi, %r11, 8), %xmm7
+  0x00007fc1d4add891:   vmovsd		0x48(%rsi, %r11, 8), %xmm8
+  0x00007fc1d4add898:   vmovsd		0x50(%rsi, %r11, 8), %xmm9
+  0x00007fc1d4add89f:   vmovsd		0x58(%rsi, %r11, 8), %xmm10
+  0x00007fc1d4add8a6:   vmovsd		0x60(%rsi, %r11, 8), %xmm11
+  0x00007fc1d4add8ad:   vmovsd		0x68(%rsi, %r11, 8), %xmm12
+  0x00007fc1d4add8b4:   vmovsd		0x70(%rsi, %r11, 8), %xmm13
+  0x00007fc1d4add8bb:   vmovsd		0x78(%rsi, %r11, 8), %xmm14
+  0x00007fc1d4add8c2:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add8c6:   ja		0x7fc1d4add903
+  0x00007fc1d4add8c8:   jp		0x7fc1d4add8eb
+  0x00007fc1d4add8ca:   jb		0x7fc1d4add8ff
+  0x00007fc1d4add8cc:   vpxor		%xmm15, %xmm15, %xmm15
+  0x00007fc1d4add8d1:   vucomisd		%xmm15, %xmm0
+  0x00007fc1d4add8d6:   je		0x7fc1d4add8dd
+  0x00007fc1d4add8d8:   jmp		0x7fc1d4add903      ;   {other}
+  0x00007fc1d4add8dd:   vpand		%xmm1, %xmm0, %xmm0
+  0x00007fc1d4add8e1:   jmp		0x7fc1d4add903
+  0x00007fc1d4add8e6:   jmp		0x7fc1d4add903
+  0x00007fc1d4add8eb:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4add8f5:   vmovq		%rbx, %xmm0
+  0x00007fc1d4add8fa:   jmp		0x7fc1d4add903
+  0x00007fc1d4add8ff:   vmovapd		%xmm1, %xmm0
+  0x00007fc1d4add903:   vucomisd		%xmm2, %xmm0
+  0x00007fc1d4add907:   ja		0x7fc1d4add942
+  0x00007fc1d4add909:   jp		0x7fc1d4add92a
+  0x00007fc1d4add90b:   jb		0x7fc1d4add93e
+  0x00007fc1d4add90d:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4add911:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add915:   je		0x7fc1d4add91c
+  0x00007fc1d4add917:   jmp		0x7fc1d4add942
+  0x00007fc1d4add91c:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fc1d4add920:   jmp		0x7fc1d4add942
+  0x00007fc1d4add925:   jmp		0x7fc1d4add942
+  0x00007fc1d4add92a:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4add934:   vmovq		%rbx, %xmm0
+  0x00007fc1d4add939:   jmp		0x7fc1d4add942
+  0x00007fc1d4add93e:   vmovapd		%xmm2, %xmm0
+  0x00007fc1d4add942:   vucomisd		%xmm3, %xmm0
+  0x00007fc1d4add946:   ja		0x7fc1d4add981
+  0x00007fc1d4add948:   jp		0x7fc1d4add969
+  0x00007fc1d4add94a:   jb		0x7fc1d4add97d
+  0x00007fc1d4add94c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4add950:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add954:   je		0x7fc1d4add95b
+  0x00007fc1d4add956:   jmp		0x7fc1d4add981
+  0x00007fc1d4add95b:   vpand		%xmm3, %xmm0, %xmm0
+  0x00007fc1d4add95f:   jmp		0x7fc1d4add981
+  0x00007fc1d4add964:   jmp		0x7fc1d4add981
+  0x00007fc1d4add969:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4add973:   vmovq		%rbx, %xmm0
+  0x00007fc1d4add978:   jmp		0x7fc1d4add981
+  0x00007fc1d4add97d:   vmovapd		%xmm3, %xmm0
+  0x00007fc1d4add981:   vucomisd		%xmm4, %xmm0
+  0x00007fc1d4add985:   ja		0x7fc1d4add9c0
+  0x00007fc1d4add987:   jp		0x7fc1d4add9a8
+  0x00007fc1d4add989:   jb		0x7fc1d4add9bc
+  0x00007fc1d4add98b:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4add98f:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add993:   je		0x7fc1d4add99a
+  0x00007fc1d4add995:   jmp		0x7fc1d4add9c0
+  0x00007fc1d4add99a:   vpand		%xmm4, %xmm0, %xmm0
+  0x00007fc1d4add99e:   jmp		0x7fc1d4add9c0
+  0x00007fc1d4add9a3:   jmp		0x7fc1d4add9c0
+  0x00007fc1d4add9a8:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4add9b2:   vmovq		%rbx, %xmm0
+  0x00007fc1d4add9b7:   jmp		0x7fc1d4add9c0
+  0x00007fc1d4add9bc:   vmovapd		%xmm4, %xmm0
+  0x00007fc1d4add9c0:   vucomisd		%xmm5, %xmm0
+  0x00007fc1d4add9c4:   ja		0x7fc1d4add9ff
+  0x00007fc1d4add9c6:   jp		0x7fc1d4add9e7
+  0x00007fc1d4add9c8:   jb		0x7fc1d4add9fb
+  0x00007fc1d4add9ca:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4add9ce:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4add9d2:   je		0x7fc1d4add9d9
+  0x00007fc1d4add9d4:   jmp		0x7fc1d4add9ff
+  0x00007fc1d4add9d9:   vpand		%xmm5, %xmm0, %xmm0 ;   {other}
+  0x00007fc1d4add9dd:   jmp		0x7fc1d4add9ff
+  0x00007fc1d4add9e2:   jmp		0x7fc1d4add9ff
+  0x00007fc1d4add9e7:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4add9f1:   vmovq		%rbx, %xmm0
+  0x00007fc1d4add9f6:   jmp		0x7fc1d4add9ff
+  0x00007fc1d4add9fb:   vmovapd		%xmm5, %xmm0
+  0x00007fc1d4add9ff:   vucomisd		%xmm6, %xmm0
+  0x00007fc1d4adda03:   ja		0x7fc1d4adda3e
+  0x00007fc1d4adda05:   jp		0x7fc1d4adda26
+  0x00007fc1d4adda07:   jb		0x7fc1d4adda3a
+  0x00007fc1d4adda09:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4adda0d:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4adda11:   je		0x7fc1d4adda18
+  0x00007fc1d4adda13:   jmp		0x7fc1d4adda3e
+  0x00007fc1d4adda18:   vpand		%xmm6, %xmm0, %xmm0
+  0x00007fc1d4adda1c:   jmp		0x7fc1d4adda3e
+  0x00007fc1d4adda21:   jmp		0x7fc1d4adda3e
+  0x00007fc1d4adda26:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4adda30:   vmovq		%rbx, %xmm0
+  0x00007fc1d4adda35:   jmp		0x7fc1d4adda3e
+  0x00007fc1d4adda3a:   vmovapd		%xmm6, %xmm0
+  0x00007fc1d4adda3e:   vucomisd		%xmm7, %xmm0
+  0x00007fc1d4adda42:   ja		0x7fc1d4adda7d
+  0x00007fc1d4adda44:   jp		0x7fc1d4adda65
+  0x00007fc1d4adda46:   jb		0x7fc1d4adda79
+  0x00007fc1d4adda48:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4adda4c:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4adda50:   je		0x7fc1d4adda57
+  0x00007fc1d4adda52:   jmp		0x7fc1d4adda7d
+  0x00007fc1d4adda57:   vpand		%xmm7, %xmm0, %xmm0
+  0x00007fc1d4adda5b:   jmp		0x7fc1d4adda7d
+  0x00007fc1d4adda60:   jmp		0x7fc1d4adda7d
+  0x00007fc1d4adda65:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4adda6f:   vmovq		%rbx, %xmm0
+  0x00007fc1d4adda74:   jmp		0x7fc1d4adda7d
+  0x00007fc1d4adda79:   vmovapd		%xmm7, %xmm0
+  0x00007fc1d4adda7d:   vucomisd		%xmm8, %xmm0
+  0x00007fc1d4adda82:   ja		0x7fc1d4addabf
+  0x00007fc1d4adda84:   jp		0x7fc1d4addaa6
+  0x00007fc1d4adda86:   jb		0x7fc1d4addaba
+  0x00007fc1d4adda88:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4adda8c:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4adda90:   je		0x7fc1d4adda97
+  0x00007fc1d4adda92:   jmp		0x7fc1d4addabf
+  0x00007fc1d4adda97:   vpand		%xmm8, %xmm0, %xmm0
+  0x00007fc1d4adda9c:   jmp		0x7fc1d4addabf
+  0x00007fc1d4addaa1:   jmp		0x7fc1d4addabf
+  0x00007fc1d4addaa6:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addab0:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addab5:   jmp		0x7fc1d4addabf
+  0x00007fc1d4addaba:   vmovapd		%xmm8, %xmm0
+  0x00007fc1d4addabf:   vucomisd		%xmm9, %xmm0
+  0x00007fc1d4addac4:   ja		0x7fc1d4addb01
+  0x00007fc1d4addac6:   jp		0x7fc1d4addae8
+  0x00007fc1d4addac8:   jb		0x7fc1d4addafc
+  0x00007fc1d4addaca:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addace:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addad2:   je		0x7fc1d4addad9
+  0x00007fc1d4addad4:   jmp		0x7fc1d4addb01      ;   {other}
+  0x00007fc1d4addad9:   vpand		%xmm9, %xmm0, %xmm0
+  0x00007fc1d4addade:   jmp		0x7fc1d4addb01
+  0x00007fc1d4addae3:   jmp		0x7fc1d4addb01
+  0x00007fc1d4addae8:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addaf2:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addaf7:   jmp		0x7fc1d4addb01
+  0x00007fc1d4addafc:   vmovapd		%xmm9, %xmm0
+  0x00007fc1d4addb01:   vucomisd		%xmm10, %xmm0
+  0x00007fc1d4addb06:   ja		0x7fc1d4addb43
+  0x00007fc1d4addb08:   jp		0x7fc1d4addb2a
+  0x00007fc1d4addb0a:   jb		0x7fc1d4addb3e
+  0x00007fc1d4addb0c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addb10:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addb14:   je		0x7fc1d4addb1b
+  0x00007fc1d4addb16:   jmp		0x7fc1d4addb43
+  0x00007fc1d4addb1b:   vpand		%xmm10, %xmm0, %xmm0
+  0x00007fc1d4addb20:   jmp		0x7fc1d4addb43
+  0x00007fc1d4addb25:   jmp		0x7fc1d4addb43
+  0x00007fc1d4addb2a:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addb34:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addb39:   jmp		0x7fc1d4addb43
+  0x00007fc1d4addb3e:   vmovapd		%xmm10, %xmm0
+  0x00007fc1d4addb43:   vucomisd		%xmm11, %xmm0
+  0x00007fc1d4addb48:   ja		0x7fc1d4addb85
+  0x00007fc1d4addb4a:   jp		0x7fc1d4addb6c
+  0x00007fc1d4addb4c:   jb		0x7fc1d4addb80
+  0x00007fc1d4addb4e:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addb52:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addb56:   je		0x7fc1d4addb5d
+  0x00007fc1d4addb58:   jmp		0x7fc1d4addb85
+  0x00007fc1d4addb5d:   vpand		%xmm11, %xmm0, %xmm0
+  0x00007fc1d4addb62:   jmp		0x7fc1d4addb85
+  0x00007fc1d4addb67:   jmp		0x7fc1d4addb85
+  0x00007fc1d4addb6c:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addb76:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addb7b:   jmp		0x7fc1d4addb85
+  0x00007fc1d4addb80:   vmovapd		%xmm11, %xmm0
+  0x00007fc1d4addb85:   vucomisd		%xmm12, %xmm0
+  0x00007fc1d4addb8a:   ja		0x7fc1d4addbc7
+  0x00007fc1d4addb8c:   jp		0x7fc1d4addbae
+  0x00007fc1d4addb8e:   jb		0x7fc1d4addbc2
+  0x00007fc1d4addb90:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addb94:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addb98:   je		0x7fc1d4addb9f
+  0x00007fc1d4addb9a:   jmp		0x7fc1d4addbc7
+  0x00007fc1d4addb9f:   vpand		%xmm12, %xmm0, %xmm0
+  0x00007fc1d4addba4:   jmp		0x7fc1d4addbc7
+  0x00007fc1d4addba9:   jmp		0x7fc1d4addbc7
+  0x00007fc1d4addbae:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addbb8:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addbbd:   jmp		0x7fc1d4addbc7
+  0x00007fc1d4addbc2:   vmovapd		%xmm12, %xmm0
+  0x00007fc1d4addbc7:   vucomisd		%xmm13, %xmm0
+  0x00007fc1d4addbcc:   ja		0x7fc1d4addc09
+  0x00007fc1d4addbce:   jp		0x7fc1d4addbf0
+  0x00007fc1d4addbd0:   jb		0x7fc1d4addc04
+  0x00007fc1d4addbd2:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addbd6:   vucomisd		%xmm1, %xmm0;   {other}
+  0x00007fc1d4addbda:   je		0x7fc1d4addbe1
+  0x00007fc1d4addbdc:   jmp		0x7fc1d4addc09
+  0x00007fc1d4addbe1:   vpand		%xmm13, %xmm0, %xmm0
+  0x00007fc1d4addbe6:   jmp		0x7fc1d4addc09
+  0x00007fc1d4addbeb:   jmp		0x7fc1d4addc09
+  0x00007fc1d4addbf0:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addbfa:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addbff:   jmp		0x7fc1d4addc09
+  0x00007fc1d4addc04:   vmovapd		%xmm13, %xmm0
+  0x00007fc1d4addc09:   vucomisd		%xmm14, %xmm0
+  0x00007fc1d4addc0e:   ja		0x7fc1d4addc4b
+  0x00007fc1d4addc10:   jp		0x7fc1d4addc32
+  0x00007fc1d4addc12:   jb		0x7fc1d4addc46
+  0x00007fc1d4addc14:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addc18:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addc1c:   je		0x7fc1d4addc23
+  0x00007fc1d4addc1e:   jmp		0x7fc1d4addc4b
+  0x00007fc1d4addc23:   vpand		%xmm14, %xmm0, %xmm0
+  0x00007fc1d4addc28:   jmp		0x7fc1d4addc4b
+  0x00007fc1d4addc2d:   jmp		0x7fc1d4addc4b
+  0x00007fc1d4addc32:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fc1d4addc3c:   vmovq		%rbx, %xmm0
+  0x00007fc1d4addc41:   jmp		0x7fc1d4addc4b
+  0x00007fc1d4addc46:   vmovapd		%xmm14, %xmm0
+  0x00007fc1d4addc4b:   vmovapd		%xmm17, %xmm2
+  0x00007fc1d4addc51:   vucomisd		%xmm2, %xmm0
+  0x00007fc1d4addc55:   ja		0x7fc1d4addc90
+  0x00007fc1d4addc57:   jp		0x7fc1d4addc78
+  0x00007fc1d4addc59:   jb		0x7fc1d4addc8c
+  0x00007fc1d4addc5b:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addc5f:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addc63:   je		0x7fc1d4addc6a
+  0x00007fc1d4addc65:   jmp		0x7fc1d4addc90
+  0x00007fc1d4addc6a:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fc1d4addc6e:   jmp		0x7fc1d4addc90
+  0x00007fc1d4addc73:   jmp		0x7fc1d4addc90
+  0x00007fc1d4addc78:   movabsq		$0x7ff8000000000000, %rdx
+  0x00007fc1d4addc82:   vmovq		%rdx, %xmm0
+  0x00007fc1d4addc87:   jmp		0x7fc1d4addc90
+  0x00007fc1d4addc8c:   vmovapd		%xmm2, %xmm0
+  0x00007fc1d4addc90:   vmovapd		%xmm16, %xmm2
+  0x00007fc1d4addc96:   vucomisd		%xmm2, %xmm0
+  0x00007fc1d4addc9a:   ja		0x7fc1d4addcd5
+  0x00007fc1d4addc9c:   jp		0x7fc1d4addcbd
+  0x00007fc1d4addc9e:   jb		0x7fc1d4addcd1
+  0x00007fc1d4addca0:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fc1d4addca4:   vucomisd		%xmm1, %xmm0
+  0x00007fc1d4addca8:   je		0x7fc1d4addcaf
+  0x00007fc1d4addcaa:   jmp		0x7fc1d4addcd5
+  0x00007fc1d4addcaf:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fc1d4addcb3:   jmp		0x7fc1d4addcd5
+  0x00007fc1d4addcb8:   jmp		0x7fc1d4addcd5
+  0x00007fc1d4addcbd:   movabsq		$0x7ff8000000000000, %rax
+  0x00007fc1d4addcc7:   vmovq		%rax, %xmm0
+  0x00007fc1d4addccc:   jmp		0x7fc1d4addcd5
+  0x00007fc1d4addcd1:   vmovapd		%xmm2, %xmm0        ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x00007fc1d4addcd5:   addl		$0x10, %r11d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+                                                            ;   {other}
+  0x00007fc1d4addcd9:   nop
+  0x00007fc1d4addcda:   nop
+  0x00007fc1d4addcdb:   nop
+  0x00007fc1d4addcdc:   nop
+  0x00007fc1d4addcdd:   nop
+  0x00007fc1d4addcde:   nop
+  0x00007fc1d4addcdf:   nop
+  0x00007fc1d4addce0:   cmpl		%edi, %r11d
+  0x00007fc1d4addce3:   jl		0x7fc1d4add850      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+
+Running
+Throughput: 125 ops/ms
+Throughput: 124 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Validate
+#+end_src
+
+usenewcode2
+#+begin_src bash
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ ASM_ARGS=true BRANCH_NEVER_MIN=true CLASS=TestDoubleMax make run
+cd /home/g/src/jdk-reassoc-reduct-chain
+git log -1 --pretty=format:'%D%n%h %s'
+HEAD -> topic.reassoc-reduct-chain.all-add.fp, origin/topic.reassoc-reduct-chain.all-add.fp
+[nix-shell:~/src/colata/reassoc-reduct-chain-8351409]$ ASM_ARGS=true BRANCH_NEVER_MIN=true CLASS=TestDoubleMax make run
+cd /home/g/src/jdk-reassoc-reduct-chain
+git log -1 --pretty=format:'%D%n%h %s'
+HEAD -> topic.reassoc-reduct-chain.all-add.fp, origin/topic.reassoc-reduct-chain.all-add.fp
+34c480e6c63 VLoopReductions::is_reduction returns true
+rm -f *.log
+pushd /home/g/src/jdk-reassoc-reduct-chain
+CONF=fast-linux-x86_64 make hotspot
+cp /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/support/modules_libs/java.base/server/libjvm.so /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/lib/server
+popd
+touch /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java
+~/src/jdk-reassoc-reduct-chain ~/src/colata/reassoc-reduct-chain-8351409
+make[1]: Entering directory '/home/g/src/jdk-reassoc-reduct-chain'
+Building target 'hotspot' in configuration 'fast-linux-x86_64'
+Updating support/modules_libs/java.base/server/libjvm.so due to 2 file(s)
+Finished building target 'hotspot' in configuration 'fast-linux-x86_64'
+make[1]: Leaving directory '/home/g/src/jdk-reassoc-reduct-chain'
+~/src/colata/reassoc-reduct-chain-8351409
+/home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:CompileCommand=PrintAssembly,TestDoubleMax::test* -XX:+UseNewCode2 -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,TestDoubleMax::test* -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseNewCode -XX:-UseSuperWord /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+CompileCommand: PrintAssembly TestDoubleMax.test* bool PrintAssembly = true
+CompileCommand: compileonly TestDoubleMax.test* bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+Validate
+Warmup
+...
+ ;; B9: #	out( B9 B10 ) <- in( B8 B9 ) Loop( B9-B9 inner main of N72 strip mined) Freq: 9.99563e+07
+  0x00007fd4b0add880:   vmovsd		0x88(%rsi, %r11, 8), %xmm16
+  0x00007fd4b0add888:   vmovsd		0x80(%rsi, %r11, 8), %xmm17
+  0x00007fd4b0add890:   vmovsd		0x10(%rsi, %r11, 8), %xmm0
+  0x00007fd4b0add897:   vmovsd		0x18(%rsi, %r11, 8), %xmm1
+  0x00007fd4b0add89e:   vmovsd		0x20(%rsi, %r11, 8), %xmm2
+  0x00007fd4b0add8a5:   vmovsd		0x28(%rsi, %r11, 8), %xmm3
+  0x00007fd4b0add8ac:   vmovsd		0x30(%rsi, %r11, 8), %xmm4
+  0x00007fd4b0add8b3:   vmovsd		0x38(%rsi, %r11, 8), %xmm5
+  0x00007fd4b0add8ba:   vmovsd		0x40(%rsi, %r11, 8), %xmm6
+  0x00007fd4b0add8c1:   vmovsd		0x48(%rsi, %r11, 8), %xmm7
+  0x00007fd4b0add8c8:   vmovsd		0x50(%rsi, %r11, 8), %xmm8
+  0x00007fd4b0add8cf:   vmovsd		0x58(%rsi, %r11, 8), %xmm9
+  0x00007fd4b0add8d6:   vmovsd		0x60(%rsi, %r11, 8), %xmm10
+                                                            ;   {other}
+  0x00007fd4b0add8dd:   vmovsd		0x68(%rsi, %r11, 8), %xmm11
+  0x00007fd4b0add8e4:   vmovsd		0x70(%rsi, %r11, 8), %xmm12
+  0x00007fd4b0add8eb:   vmovsd		0x78(%rsi, %r11, 8), %xmm13
+  0x00007fd4b0add8f2:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add8f6:   ja		0x7fd4b0add933
+  0x00007fd4b0add8f8:   jp		0x7fd4b0add91b
+  0x00007fd4b0add8fa:   jb		0x7fd4b0add92f
+  0x00007fd4b0add8fc:   vpxor		%xmm14, %xmm14, %xmm14
+  0x00007fd4b0add901:   vucomisd		%xmm14, %xmm0
+  0x00007fd4b0add906:   je		0x7fd4b0add90d
+  0x00007fd4b0add908:   jmp		0x7fd4b0add933
+  0x00007fd4b0add90d:   vpand		%xmm1, %xmm0, %xmm0
+  0x00007fd4b0add911:   jmp		0x7fd4b0add933
+  0x00007fd4b0add916:   jmp		0x7fd4b0add933
+  0x00007fd4b0add91b:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0add925:   vmovq		%rbx, %xmm0
+  0x00007fd4b0add92a:   jmp		0x7fd4b0add933
+  0x00007fd4b0add92f:   vmovapd		%xmm1, %xmm0
+  0x00007fd4b0add933:   vucomisd		%xmm2, %xmm0
+  0x00007fd4b0add937:   ja		0x7fd4b0add972
+  0x00007fd4b0add939:   jp		0x7fd4b0add95a
+  0x00007fd4b0add93b:   jb		0x7fd4b0add96e
+  0x00007fd4b0add93d:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0add941:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add945:   je		0x7fd4b0add94c
+  0x00007fd4b0add947:   jmp		0x7fd4b0add972
+  0x00007fd4b0add94c:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fd4b0add950:   jmp		0x7fd4b0add972
+  0x00007fd4b0add955:   jmp		0x7fd4b0add972
+  0x00007fd4b0add95a:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0add964:   vmovq		%rbx, %xmm0
+  0x00007fd4b0add969:   jmp		0x7fd4b0add972
+  0x00007fd4b0add96e:   vmovapd		%xmm2, %xmm0
+  0x00007fd4b0add972:   vucomisd		%xmm3, %xmm0
+  0x00007fd4b0add976:   ja		0x7fd4b0add9b1
+  0x00007fd4b0add978:   jp		0x7fd4b0add999
+  0x00007fd4b0add97a:   jb		0x7fd4b0add9ad
+  0x00007fd4b0add97c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0add980:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add984:   je		0x7fd4b0add98b
+  0x00007fd4b0add986:   jmp		0x7fd4b0add9b1
+  0x00007fd4b0add98b:   vpand		%xmm3, %xmm0, %xmm0
+  0x00007fd4b0add98f:   jmp		0x7fd4b0add9b1
+  0x00007fd4b0add994:   jmp		0x7fd4b0add9b1
+  0x00007fd4b0add999:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0add9a3:   vmovq		%rbx, %xmm0
+  0x00007fd4b0add9a8:   jmp		0x7fd4b0add9b1
+  0x00007fd4b0add9ad:   vmovapd		%xmm3, %xmm0
+  0x00007fd4b0add9b1:   vucomisd		%xmm4, %xmm0
+  0x00007fd4b0add9b5:   ja		0x7fd4b0add9f0
+  0x00007fd4b0add9b7:   jp		0x7fd4b0add9d8
+  0x00007fd4b0add9b9:   jb		0x7fd4b0add9ec
+  0x00007fd4b0add9bb:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0add9bf:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0add9c3:   je		0x7fd4b0add9ca
+  0x00007fd4b0add9c5:   jmp		0x7fd4b0add9f0
+  0x00007fd4b0add9ca:   vpand		%xmm4, %xmm0, %xmm0
+  0x00007fd4b0add9ce:   jmp		0x7fd4b0add9f0
+  0x00007fd4b0add9d3:   jmp		0x7fd4b0add9f0
+  0x00007fd4b0add9d8:   movabsq		$0x7ff8000000000000, %rbx;   {other}
+  0x00007fd4b0add9e2:   vmovq		%rbx, %xmm0
+  0x00007fd4b0add9e7:   jmp		0x7fd4b0add9f0
+  0x00007fd4b0add9ec:   vmovapd		%xmm4, %xmm0
+  0x00007fd4b0add9f0:   vucomisd		%xmm5, %xmm0
+  0x00007fd4b0add9f4:   ja		0x7fd4b0adda2f
+  0x00007fd4b0add9f6:   jp		0x7fd4b0adda17
+  0x00007fd4b0add9f8:   jb		0x7fd4b0adda2b
+  0x00007fd4b0add9fa:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0add9fe:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0adda02:   je		0x7fd4b0adda09
+  0x00007fd4b0adda04:   jmp		0x7fd4b0adda2f
+  0x00007fd4b0adda09:   vpand		%xmm5, %xmm0, %xmm0
+  0x00007fd4b0adda0d:   jmp		0x7fd4b0adda2f
+  0x00007fd4b0adda12:   jmp		0x7fd4b0adda2f
+  0x00007fd4b0adda17:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0adda21:   vmovq		%rbx, %xmm0
+  0x00007fd4b0adda26:   jmp		0x7fd4b0adda2f
+  0x00007fd4b0adda2b:   vmovapd		%xmm5, %xmm0
+  0x00007fd4b0adda2f:   vucomisd		%xmm6, %xmm0
+  0x00007fd4b0adda33:   ja		0x7fd4b0adda6e
+  0x00007fd4b0adda35:   jp		0x7fd4b0adda56
+  0x00007fd4b0adda37:   jb		0x7fd4b0adda6a
+  0x00007fd4b0adda39:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0adda3d:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0adda41:   je		0x7fd4b0adda48
+  0x00007fd4b0adda43:   jmp		0x7fd4b0adda6e
+  0x00007fd4b0adda48:   vpand		%xmm6, %xmm0, %xmm0
+  0x00007fd4b0adda4c:   jmp		0x7fd4b0adda6e
+  0x00007fd4b0adda51:   jmp		0x7fd4b0adda6e
+  0x00007fd4b0adda56:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0adda60:   vmovq		%rbx, %xmm0
+  0x00007fd4b0adda65:   jmp		0x7fd4b0adda6e
+  0x00007fd4b0adda6a:   vmovapd		%xmm6, %xmm0
+  0x00007fd4b0adda6e:   vucomisd		%xmm7, %xmm0
+  0x00007fd4b0adda72:   ja		0x7fd4b0addaad
+  0x00007fd4b0adda74:   jp		0x7fd4b0adda95
+  0x00007fd4b0adda76:   jb		0x7fd4b0addaa9
+  0x00007fd4b0adda78:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0adda7c:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0adda80:   je		0x7fd4b0adda87
+  0x00007fd4b0adda82:   jmp		0x7fd4b0addaad
+  0x00007fd4b0adda87:   vpand		%xmm7, %xmm0, %xmm0
+  0x00007fd4b0adda8b:   jmp		0x7fd4b0addaad
+  0x00007fd4b0adda90:   jmp		0x7fd4b0addaad
+  0x00007fd4b0adda95:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0adda9f:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addaa4:   jmp		0x7fd4b0addaad
+  0x00007fd4b0addaa9:   vmovapd		%xmm7, %xmm0
+  0x00007fd4b0addaad:   vucomisd		%xmm8, %xmm0
+  0x00007fd4b0addab2:   ja		0x7fd4b0addaef
+  0x00007fd4b0addab4:   jp		0x7fd4b0addad6
+  0x00007fd4b0addab6:   jb		0x7fd4b0addaea
+  0x00007fd4b0addab8:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addabc:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addac0:   je		0x7fd4b0addac7
+  0x00007fd4b0addac2:   jmp		0x7fd4b0addaef
+  0x00007fd4b0addac7:   vpand		%xmm8, %xmm0, %xmm0
+  0x00007fd4b0addacc:   jmp		0x7fd4b0addaef
+  0x00007fd4b0addad1:   jmp		0x7fd4b0addaef
+  0x00007fd4b0addad6:   movabsq		$0x7ff8000000000000, %rbx;   {other}
+  0x00007fd4b0addae0:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addae5:   jmp		0x7fd4b0addaef
+  0x00007fd4b0addaea:   vmovapd		%xmm8, %xmm0
+  0x00007fd4b0addaef:   vucomisd		%xmm9, %xmm0
+  0x00007fd4b0addaf4:   ja		0x7fd4b0addb31
+  0x00007fd4b0addaf6:   jp		0x7fd4b0addb18
+  0x00007fd4b0addaf8:   jb		0x7fd4b0addb2c
+  0x00007fd4b0addafa:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addafe:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addb02:   je		0x7fd4b0addb09
+  0x00007fd4b0addb04:   jmp		0x7fd4b0addb31
+  0x00007fd4b0addb09:   vpand		%xmm9, %xmm0, %xmm0
+  0x00007fd4b0addb0e:   jmp		0x7fd4b0addb31
+  0x00007fd4b0addb13:   jmp		0x7fd4b0addb31
+  0x00007fd4b0addb18:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addb22:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addb27:   jmp		0x7fd4b0addb31
+  0x00007fd4b0addb2c:   vmovapd		%xmm9, %xmm0
+  0x00007fd4b0addb31:   vucomisd		%xmm10, %xmm0
+  0x00007fd4b0addb36:   ja		0x7fd4b0addb73
+  0x00007fd4b0addb38:   jp		0x7fd4b0addb5a
+  0x00007fd4b0addb3a:   jb		0x7fd4b0addb6e
+  0x00007fd4b0addb3c:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addb40:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addb44:   je		0x7fd4b0addb4b
+  0x00007fd4b0addb46:   jmp		0x7fd4b0addb73
+  0x00007fd4b0addb4b:   vpand		%xmm10, %xmm0, %xmm0
+  0x00007fd4b0addb50:   jmp		0x7fd4b0addb73
+  0x00007fd4b0addb55:   jmp		0x7fd4b0addb73
+  0x00007fd4b0addb5a:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addb64:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addb69:   jmp		0x7fd4b0addb73
+  0x00007fd4b0addb6e:   vmovapd		%xmm10, %xmm0
+  0x00007fd4b0addb73:   vucomisd		%xmm11, %xmm0
+  0x00007fd4b0addb78:   ja		0x7fd4b0addbb5
+  0x00007fd4b0addb7a:   jp		0x7fd4b0addb9c
+  0x00007fd4b0addb7c:   jb		0x7fd4b0addbb0
+  0x00007fd4b0addb7e:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addb82:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addb86:   je		0x7fd4b0addb8d
+  0x00007fd4b0addb88:   jmp		0x7fd4b0addbb5
+  0x00007fd4b0addb8d:   vpand		%xmm11, %xmm0, %xmm0
+  0x00007fd4b0addb92:   jmp		0x7fd4b0addbb5
+  0x00007fd4b0addb97:   jmp		0x7fd4b0addbb5
+  0x00007fd4b0addb9c:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addba6:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addbab:   jmp		0x7fd4b0addbb5
+  0x00007fd4b0addbb0:   vmovapd		%xmm11, %xmm0
+  0x00007fd4b0addbb5:   vucomisd		%xmm12, %xmm0
+  0x00007fd4b0addbba:   ja		0x7fd4b0addbf7
+  0x00007fd4b0addbbc:   jp		0x7fd4b0addbde
+  0x00007fd4b0addbbe:   jb		0x7fd4b0addbf2
+  0x00007fd4b0addbc0:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addbc4:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addbc8:   je		0x7fd4b0addbcf
+  0x00007fd4b0addbca:   jmp		0x7fd4b0addbf7
+  0x00007fd4b0addbcf:   vpand		%xmm12, %xmm0, %xmm0
+  0x00007fd4b0addbd4:   jmp		0x7fd4b0addbf7      ;   {other}
+  0x00007fd4b0addbd9:   jmp		0x7fd4b0addbf7
+  0x00007fd4b0addbde:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addbe8:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addbed:   jmp		0x7fd4b0addbf7
+  0x00007fd4b0addbf2:   vmovapd		%xmm12, %xmm0
+  0x00007fd4b0addbf7:   vucomisd		%xmm13, %xmm0
+  0x00007fd4b0addbfc:   ja		0x7fd4b0addc39
+  0x00007fd4b0addbfe:   jp		0x7fd4b0addc20
+  0x00007fd4b0addc00:   jb		0x7fd4b0addc34
+  0x00007fd4b0addc02:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addc06:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addc0a:   je		0x7fd4b0addc11
+  0x00007fd4b0addc0c:   jmp		0x7fd4b0addc39
+  0x00007fd4b0addc11:   vpand		%xmm13, %xmm0, %xmm0
+  0x00007fd4b0addc16:   jmp		0x7fd4b0addc39
+  0x00007fd4b0addc1b:   jmp		0x7fd4b0addc39
+  0x00007fd4b0addc20:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addc2a:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addc2f:   jmp		0x7fd4b0addc39
+  0x00007fd4b0addc34:   vmovapd		%xmm13, %xmm0
+  0x00007fd4b0addc39:   vmovapd		%xmm17, %xmm2
+  0x00007fd4b0addc3f:   vucomisd		%xmm2, %xmm0
+  0x00007fd4b0addc43:   ja		0x7fd4b0addc7e
+  0x00007fd4b0addc45:   jp		0x7fd4b0addc66
+  0x00007fd4b0addc47:   jb		0x7fd4b0addc7a
+  0x00007fd4b0addc49:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addc4d:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addc51:   je		0x7fd4b0addc58
+  0x00007fd4b0addc53:   jmp		0x7fd4b0addc7e
+  0x00007fd4b0addc58:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fd4b0addc5c:   jmp		0x7fd4b0addc7e
+  0x00007fd4b0addc61:   jmp		0x7fd4b0addc7e
+  0x00007fd4b0addc66:   movabsq		$0x7ff8000000000000, %rbx
+  0x00007fd4b0addc70:   vmovq		%rbx, %xmm0
+  0x00007fd4b0addc75:   jmp		0x7fd4b0addc7e
+  0x00007fd4b0addc7a:   vmovapd		%xmm2, %xmm0
+  0x00007fd4b0addc7e:   vmovapd		%xmm16, %xmm2
+  0x00007fd4b0addc84:   vucomisd		%xmm2, %xmm0
+  0x00007fd4b0addc88:   ja		0x7fd4b0addcc3
+  0x00007fd4b0addc8a:   jp		0x7fd4b0addcab
+  0x00007fd4b0addc8c:   jb		0x7fd4b0addcbf
+  0x00007fd4b0addc8e:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addc92:   vucomisd		%xmm1, %xmm0
+  0x00007fd4b0addc96:   je		0x7fd4b0addc9d
+  0x00007fd4b0addc98:   jmp		0x7fd4b0addcc3
+  0x00007fd4b0addc9d:   vpand		%xmm2, %xmm0, %xmm0
+  0x00007fd4b0addca1:   jmp		0x7fd4b0addcc3
+  0x00007fd4b0addca6:   jmp		0x7fd4b0addcc3
+  0x00007fd4b0addcab:   movabsq		$0x7ff8000000000000, %rdx
+  0x00007fd4b0addcb5:   vmovq		%rdx, %xmm0
+  0x00007fd4b0addcba:   jmp		0x7fd4b0addcc3
+  0x00007fd4b0addcbf:   vmovapd		%xmm2, %xmm0
+  0x00007fd4b0addcc3:   vucomisd		%xmm0, %xmm15
+  0x00007fd4b0addcc7:   ja		0x7fd4b0addd02
+  0x00007fd4b0addcc9:   jp		0x7fd4b0addcea
+  0x00007fd4b0addccb:   jb		0x7fd4b0addcfe
+  0x00007fd4b0addccd:   vpxor		%xmm1, %xmm1, %xmm1
+  0x00007fd4b0addcd1:   vucomisd		%xmm1, %xmm15
+  0x00007fd4b0addcd5:   je		0x7fd4b0addcdc      ;   {other}
+  0x00007fd4b0addcd7:   jmp		0x7fd4b0addd02
+  0x00007fd4b0addcdc:   vpand		%xmm0, %xmm15, %xmm15
+  0x00007fd4b0addce0:   jmp		0x7fd4b0addd02
+  0x00007fd4b0addce5:   jmp		0x7fd4b0addd02
+  0x00007fd4b0addcea:   movabsq		$0x7ff8000000000000, %rax
+  0x00007fd4b0addcf4:   vmovq		%rax, %xmm15
+  0x00007fd4b0addcf9:   jmp		0x7fd4b0addd02
+  0x00007fd4b0addcfe:   vmovapd		%xmm0, %xmm15       ;*invokestatic max {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@20 (line 22)
+  0x00007fd4b0addd02:   addl		$0x10, %r11d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@24 (line 20)
+  0x00007fd4b0addd06:   cmpl		%edi, %r11d
+  0x00007fd4b0addd09:   jl		0x7fd4b0add880      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                            ; - TestDoubleMax::test@9 (line 20)
+
+
+Running
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Validate
+#+end_src
+*** reproduce
+base
+#+begin_src bash
+HEAD -> topic.reassoc-reduct-chain.all-add.base, tag: jdk-27+5, origin/topic.reassoc-reduct-chain.all-add.base
+f6d26c6b32a 8354853: Clean up x86 registers after 32-bit x86 removal
+rm -f *.log
+pushd /home/g/src/jdk-reassoc-reduct-chain
+CONF=fast-linux-x86_64 make hotspot
+cp /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/support/modules_libs/java.base/server/libjvm.so /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/lib/server
+popd
+touch /home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java
+~/src/jdk-reassoc-reduct-chain ~/src/colata/reassoc-reduct-chain-8351409
+make[1]: Entering directory '/home/g/src/jdk-reassoc-reduct-chain'
+Building target 'hotspot' in configuration 'fast-linux-x86_64'
+Updating support/modules_libs/java.base/server/libjvm.so due to 1 file(s)
+Finished building target 'hotspot' in configuration 'fast-linux-x86_64'
+make[1]: Leaving directory '/home/g/src/jdk-reassoc-reduct-chain'
+~/src/colata/reassoc-reduct-chain-8351409
+/home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:+UseNewCode2 -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,TestDoubleMax::test* -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseNewCode -XX:-UseSuperWord /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+CompileCommand: compileonly TestDoubleMax.test* bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+Validate
+Warmup
+Running
+Throughput: 124 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 125 ops/ms
+Throughput: 1
+#+end_src
+
+usenewcode2
+#+begin_src bash
+HEAD -> topic.reassoc-reduct-chain.all-add.fp, origin/topic.reassoc-reduct-chain.all-add.fp
+34c480e6c63 VLoopReductions::is_reduction returns true
+rm -f *.log
+/home/g/src/jdk-reassoc-reduct-chain/build/fast-linux-x86_64/jdk/bin/java \
+   -XX:+UseNewCode2 -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,TestDoubleMax::test* -XX:CompileCommand=dontinline,*::*dontinline* -XX:VerifyIterativeGVN=1000 -XX:+UseNewCode -XX:-UseSuperWord /home/g/src/colata/reassoc-reduct-chain-8351409/TestDoubleMax.java
+CompileCommand: compileonly TestDoubleMax.test* bool compileonly = true
+CompileCommand: dontinline *.*dontinline* bool dontinline = true
+Validate
+Warmup
+Running
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Throughput: 49 ops/ms
+Validate
+#+end_src
+*** doubleMaxSimple
+base:
+#+begin_src bash
+# Run progress: 16.67% complete, ETA 00:01:29
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 481.069 ops/ms
+# Warmup Iteration   2: 587.998 ops/ms
+Iteration   1: 703.924 ops/ms
+Iteration   2: 705.782 ops/ms
+Iteration   3: 705.812 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  705.173 ±(99.9%) 19.737 ops/ms [Average]
+  (min, avg, max) = (703.924, 705.173, 705.812), stdev = 1.082
+  CI (99.9%): [685.435, 724.910] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 136252 total address lines.
+Perf output processed (skipped 4.248 seconds):
+ Column 1: cycles (3059 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+
+              0x00007f15178f85df:   subl		%r8d, %esi
+              0x00007f15178f85e2:   cmpl		%r8d, %r10d
+              0x00007f15178f85e5:   cmovll		%ecx, %esi
+              0x00007f15178f85e8:   cmpl		$0x3e80, %esi
+              0x00007f15178f85ee:   cmoval		%eax, %esi
+              0x00007f15178f85f1:   addl		%r8d, %esi
+              0x00007f15178f85f4:   vmovq		%rbx, %xmm16
+              0x00007f15178f85fa:   vmovq		%rdi, %xmm17
+              0x00007f15178f8600:   vmovq		%r11, %xmm18
+              0x00007f15178f8606:   vmovq		%rdx, %xmm19
+   0.07%      0x00007f15178f860c:   nopl		(%rax)              ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   4.77%      0x00007f15178f8610:   vmovsd		0x88(%r13, %r8, 8), %xmm20
+   0.33%      0x00007f15178f8618:   vmovsd		0x80(%r13, %r8, 8), %xmm21
+   0.03%      0x00007f15178f8620:   vmovsd		0x78(%r13, %r8, 8), %xmm22
+   0.07%      0x00007f15178f8628:   vmovsd		0x70(%r13, %r8, 8), %xmm23
+   3.76%      0x00007f15178f8630:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.07%      0x00007f15178f8637:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+              0x00007f15178f863e:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   0.07%      0x00007f15178f8645:   vmovsd		0x10(%r13, %r8, 8), %xmm4
+   4.38%      0x00007f15178f864c:   vmovsd		0x18(%r13, %r8, 8), %xmm5
+   0.16%      0x00007f15178f8653:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+              0x00007f15178f865a:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   0.03%      0x00007f15178f8661:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   4.90%      0x00007f15178f8668:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   0.07%      0x00007f15178f866f:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   0.03%      0x00007f15178f8676:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   0.07%      0x00007f15178f867d:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   4.97%      0x00007f15178f8684:   vucomisd		%xmm4, %xmm0
+   0.07%      0x00007f15178f8688:   ja		0x7f15178f86c5
+   0.46%  ╭   0x00007f15178f868a:   jp		0x7f15178f86ad
+          │   0x00007f15178f868c:   jb		0x7f15178f86c1
+          │   0x00007f15178f868e:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007f15178f8693:   vucomisd		%xmm15, %xmm0
+          │╭  0x00007f15178f8698:   je		0x7f15178f869f
+          ││  0x00007f15178f869a:   jmp		0x7f15178f86c5
+          │↘  0x00007f15178f869f:   vpand		%xmm4, %xmm0, %xmm0
+          │   0x00007f15178f86a3:   jmp		0x7f15178f86c5
+          │   0x00007f15178f86a8:   jmp		0x7f15178f86c5
+          ↘   0x00007f15178f86ad:   movabsq		$0x7ff8000000000000, %r11
+              0x00007f15178f86b7:   vmovq		%r11, %xmm0         ;   {other}
+....................................................................................................
+  24.29%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  24.29%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   6.64%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   5.52%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   5.39%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.97%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.84%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.77%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.64%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.58%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.48%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.41%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.38%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.35%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   4.22%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   3.99%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   3.96%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   1.27%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   0.56%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.23%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   0.13%             libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   2.35%  <...other 58 warm regions...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  96.96%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 546
+   1.01%                kernel  [unknown]
+   0.56%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.13%             libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.13%             libjvm.so  CompilerOracle::should_not_inline(methodHandle const&)
+   0.13%             libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.10%             libjvm.so  resolve_inlining_predicate(CompileCommandEnum, methodHandle const&)
+   0.03%             libjvm.so  Instruction::as_NewMultiArray()
+   0.03%             libc.so.6  _int_free_create_chunk
+   0.03%           interpreter  return entry points
+   0.03%             libc.so.6  __printf_buffer
+   0.03%             libjvm.so  Goto::visit(InstructionVisitor*)
+   0.03%             libjvm.so  StringTable::do_intern(StringWrapperInternal const&, unsigned long, JavaThread*)
+   0.03%             libjvm.so  InstanceKlass::find_method_index(Array<Method*> const*, Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::StaticLookupMode, Klass::PrivateLookupMode) [clone .constprop.0]
+   0.03%             libjvm.so  ClassAllocator::initialize(HeapWordImpl**) const
+   0.03%             libjvm.so  fileStream::write(char const*, unsigned long)
+   0.03%                        <unknown>
+   0.03%             libjvm.so  Symbol::print_symbol_on(outputStream*) const
+   0.03%           interpreter  ifeq  153 ifeq
+   0.03%             libc.so.6  __printf_buffer_write
+   0.52%  <...other 16 warm methods...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Distribution by Source]........................................................................
+  96.96%           c2, level 4
+   1.60%             libjvm.so
+   1.01%                kernel
+   0.20%           interpreter
+   0.13%             libc.so.6
+   0.03%
+   0.03%  libcapstone.so.5.0.6
+....................................................................................................
+  99.97%  <totals>
+#+end_src
+
+usenewcode2:
+#+begin_src bash
+# Run progress: 16.67% complete, ETA 00:01:31
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 360.613 ops/ms
+# Warmup Iteration   2: 364.878 ops/ms
+Iteration   1: 445.205 ops/ms
+Iteration   2: 445.308 ops/ms
+Iteration   3: 445.746 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  445.419 ±(99.9%) 5.242 ops/ms [Average]
+  (min, avg, max) = (445.205, 445.419, 445.746), stdev = 0.287
+  CI (99.9%): [440.178, 450.661] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 138575 total address lines.
+Perf output processed (skipped 4.645 seconds):
+ Column 1: cycles (3092 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+
+              0x00007f8c2f8f8f90:   retq
+              0x00007f8c2f8f8f91:   vmovq		%xmm16, %rbx
+              0x00007f8c2f8f8f97:   vmovq		%xmm17, %rdi
+              0x00007f8c2f8f8f9d:   vmovq		%xmm18, %r11
+              0x00007f8c2f8f8fa3:   vmovq		%xmm19, %rdx
+              0x00007f8c2f8f8fa9:   movl		%r10d, %esi
+              0x00007f8c2f8f8fac:   subl		%r8d, %esi
+              0x00007f8c2f8f8faf:   cmpl		%r8d, %r10d
+              0x00007f8c2f8f8fb2:   cmovll		%ecx, %esi
+              0x00007f8c2f8f8fb5:   cmpl		$0x3e80, %esi
+   0.06%      0x00007f8c2f8f8fbb:   cmoval		%eax, %esi
+   0.03%      0x00007f8c2f8f8fbe:   addl		%r8d, %esi
+              0x00007f8c2f8f8fc1:   vmovq		%rbx, %xmm16
+   0.03%      0x00007f8c2f8f8fc7:   vmovq		%rdi, %xmm17
+              0x00007f8c2f8f8fcd:   vmovq		%r11, %xmm18
+   0.03%      0x00007f8c2f8f8fd3:   vmovq		%rdx, %xmm19
+              0x00007f8c2f8f8fd9:   nopl		(%rax)              ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.94%      0x00007f8c2f8f8fe0:   vmovsd		0x88(%r13, %r8, 8), %xmm21
+   0.23%      0x00007f8c2f8f8fe8:   vmovsd		0x80(%r13, %r8, 8), %xmm22
+   0.03%      0x00007f8c2f8f8ff0:   vmovsd		0x78(%r13, %r8, 8), %xmm23
+              0x00007f8c2f8f8ff8:   vmovsd		0x70(%r13, %r8, 8), %xmm0
+   2.78%      0x00007f8c2f8f8fff:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.32%      0x00007f8c2f8f9006:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+   0.52%      0x00007f8c2f8f900d:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   1.03%      0x00007f8c2f8f9014:   vmovsd		0x18(%r13, %r8, 8), %xmm4
+   1.62%      0x00007f8c2f8f901b:   vmovsd		0x10(%r13, %r8, 8), %xmm5
+   0.71%      0x00007f8c2f8f9022:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   0.74%      0x00007f8c2f8f9029:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   1.68%      0x00007f8c2f8f9030:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   1.20%      0x00007f8c2f8f9037:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   1.00%      0x00007f8c2f8f903e:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   0.81%      0x00007f8c2f8f9045:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   1.20%      0x00007f8c2f8f904c:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   1.03%      0x00007f8c2f8f9053:   vucomisd		%xmm5, %xmm4
+   0.36%      0x00007f8c2f8f9057:   ja		0x7f8c2f8f9094
+   5.08%  ╭   0x00007f8c2f8f9059:   jp		0x7f8c2f8f907c
+   0.87%  │   0x00007f8c2f8f905b:   jb		0x7f8c2f8f9090
+          │   0x00007f8c2f8f905d:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007f8c2f8f9062:   vucomisd		%xmm15, %xmm4
+          │╭  0x00007f8c2f8f9067:   je		0x7f8c2f8f906e
+          ││  0x00007f8c2f8f9069:   jmp		0x7f8c2f8f9094
+          │↘  0x00007f8c2f8f906e:   vpand		%xmm5, %xmm4, %xmm4
+          │   0x00007f8c2f8f9072:   jmp		0x7f8c2f8f9094
+          │   0x00007f8c2f8f9077:   jmp		0x7f8c2f8f9094
+          ↘   0x00007f8c2f8f907c:   movabsq		$0x7ff8000000000000, %r11;   {other}
+              0x00007f8c2f8f9086:   vmovq		%r11, %xmm4
+              0x00007f8c2f8f908b:   jmp		0x7f8c2f8f9094
+....................................................................................................
+  24.32%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  24.32%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   9.83%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   8.83%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   7.05%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   6.11%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   5.63%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   4.40%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   4.30%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.62%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.62%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.59%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.33%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.33%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   3.10%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   2.78%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   1.07%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   1.00%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   0.52%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.16%             libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.13%                kernel  [unknown]
+   3.23%  <...other 83 warm regions...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  95.99%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 544
+   1.33%                kernel  [unknown]
+   0.52%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.16%             libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.13%             libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.13%             libjvm.so  resolve_inlining_predicate(CompileCommandEnum, methodHandle const&)
+   0.10%             libc.so.6  __memmove_evex_unaligned_erms
+   0.06%                        <unknown>
+   0.06%             libjvm.so  MethodMatcher::matches(methodHandle const&) const
+   0.06%             libjvm.so  CompilerOracle::should_not_inline(methodHandle const&)
+   0.06%           interpreter  invokestatic  184 invokestatic
+   0.06%             libjvm.so  defaultStream::write(char const*, unsigned long)
+   0.06%           interpreter  return entry points
+   0.06%             libjvm.so  RelocIterator::initialize(nmethod*, unsigned char*, unsigned char*)
+   0.06%           interpreter  method entry point (kind = zerolocals)
+   0.03%             libjvm.so  constantPoolHandle::operator=(constantPoolHandle const&)
+   0.03%             libjvm.so  Node::remove_dead_region(PhaseGVN*, bool)
+   0.03%  libcapstone.so.5.0.6  SStream_concat
+   0.03%             libjvm.so  HeapShared::get_root(int, bool)
+   0.03%             libjvm.so  os::vsnprintf(char*, unsigned long, char const*, __va_list_tag*)
+   0.94%  <...other 29 warm methods...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Distribution by Source]........................................................................
+  95.99%           c2, level 4
+   1.78%             libjvm.so
+   1.33%                kernel
+   0.36%             libc.so.6
+   0.26%           interpreter
+   0.13%  libcapstone.so.5.0.6
+   0.06%
+   0.03%        hsdis-amd64.so
+   0.03%            libjava.so
+....................................................................................................
+  99.97%  <totals>
+#+end_src
+*** base vs usenewcode2
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base  UseNewCode2   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  240.478      236.441  ops/ms   -2%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  347.131      346.172  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  708.219      446.644  ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  226.864      262.359  ops/ms  +16%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  518.402      471.005  ops/ms   -9%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  379.500      352.745  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  239.499      239.971  ops/ms    0%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  333.463      306.600  ops/ms   -8%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  487.406      442.693  ops/ms   -9%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.594      225.696  ops/ms  -25%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  477.042      320.599  ops/ms  -33%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.593      356.010  ops/ms   -1%
+#+end_src
+** Howard - with logging
+*** doubleMaxSimple
+base
+#+begin_src bash
+# Run progress: 16.67% complete, ETA 00:01:29
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 553.046 ops/ms
+# Warmup Iteration   2: 593.958 ops/ms
+Iteration   1: 704.755 ops/ms
+Iteration   2: 705.819 ops/ms
+Iteration   3: 705.711 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  705.429 ±(99.9%) 10.680 ops/ms [Average]
+  (min, avg, max) = (704.755, 705.429, 705.819), stdev = 0.585
+  CI (99.9%): [694.748, 716.109] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 137571 total address lines.
+Perf output processed (skipped 4.773 seconds):
+ Column 1: cycles (3047 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+              0x00007f36f78f5fb4:   addq		$0x30, %rsp
+              0x00007f36f78f5fb8:   popq		%rbp
+              0x00007f36f78f5fb9:   cmpq		0x28(%r15), %rsp    ;   {poll_return}
+              0x00007f36f78f5fbd:   ja		0x7f36f78f66b0
+              0x00007f36f78f5fc3:   retq
+              0x00007f36f78f5fc4:   vmovq		%xmm16, %rbx
+              0x00007f36f78f5fca:   vmovq		%xmm17, %rdi
+              0x00007f36f78f5fd0:   vmovq		%xmm18, %r11
+              0x00007f36f78f5fd6:   vmovq		%xmm19, %rdx
+   0.10%      0x00007f36f78f5fdc:   movl		%r10d, %esi
+              0x00007f36f78f5fdf:   subl		%r8d, %esi
+              0x00007f36f78f5fe2:   cmpl		%r8d, %r10d
+              0x00007f36f78f5fe5:   cmovll		%ecx, %esi
+   0.03%      0x00007f36f78f5fe8:   cmpl		$0x3e80, %esi
+              0x00007f36f78f5fee:   cmoval		%eax, %esi
+              0x00007f36f78f5ff1:   addl		%r8d, %esi
+   0.03%      0x00007f36f78f5ff4:   vmovq		%rbx, %xmm16
+              0x00007f36f78f5ffa:   vmovq		%rdi, %xmm17
+              0x00007f36f78f6000:   vmovq		%r11, %xmm18
+              0x00007f36f78f6006:   vmovq		%rdx, %xmm19
+              0x00007f36f78f600c:   nopl		(%rax)              ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   5.32%      0x00007f36f78f6010:   vmovsd		0x88(%r13, %r8, 8), %xmm20
+   0.20%      0x00007f36f78f6018:   vmovsd		0x80(%r13, %r8, 8), %xmm21
+              0x00007f36f78f6020:   vmovsd		0x78(%r13, %r8, 8), %xmm22
+   0.07%      0x00007f36f78f6028:   vmovsd		0x70(%r13, %r8, 8), %xmm23
+   4.69%      0x00007f36f78f6030:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.20%      0x00007f36f78f6037:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+              0x00007f36f78f603e:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   0.10%      0x00007f36f78f6045:   vmovsd		0x10(%r13, %r8, 8), %xmm4
+   4.53%      0x00007f36f78f604c:   vmovsd		0x18(%r13, %r8, 8), %xmm5
+   0.03%      0x00007f36f78f6053:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   0.07%      0x00007f36f78f605a:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   0.10%      0x00007f36f78f6061:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   4.00%      0x00007f36f78f6068:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   0.20%      0x00007f36f78f606f:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   0.07%      0x00007f36f78f6076:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   0.23%      0x00007f36f78f607d:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   4.43%      0x00007f36f78f6084:   vucomisd		%xmm4, %xmm0
+   0.03%      0x00007f36f78f6088:   ja		0x7f36f78f60c5
+   0.30%  ╭   0x00007f36f78f608a:   jp		0x7f36f78f60ad
+          │   0x00007f36f78f608c:   jb		0x7f36f78f60c1
+          │   0x00007f36f78f608e:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007f36f78f6093:   vucomisd		%xmm15, %xmm0
+          │╭  0x00007f36f78f6098:   je		0x7f36f78f609f
+          ││  0x00007f36f78f609a:   jmp		0x7f36f78f60c5
+          │↘  0x00007f36f78f609f:   vpand		%xmm4, %xmm0, %xmm0
+          │   0x00007f36f78f60a3:   jmp		0x7f36f78f60c5
+          │   0x00007f36f78f60a8:   jmp		0x7f36f78f60c5
+          ↘   0x00007f36f78f60ad:   movabsq		$0x7ff8000000000000, %r11
+              0x00007f36f78f60b7:   vmovq		%r11, %xmm0         ;   {other}
+....................................................................................................
+  24.71%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  24.71%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   6.14%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   5.84%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   5.28%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   5.05%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.79%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.79%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.73%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.66%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.53%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.50%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.36%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.33%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   4.27%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   3.94%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   3.91%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   0.82%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   0.49%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   0.36%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.13%             libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   2.33%  <...other 56 warm regions...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  97.28%           c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 571
+   0.82%                kernel  [unknown]
+   0.36%             libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.13%             libjvm.so  fileStream::write(char const*, unsigned long)
+   0.13%             libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.13%                        <unknown>
+   0.10%           interpreter  return entry points
+   0.10%             libc.so.6  _IO_fwrite
+   0.10%             libjvm.so  CompilerOracle::should_not_inline(methodHandle const&)
+   0.10%             libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.03%             libc.so.6  _int_free_create_chunk
+   0.03%             libjvm.so  ciMethod::get_method_blocks()
+   0.03%             libc.so.6  __printf_buffer
+   0.03%             libjvm.so  vmSymbols::find_sid(Symbol const*)
+   0.03%             libjvm.so  InstanceKlass::find_method_index(Array<Method*> const*, Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::StaticLookupMode, Klass::PrivateLookupMode) [clone .constprop.0]
+   0.03%             libjvm.so  SpinCriticalSection::spin_acquire(int volatile*)
+   0.03%             libjvm.so  SymbolTable::lookup_shared(char const*, int, unsigned int)
+   0.03%  libcapstone.so.5.0.6  decodeInstruction
+   0.03%           interpreter  nofast_getfield  234 nofast_getfield
+   0.03%           c1, level 3  java.lang.ref.Reference::&lt;init&gt;, version 1, compile id 425
+   0.39%  <...other 12 warm methods...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Distribution by Source]........................................................................
+  97.28%           c2, level 4
+   1.25%             libjvm.so
+   0.82%                kernel
+   0.20%           interpreter
+   0.16%             libc.so.6
+   0.13%
+   0.07%  libcapstone.so.5.0.6
+   0.07%           c1, level 3
+....................................................................................................
+  99.97%  <totals>
+#+end_src
+
+usenewcode2
+#+begin_src bash
+# Run progress: 16.67% complete, ETA 00:01:27
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 360.807 ops/ms
+# Warmup Iteration   2: 365.255 ops/ms
+Iteration   1: 445.089 ops/ms
+Iteration   2: 445.990 ops/ms
+Iteration   3: 446.756 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  445.945 ±(99.9%) 15.226 ops/ms [Average]
+  (min, avg, max) = (445.089, 445.945, 446.756), stdev = 0.835
+  CI (99.9%): [430.719, 461.171] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 134371 total address lines.
+Perf output processed (skipped 4.703 seconds):
+ Column 1: cycles (3048 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+
+                                                   0x00007f47d38f63a5:   vpxor		%xmm5, %xmm5, %xmm5
+                                                   0x00007f47d38f63a9:   vucomisd		%xmm5, %xmm4
+          ╭                                        0x00007f47d38f63ad:   je		0x7f47d38f63b4
+          │╭                                       0x00007f47d38f63af:   jmp		0x7f47d38f63dc
+          ↘│                                       0x00007f47d38f63b4:   vpand		%xmm12, %xmm4, %xmm4
+           │╭                                      0x00007f47d38f63b9:   jmp		0x7f47d38f63dc
+           ││╭                                     0x00007f47d38f63be:   jmp		0x7f47d38f63dc
+           │││                                     0x00007f47d38f63c3:   movabsq		$0x7ff8000000000000, %r11
+           │││                                     0x00007f47d38f63cd:   vmovq		%r11, %xmm4
+           │││╭                                    0x00007f47d38f63d2:   jmp		0x7f47d38f63dc
+   0.49%   ││││                                    0x00007f47d38f63d7:   vmovapd		%xmm12, %xmm4
+   3.22%   ↘↘↘↘                                    0x00007f47d38f63dc:   vucomisd		%xmm3, %xmm4
+               ╭                                   0x00007f47d38f63e0:   ja		0x7f47d38f6402
+   0.30%       │╭                                  0x00007f47d38f63e2:   jp		0x7f47d38f640b
+               ││╭                                 0x00007f47d38f63e4:   jb		0x7f47d38f641f
+               │││                                 0x00007f47d38f63e6:   vpxor		%xmm5, %xmm5, %xmm5
+               │││                                 0x00007f47d38f63ea:   vucomisd		%xmm5, %xmm4
+               │││╭                                0x00007f47d38f63ee:   je		0x7f47d38f63f9
+               ││││                                0x00007f47d38f63f0:   vmovapd		%xmm4, %xmm3
+               ││││╭                               0x00007f47d38f63f4:   jmp		0x7f47d38f641f
+               │││↘│                               0x00007f47d38f63f9:   vpand		%xmm3, %xmm4, %xmm3
+               │││ │╭                              0x00007f47d38f63fd:   jmp		0x7f47d38f641f
+   2.79%       ↘││ ││                              0x00007f47d38f6402:   vmovapd		%xmm4, %xmm3        ;   {other}
+                ││ ││╭                             0x00007f47d38f6406:   jmp		0x7f47d38f641f
+                ↘│ │││                             0x00007f47d38f640b:   movabsq		$0x7ff8000000000000, %r11
+                 │ │││                             0x00007f47d38f6415:   vmovq		%r11, %xmm3
+                 │ │││╭                            0x00007f47d38f641a:   jmp		0x7f47d38f641f
+   3.64%         ↘ ↘↘↘↘                            0x00007f47d38f641f:   vucomisd		%xmm2, %xmm3
+                       ╭                           0x00007f47d38f6423:   ja		0x7f47d38f6445
+   0.03%               │╭                          0x00007f47d38f6425:   jp		0x7f47d38f644e
+                       ││╭                         0x00007f47d38f6427:   jb		0x7f47d38f6462
+                       │││                         0x00007f47d38f6429:   vpxor		%xmm4, %xmm4, %xmm4
+                       │││                         0x00007f47d38f642d:   vucomisd		%xmm4, %xmm3
+                       │││╭                        0x00007f47d38f6431:   je		0x7f47d38f643c
+                       ││││                        0x00007f47d38f6433:   vmovapd		%xmm3, %xmm2
+                       ││││╭                       0x00007f47d38f6437:   jmp		0x7f47d38f6462
+                       │││↘│                       0x00007f47d38f643c:   vpand		%xmm2, %xmm3, %xmm2
+                       │││ │╭                      0x00007f47d38f6440:   jmp		0x7f47d38f6462
+   2.20%               ↘││ ││                      0x00007f47d38f6445:   vmovapd		%xmm3, %xmm2
+                        ││ ││╭                     0x00007f47d38f6449:   jmp		0x7f47d38f6462
+                        ↘│ │││                     0x00007f47d38f644e:   movabsq		$0x7ff8000000000000, %r11
+                         │ │││                     0x00007f47d38f6458:   vmovq		%r11, %xmm2
+                         │ │││╭                    0x00007f47d38f645d:   jmp		0x7f47d38f6462
+   3.15%                 ↘ ↘↘↘↘                    0x00007f47d38f6462:   vucomisd		%xmm1, %xmm2
+                               ╭                   0x00007f47d38f6466:   ja		0x7f47d38f6488
+   0.07%                       │╭                  0x00007f47d38f6468:   jp		0x7f47d38f6491
+                               ││╭                 0x00007f47d38f646a:   jb		0x7f47d38f64a5
+                               │││                 0x00007f47d38f646c:   vpxor		%xmm3, %xmm3, %xmm3
+                               │││                 0x00007f47d38f6470:   vucomisd		%xmm3, %xmm2
+                               │││╭                0x00007f47d38f6474:   je		0x7f47d38f647f
+                               ││││                0x00007f47d38f6476:   vmovapd		%xmm2, %xmm1
+                               ││││╭               0x00007f47d38f647a:   jmp		0x7f47d38f64a5
+                               │││↘│               0x00007f47d38f647f:   vpand		%xmm1, %xmm2, %xmm1
+                               │││ │╭              0x00007f47d38f6483:   jmp		0x7f47d38f64a5
+   3.12%                       ↘││ ││              0x00007f47d38f6488:   vmovapd		%xmm2, %xmm1
+                                ││ ││╭             0x00007f47d38f648c:   jmp		0x7f47d38f64a5
+                                ↘│ │││             0x00007f47d38f6491:   movabsq		$0x7ff8000000000000, %r11
+                                 │ │││             0x00007f47d38f649b:   vmovq		%r11, %xmm1
+                                 │ │││╭            0x00007f47d38f64a0:   jmp		0x7f47d38f64a5
+   2.79%                         ↘ ↘↘↘↘            0x00007f47d38f64a5:   vucomisd		%xmm0, %xmm1
+                                       ╭           0x00007f47d38f64a9:   ja		0x7f47d38f64cb
+   0.03%                               │╭          0x00007f47d38f64ab:   jp		0x7f47d38f64d4
+                                       ││╭         0x00007f47d38f64ad:   jb		0x7f47d38f64e8
+                                       │││         0x00007f47d38f64af:   vpxor		%xmm2, %xmm2, %xmm2
+                                       │││         0x00007f47d38f64b3:   vucomisd		%xmm2, %xmm1
+                                       │││╭        0x00007f47d38f64b7:   je		0x7f47d38f64c2
+                                       ││││        0x00007f47d38f64b9:   vmovapd		%xmm1, %xmm0
+                                       ││││╭       0x00007f47d38f64bd:   jmp		0x7f47d38f64e8
+                                       │││↘│       0x00007f47d38f64c2:   vpand		%xmm0, %xmm1, %xmm0
+                                       │││ │╭      0x00007f47d38f64c6:   jmp		0x7f47d38f64e8
+   3.02%                               ↘││ ││      0x00007f47d38f64cb:   vmovapd		%xmm1, %xmm0
+                                        ││ ││╭     0x00007f47d38f64cf:   jmp		0x7f47d38f64e8
+                                        ↘│ │││     0x00007f47d38f64d4:   movabsq		$0x7ff8000000000000, %r11
+                                         │ │││     0x00007f47d38f64de:   vmovq		%r11, %xmm0
+                                         │ │││╭    0x00007f47d38f64e3:   jmp		0x7f47d38f64e8
+   2.72%                                 ↘ ↘↘↘↘    0x00007f47d38f64e8:   vmovapd		%xmm23, %xmm2
+                                                   0x00007f47d38f64ee:   vucomisd		%xmm2, %xmm0
+                                                   0x00007f47d38f64f2:   ja		0x7f47d38f652d
+                                               ╭   0x00007f47d38f64f4:   jp		0x7f47d38f6515
+   0.36%                                       │   0x00007f47d38f64f6:   jb		0x7f47d38f6529
+                                               │   0x00007f47d38f64f8:   vpxor		%xmm1, %xmm1, %xmm1
+                                               │   0x00007f47d38f64fc:   vucomisd		%xmm1, %xmm0
+                                               │╭  0x00007f47d38f6500:   je		0x7f47d38f6507
+                                               ││  0x00007f47d38f6502:   jmp		0x7f47d38f652d      ;   {other}
+                                               │↘  0x00007f47d38f6507:   vpand		%xmm2, %xmm0, %xmm0
+                                               │   0x00007f47d38f650b:   jmp		0x7f47d38f652d
+                                               │   0x00007f47d38f6510:   jmp		0x7f47d38f652d
+                                               ↘   0x00007f47d38f6515:   movabsq		$0x7ff8000000000000, %r14
+                                                   0x00007f47d38f651f:   vmovq		%r14, %xmm0
+                                                   0x00007f47d38f6524:   jmp		0x7f47d38f652d
+....................................................................................................
+  27.92%  <total for region 1>
+
+....[Hottest Region 2]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+
+              0x00007f47d38f6135:   cmpl		$0x3e80, %esi
+              0x00007f47d38f613b:   cmoval		%eax, %esi
+   0.03%      0x00007f47d38f613e:   addl		%r8d, %esi
+              0x00007f47d38f6141:   vmovq		%rbx, %xmm16
+              0x00007f47d38f6147:   vmovq		%rdi, %xmm17
+              0x00007f47d38f614d:   vmovq		%r11, %xmm18
+              0x00007f47d38f6153:   vmovq		%rdx, %xmm19
+              0x00007f47d38f6159:   nopl		(%rax)              ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.85%      0x00007f47d38f6160:   vmovsd		0x88(%r13, %r8, 8), %xmm21
+   0.13%      0x00007f47d38f6168:   vmovsd		0x80(%r13, %r8, 8), %xmm22
+              0x00007f47d38f6170:   vmovsd		0x78(%r13, %r8, 8), %xmm23
+              0x00007f47d38f6178:   vmovsd		0x70(%r13, %r8, 8), %xmm0
+   2.72%      0x00007f47d38f617f:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.23%      0x00007f47d38f6186:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+   0.52%      0x00007f47d38f618d:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   1.31%      0x00007f47d38f6194:   vmovsd		0x18(%r13, %r8, 8), %xmm4
+   1.80%      0x00007f47d38f619b:   vmovsd		0x10(%r13, %r8, 8), %xmm5
+   0.98%      0x00007f47d38f61a2:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   0.52%      0x00007f47d38f61a9:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   1.61%      0x00007f47d38f61b0:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   0.75%      0x00007f47d38f61b7:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   1.02%      0x00007f47d38f61be:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   0.69%      0x00007f47d38f61c5:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   1.15%      0x00007f47d38f61cc:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   0.95%      0x00007f47d38f61d3:   vucomisd		%xmm5, %xmm4
+   0.43%      0x00007f47d38f61d7:   ja		0x7f47d38f6214
+   5.35%  ╭   0x00007f47d38f61d9:   jp		0x7f47d38f61fc
+   1.08%  │   0x00007f47d38f61db:   jb		0x7f47d38f6210
+          │   0x00007f47d38f61dd:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007f47d38f61e2:   vucomisd		%xmm15, %xmm4
+          │╭  0x00007f47d38f61e7:   je		0x7f47d38f61ee
+          ││  0x00007f47d38f61e9:   jmp		0x7f47d38f6214
+          │↘  0x00007f47d38f61ee:   vpand		%xmm5, %xmm4, %xmm4
+          │   0x00007f47d38f61f2:   jmp		0x7f47d38f6214
+          │   0x00007f47d38f61f7:   jmp		0x7f47d38f6214
+          ↘   0x00007f47d38f61fc:   movabsq		$0x7ff8000000000000, %r11;   {other}
+              0x00007f47d38f6206:   vmovq		%r11, %xmm4
+              0x00007f47d38f620b:   jmp		0x7f47d38f6214
+....................................................................................................
+  24.11%  <total for region 2>
+
+....[Hottest Regions]...............................................................................
+  27.92%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+  24.11%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   9.12%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   5.22%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   4.40%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.90%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.77%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.74%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.74%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.25%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.15%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   3.12%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   1.05%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   0.79%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   0.43%    libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.23%    libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.10%       kernel  [unknown]
+   0.10%               <unknown>
+   0.10%    libjvm.so  CompilerOracle::should_not_inline(methodHandle const&)
+   0.07%       kernel  [unknown]
+   1.67%  <...other 48 warm regions...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  97.31%  c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 567
+   0.85%       kernel  [unknown]
+   0.46%    libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.23%    libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.16%               <unknown>
+   0.10%    libjvm.so  CompilerOracle::should_not_inline(methodHandle const&)
+   0.07%    libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.07%  interpreter  method entry point (kind = zerolocals)
+   0.03%    libjvm.so  metaspace::MetaspaceArena::allocate_inner(unsigned long, metaspace::MetaBlock&)
+   0.03%  interpreter  return entry points
+   0.03%    libjvm.so  FieldLayout::reconstruct_layout(InstanceKlass const*, bool&, bool&)
+   0.03%  interpreter  invokespecial  183 invokespecial
+   0.03%  c1, level 3  java.lang.invoke.MemberName::isInvocable, version 1, compile id 212
+   0.03%  interpreter  i2l  133 i2l
+   0.03%  c2, level 4  jdk.internal.misc.Unsafe::putReferenceRelease, version 2, compile id 405
+   0.03%    libjvm.so  fileStream::write(char const*, unsigned long)
+   0.03%   libjava.so  fixClassname
+   0.03%    libc.so.6  __printf_buffer_write
+   0.03%    libjvm.so  MethodMatcher::matches(methodHandle const&) const
+   0.03%    libjvm.so  method_hash(Method const*)
+   0.33%  <...other 10 warm methods...>
+....................................................................................................
+  99.97%  <totals>
+
+....[Distribution by Source]........................................................................
+  97.34%  c2, level 4
+   1.28%    libjvm.so
+   0.85%       kernel
+   0.20%  interpreter
+   0.16%
+   0.07%  c1, level 3
+   0.03%   libjava.so
+   0.03%    libc.so.6
+....................................................................................................
+  99.97%  <totals>
+#+end_src
+*** base vs usenewcode2
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base  UseNewCode2   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  240.035      238.860  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  346.544      346.162  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  708.389      444.715  ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  226.269      264.658  ops/ms  +17%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  519.342      466.859  ops/ms  -10%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  379.380      353.538  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  241.190      241.230  ops/ms    0%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  333.135      304.052  ops/ms   -9%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  562.089      447.880  ops/ms  -20%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.582      228.779  ops/ms  -24%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  473.788      322.931  ops/ms  -32%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.719      358.661  ops/ms   -1%
+#+end_src
+
+with error
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base    Error  UseNewCode2    Error   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  240.035 ±  0.807      238.860 ±  7.838  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  346.544 ± 15.878      346.162 ± 24.001  ops/ms    0%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  708.389 ±  2.267      444.715 ± 21.153  ops/ms  -37%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  226.269 ±  2.943      264.658 ±  4.524  ops/ms  +17%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  519.342 ± 20.014      466.859 ± 23.355  ops/ms  -10%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  379.380 ±  4.611      353.538 ±  1.205  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  241.190 ±  0.778      241.230 ± 15.409  ops/ms    0%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  333.135 ± 16.589      304.052 ±  8.075  ops/ms   -9%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  562.089 ±  2.581      447.880 ±  2.701  ops/ms  -20%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  299.582 ±  4.230      228.779 ±  9.766  ops/ms  -24%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  473.788 ±  9.283      322.931 ± 11.938  ops/ms  -32%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  360.719 ±  0.111      358.661 ± 17.086  ops/ms   -1%
+#+end_src
+* 7.7.26
+** doubleMaxSingle patch vs UseNewCode2
+Base
+#+begin_src bash
+# JMH version: 1.37
+# VM version: JDK 27-internal, OpenJDK 64-Bit Server VM, 27-internal-adhoc.root.jdk-reassoc-reduct-chain
+# VM invoker: /root/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/jdk/bin/java
+# VM options: -Djava.library.path=/root/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple
+# Parameters: (SIZE = 2048, seed = 0)
+
+# Run progress: 16.67% complete, ETA 00:01:53
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 836.181 ops/ms
+# Warmup Iteration   2: 862.071 ops/ms
+Iteration   1: 876.724 ops/ms
+Iteration   2: 877.003 ops/ms
+Iteration   3: 876.209 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  876.645 ±(99.9%) 7.346 ops/ms [Average]
+  (min, avg, max) = (876.209, 876.645, 877.003), stdev = 0.403
+  CI (99.9%): [869.299, 883.991] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 237883 total address lines.
+Perf output processed (skipped 6.063 seconds):
+ Column 1: cycles (2673 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+
+              0x00007fb4b7c68fc9:   cmpl		$0x3e80, %esi
+   0.04%      0x00007fb4b7c68fcf:   cmoval		%r9d, %esi
+              0x00007fb4b7c68fd3:   addl		%r8d, %esi
+              0x00007fb4b7c68fd6:   vmovq		%rbx, %xmm16
+              0x00007fb4b7c68fdc:   vmovq		%rcx, %xmm17
+              0x00007fb4b7c68fe2:   vmovq		%rdx, %xmm18
+              0x00007fb4b7c68fe8:   vmovq		%rax, %xmm19
+              0x00007fb4b7c68fee:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   3.78%      0x00007fb4b7c68ff0:   vmovsd		0x88(%r13, %r8, 8), %xmm20
+   0.11%      0x00007fb4b7c68ff8:   vmovsd		0x80(%r13, %r8, 8), %xmm21
+   0.34%      0x00007fb4b7c69000:   vmovsd		0x78(%r13, %r8, 8), %xmm22
+   0.37%      0x00007fb4b7c69008:   vmovsd		0x70(%r13, %r8, 8), %xmm23
+   0.19%      0x00007fb4b7c69010:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.04%      0x00007fb4b7c69017:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+   0.94%      0x00007fb4b7c6901e:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   0.04%      0x00007fb4b7c69025:   vmovsd		0x10(%r13, %r8, 8), %xmm4
+   3.22%      0x00007fb4b7c6902c:   vmovsd		0x18(%r13, %r8, 8), %xmm5
+   0.04%      0x00007fb4b7c69033:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   0.26%      0x00007fb4b7c6903a:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   0.49%      0x00007fb4b7c69041:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   0.15%      0x00007fb4b7c69048:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   0.22%      0x00007fb4b7c6904f:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+   1.53%      0x00007fb4b7c69056:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   0.04%      0x00007fb4b7c6905d:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   3.11%      0x00007fb4b7c69064:   vucomisd		%xmm4, %xmm0
+   0.07%      0x00007fb4b7c69068:   ja		0x7fb4b7c690a5
+   0.37%  ╭   0x00007fb4b7c6906a:   jp		0x7fb4b7c6908d
+   0.15%  │   0x00007fb4b7c6906c:   jb		0x7fb4b7c690a1
+          │   0x00007fb4b7c6906e:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007fb4b7c69073:   vucomisd		%xmm15, %xmm0
+          │╭  0x00007fb4b7c69078:   je		0x7fb4b7c6907f
+          ││  0x00007fb4b7c6907a:   jmp		0x7fb4b7c690a5
+          │↘  0x00007fb4b7c6907f:   vpand		%xmm4, %xmm0, %xmm0
+          │   0x00007fb4b7c69083:   jmp		0x7fb4b7c690a5
+          │   0x00007fb4b7c69088:   jmp		0x7fb4b7c690a5
+          ↘   0x00007fb4b7c6908d:   movabsq		$0x7ff8000000000000, %rcx
+              0x00007fb4b7c69097:   vmovq		%rcx, %xmm0         ;   {other}
+              0x00007fb4b7c6909c:   jmp		0x7fb4b7c690a5
+....................................................................................................
+  15.45%  <total for region 1>
+
+....[Hottest Regions]...............................................................................
+  15.45%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.95%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.91%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.76%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.76%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.65%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.42%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.39%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.16%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   5.01%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.98%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.86%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.79%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.79%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.68%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   4.08%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   2.10%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   0.94%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   0.75%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   0.49%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   2.06%  <...other 37 warm regions...>
+....................................................................................................
+  99.96%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  97.94%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 876
+   0.26%           libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.15%           libjvm.so  fileStream::write(char const*, unsigned long)
+   0.15%   [kernel.kallsyms]  native_queued_spin_lock_slowpath
+   0.15%   [kernel.kallsyms]  asm_exc_page_fault
+   0.07%   [kernel.kallsyms]  copy_mc_enhanced_fast_string
+   0.07%         interpreter  ifeq  153 ifeq
+   0.07%         interpreter  method entry point (kind = zerolocals)
+   0.07%           libjvm.so  CompilerOracle::should_exclude(methodHandle const&)
+   0.04%   [kernel.kallsyms]  do_numa_page.isra.0
+   0.04%         interpreter  return entry points
+   0.04%           libjvm.so  FieldLayout::reconstruct_layout(InstanceKlass const*, bool&, bool&)
+   0.04%   [kernel.kallsyms]  down_read_trylock
+   0.04%           libc.so.6  pthread_mutex_lock@@GLIBC_2.2.5
+   0.04%   [kernel.kallsyms]  vma_interval_tree_remove
+   0.04%   [kernel.kallsyms]  __get_user_8
+   0.04%           libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.04%         interpreter  nofast_getfield  234 nofast_getfield
+   0.04%   [kernel.kallsyms]  _copy_from_iter
+   0.04%           libjvm.so  LinearScan::assign_reg_num(GrowableArray<LIR_Op*>*, IntervalWalker*)
+   0.60%  <...other 16 warm methods...>
+....................................................................................................
+  99.96%  <totals>
+
+....[Distribution by Source]........................................................................
+  97.94%         c2, level 4
+   0.86%           libjvm.so
+   0.86%   [kernel.kallsyms]
+   0.22%         interpreter
+   0.04%         c1, level 3
+   0.04%           libc.so.6
+....................................................................................................
+  99.96%  <totals>
+#+end_src
+
+UseNewCode2
+#+begin_src
+# JMH version: 1.37
+# VM version: JDK 27-internal, OpenJDK 64-Bit Server VM, 27-internal-adhoc.root.jdk-reassoc-reduct-chain
+# VM invoker: /root/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/jdk/bin/java
+# VM options: -Djava.library.path=/root/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test/micro/native -XX:-UseSuperWord -XX:+UnlockDiagnosticVMOptions -XX:+UseNewCode2
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 2 iterations, 1 s each
+# Measurement: 3 iterations, 1 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Throughput, ops/time
+# Benchmark: org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple
+# Parameters: (SIZE = 2048, seed = 0)
+
+# Run progress: 16.67% complete, ETA 00:01:55
+# Fork: 1 of 1
+# Preparing profilers: LinuxPerfAsmProfiler
+# Profilers consume stdout and stderr from target VM, use -v EXTRA to copy to console
+# Warmup Iteration   1: 427.989 ops/ms
+# Warmup Iteration   2: 439.810 ops/ms
+Iteration   1: 490.416 ops/ms
+Iteration   2: 494.061 ops/ms
+Iteration   3: 505.947 ops/ms
+# Processing profiler results: LinuxPerfAsmProfiler
+
+
+Result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple":
+  496.808 ±(99.9%) 148.167 ops/ms [Average]
+  (min, avg, max) = (490.416, 496.808, 505.947), stdev = 8.122
+  CI (99.9%): [348.641, 644.976] (assumes normal distribution)
+
+Secondary result "org.openjdk.bench.vm.compiler.VectorReduction2.NoSuperword.doubleMaxSimple:asm":
+PrintAssembly processed: 239653 total address lines.
+Perf output processed (skipped 6.016 seconds):
+ Column 1: cycles (2662 events)
+
+Hottest code regions (>10.00% "cycles" events):
+ Event counts are percents of total event count.
+
+....[Hottest Region 1]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+
+              0x00007fc4f3c68df4:   vmovq		%xmm16, %rbx
+              0x00007fc4f3c68dfa:   vmovq		%xmm17, %rcx
+              0x00007fc4f3c68e00:   vmovq		%xmm18, %rdx
+              0x00007fc4f3c68e06:   vmovq		%xmm19, %rax
+              0x00007fc4f3c68e0c:   movl		%r10d, %esi
+              0x00007fc4f3c68e0f:   subl		%r8d, %esi
+              0x00007fc4f3c68e12:   cmpl		%r8d, %r10d
+              0x00007fc4f3c68e15:   cmovll		%r11d, %esi
+              0x00007fc4f3c68e19:   cmpl		$0x3e80, %esi
+              0x00007fc4f3c68e1f:   cmoval		%r9d, %esi
+   0.04%      0x00007fc4f3c68e23:   addl		%r8d, %esi
+              0x00007fc4f3c68e26:   vmovq		%rbx, %xmm16
+              0x00007fc4f3c68e2c:   vmovq		%rcx, %xmm17
+              0x00007fc4f3c68e32:   vmovq		%rdx, %xmm18
+              0x00007fc4f3c68e38:   vmovq		%rax, %xmm19
+              0x00007fc4f3c68e3e:   nop		                    ;*aload_0 {reexecute=0 rethrow=0 return_oop=0}
+                                                                        ; - org.openjdk.bench.vm.compiler.VectorReduction2::doubleMaxSimple@16 (line 1364)
+                                                                        ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub@17 (line 121)
+   2.40%      0x00007fc4f3c68e40:   vmovsd		0x88(%r13, %r8, 8), %xmm21
+   9.32%      0x00007fc4f3c68e48:   vmovsd		0x80(%r13, %r8, 8), %xmm22
+   0.86%      0x00007fc4f3c68e50:   vmovsd		0x78(%r13, %r8, 8), %xmm23
+   0.56%      0x00007fc4f3c68e58:   vmovsd		0x70(%r13, %r8, 8), %xmm0
+   0.41%      0x00007fc4f3c68e5f:   vmovsd		0x68(%r13, %r8, 8), %xmm1
+   0.04%      0x00007fc4f3c68e66:   vmovsd		0x60(%r13, %r8, 8), %xmm2
+   0.04%      0x00007fc4f3c68e6d:   vmovsd		0x58(%r13, %r8, 8), %xmm3
+   2.63%      0x00007fc4f3c68e74:   vmovsd		0x18(%r13, %r8, 8), %xmm4
+   0.08%      0x00007fc4f3c68e7b:   vmovsd		0x10(%r13, %r8, 8), %xmm5
+   1.95%      0x00007fc4f3c68e82:   vmovsd		0x20(%r13, %r8, 8), %xmm6
+   2.10%      0x00007fc4f3c68e89:   vmovsd		0x28(%r13, %r8, 8), %xmm7
+   0.64%      0x00007fc4f3c68e90:   vmovsd		0x30(%r13, %r8, 8), %xmm8
+   0.04%      0x00007fc4f3c68e97:   vmovsd		0x38(%r13, %r8, 8), %xmm9
+   0.56%      0x00007fc4f3c68e9e:   vmovsd		0x40(%r13, %r8, 8), %xmm10
+              0x00007fc4f3c68ea5:   vmovsd		0x48(%r13, %r8, 8), %xmm11
+   0.08%      0x00007fc4f3c68eac:   vmovsd		0x50(%r13, %r8, 8), %xmm12
+   3.12%      0x00007fc4f3c68eb3:   vucomisd		%xmm5, %xmm4
+   1.31%      0x00007fc4f3c68eb7:   ja		0x7fc4f3c68ef4
+   3.91%  ╭   0x00007fc4f3c68eb9:   jp		0x7fc4f3c68edc
+   1.13%  │   0x00007fc4f3c68ebb:   jb		0x7fc4f3c68ef0
+          │   0x00007fc4f3c68ebd:   vpxor		%xmm15, %xmm15, %xmm15
+          │   0x00007fc4f3c68ec2:   vucomisd		%xmm15, %xmm4
+          │╭  0x00007fc4f3c68ec7:   je		0x7fc4f3c68ece
+          ││  0x00007fc4f3c68ec9:   jmp		0x7fc4f3c68ef4
+          │↘  0x00007fc4f3c68ece:   vpand		%xmm5, %xmm4, %xmm4
+          │   0x00007fc4f3c68ed2:   jmp		0x7fc4f3c68ef4
+          │   0x00007fc4f3c68ed7:   jmp		0x7fc4f3c68ef4
+          ↘   0x00007fc4f3c68edc:   movabsq		$0x7ff8000000000000, %rcx
+              0x00007fc4f3c68ee6:   vmovq		%rcx, %xmm4         ;   {other}
+              0x00007fc4f3c68eeb:   jmp		0x7fc4f3c68ef4
+....................................................................................................
+  31.22%  <total for region 1>
+
+....[Hottest Region 2]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+
+                                                   0x00007fc4f3c69085:   vpxor		%xmm5, %xmm5, %xmm5
+                                                   0x00007fc4f3c69089:   vucomisd		%xmm5, %xmm4
+          ╭                                        0x00007fc4f3c6908d:   je		0x7fc4f3c69094
+          │╭                                       0x00007fc4f3c6908f:   jmp		0x7fc4f3c690bc
+          ↘│                                       0x00007fc4f3c69094:   vpand		%xmm12, %xmm4, %xmm4
+           │╭                                      0x00007fc4f3c69099:   jmp		0x7fc4f3c690bc
+           ││╭                                     0x00007fc4f3c6909e:   jmp		0x7fc4f3c690bc
+           │││                                     0x00007fc4f3c690a3:   movabsq		$0x7ff8000000000000, %rcx
+           │││                                     0x00007fc4f3c690ad:   vmovq		%rcx, %xmm4
+           │││╭                                    0x00007fc4f3c690b2:   jmp		0x7fc4f3c690bc
+   0.11%   ││││                                    0x00007fc4f3c690b7:   vmovapd		%xmm12, %xmm4
+   1.54%   ↘↘↘↘                                    0x00007fc4f3c690bc:   vucomisd		%xmm3, %xmm4
+   0.19%       ╭                                   0x00007fc4f3c690c0:   ja		0x7fc4f3c690e2
+   0.34%       │╭                                  0x00007fc4f3c690c2:   jp		0x7fc4f3c690eb
+   0.04%       ││╭                                 0x00007fc4f3c690c4:   jb		0x7fc4f3c690ff
+               │││                                 0x00007fc4f3c690c6:   vpxor		%xmm5, %xmm5, %xmm5
+               │││                                 0x00007fc4f3c690ca:   vucomisd		%xmm5, %xmm4
+               │││╭                                0x00007fc4f3c690ce:   je		0x7fc4f3c690d9
+               ││││                                0x00007fc4f3c690d0:   vmovapd		%xmm4, %xmm3
+               ││││╭                               0x00007fc4f3c690d4:   jmp		0x7fc4f3c690ff
+               │││↘│                               0x00007fc4f3c690d9:   vpand		%xmm3, %xmm4, %xmm3
+               │││ │╭                              0x00007fc4f3c690dd:   jmp		0x7fc4f3c690ff
+   1.62%       ↘││ ││                              0x00007fc4f3c690e2:   vmovapd		%xmm4, %xmm3
+   0.38%        ││ ││╭                             0x00007fc4f3c690e6:   jmp		0x7fc4f3c690ff      ;   {other}
+                ↘│ │││                             0x00007fc4f3c690eb:   movabsq		$0x7ff8000000000000, %rcx
+                 │ │││                             0x00007fc4f3c690f5:   vmovq		%rcx, %xmm3
+                 │ │││╭                            0x00007fc4f3c690fa:   jmp		0x7fc4f3c690ff
+   0.34%         ↘ ↘↘↘↘                            0x00007fc4f3c690ff:   vucomisd		%xmm2, %xmm3
+   0.11%               ╭                           0x00007fc4f3c69103:   ja		0x7fc4f3c69125
+   0.26%               │╭                          0x00007fc4f3c69105:   jp		0x7fc4f3c6912e
+   0.11%               ││╭                         0x00007fc4f3c69107:   jb		0x7fc4f3c69142
+                       │││                         0x00007fc4f3c69109:   vpxor		%xmm4, %xmm4, %xmm4
+                       │││                         0x00007fc4f3c6910d:   vucomisd		%xmm4, %xmm3
+                       │││╭                        0x00007fc4f3c69111:   je		0x7fc4f3c6911c
+                       ││││                        0x00007fc4f3c69113:   vmovapd		%xmm3, %xmm2
+                       ││││╭                       0x00007fc4f3c69117:   jmp		0x7fc4f3c69142
+                       │││↘│                       0x00007fc4f3c6911c:   vpand		%xmm2, %xmm3, %xmm2
+                       │││ │╭                      0x00007fc4f3c69120:   jmp		0x7fc4f3c69142
+   1.43%               ↘││ ││                      0x00007fc4f3c69125:   vmovapd		%xmm3, %xmm2
+   0.11%                ││ ││╭                     0x00007fc4f3c69129:   jmp		0x7fc4f3c69142
+                        ↘│ │││                     0x00007fc4f3c6912e:   movabsq		$0x7ff8000000000000, %rcx
+                         │ │││                     0x00007fc4f3c69138:   vmovq		%rcx, %xmm2
+                         │ │││╭                    0x00007fc4f3c6913d:   jmp		0x7fc4f3c69142
+   0.53%                 ↘ ↘↘↘↘                    0x00007fc4f3c69142:   vucomisd		%xmm1, %xmm2
+   0.60%                       ╭                   0x00007fc4f3c69146:   ja		0x7fc4f3c69168
+   0.15%                       │╭                  0x00007fc4f3c69148:   jp		0x7fc4f3c69171
+   0.11%                       ││╭                 0x00007fc4f3c6914a:   jb		0x7fc4f3c69185
+                               │││                 0x00007fc4f3c6914c:   vpxor		%xmm3, %xmm3, %xmm3
+                               │││                 0x00007fc4f3c69150:   vucomisd		%xmm3, %xmm2
+                               │││╭                0x00007fc4f3c69154:   je		0x7fc4f3c6915f
+                               ││││                0x00007fc4f3c69156:   vmovapd		%xmm2, %xmm1
+                               ││││╭               0x00007fc4f3c6915a:   jmp		0x7fc4f3c69185
+                               │││↘│               0x00007fc4f3c6915f:   vpand		%xmm1, %xmm2, %xmm1
+                               │││ │╭              0x00007fc4f3c69163:   jmp		0x7fc4f3c69185
+   2.03%                       ↘││ ││              0x00007fc4f3c69168:   vmovapd		%xmm2, %xmm1
+   0.19%                        ││ ││╭             0x00007fc4f3c6916c:   jmp		0x7fc4f3c69185
+                                ↘│ │││             0x00007fc4f3c69171:   movabsq		$0x7ff8000000000000, %rcx
+                                 │ │││             0x00007fc4f3c6917b:   vmovq		%rcx, %xmm1
+                                 │ │││╭            0x00007fc4f3c69180:   jmp		0x7fc4f3c69185
+   0.26%                         ↘ ↘↘↘↘            0x00007fc4f3c69185:   vucomisd		%xmm0, %xmm1
+   0.41%                               ╭           0x00007fc4f3c69189:   ja		0x7fc4f3c691ab
+   0.38%                               │╭          0x00007fc4f3c6918b:   jp		0x7fc4f3c691b4
+   0.15%                               ││╭         0x00007fc4f3c6918d:   jb		0x7fc4f3c691c8
+                                       │││         0x00007fc4f3c6918f:   vpxor		%xmm2, %xmm2, %xmm2
+                                       │││         0x00007fc4f3c69193:   vucomisd		%xmm2, %xmm1
+                                       │││╭        0x00007fc4f3c69197:   je		0x7fc4f3c691a2
+                                       ││││        0x00007fc4f3c69199:   vmovapd		%xmm1, %xmm0
+                                       ││││╭       0x00007fc4f3c6919d:   jmp		0x7fc4f3c691c8
+                                       │││↘│       0x00007fc4f3c691a2:   vpand		%xmm0, %xmm1, %xmm0
+                                       │││ │╭      0x00007fc4f3c691a6:   jmp		0x7fc4f3c691c8
+   2.07%                               ↘││ ││      0x00007fc4f3c691ab:   vmovapd		%xmm1, %xmm0
+                                        ││ ││╭     0x00007fc4f3c691af:   jmp		0x7fc4f3c691c8
+                                        ↘│ │││     0x00007fc4f3c691b4:   movabsq		$0x7ff8000000000000, %rcx
+                                         │ │││     0x00007fc4f3c691be:   vmovq		%rcx, %xmm0
+                                         │ │││╭    0x00007fc4f3c691c3:   jmp		0x7fc4f3c691c8
+   0.68%                                 ↘ ↘↘↘↘    0x00007fc4f3c691c8:   vmovapd		%xmm23, %xmm2
+   0.11%                                           0x00007fc4f3c691ce:   vucomisd		%xmm2, %xmm0
+   2.85%                                           0x00007fc4f3c691d2:   ja		0x7fc4f3c6920d
+   0.15%                                       ╭   0x00007fc4f3c691d4:   jp		0x7fc4f3c691f5
+   0.30%                                       │   0x00007fc4f3c691d6:   jb		0x7fc4f3c69209
+                                               │   0x00007fc4f3c691d8:   vpxor		%xmm1, %xmm1, %xmm1
+                                               │   0x00007fc4f3c691dc:   vucomisd		%xmm1, %xmm0
+                                               │╭  0x00007fc4f3c691e0:   je		0x7fc4f3c691e7
+                                               ││  0x00007fc4f3c691e2:   jmp		0x7fc4f3c6920d      ;   {other}
+                                               │↘  0x00007fc4f3c691e7:   vpand		%xmm2, %xmm0, %xmm0
+                                               │   0x00007fc4f3c691eb:   jmp		0x7fc4f3c6920d
+                                               │   0x00007fc4f3c691f0:   jmp		0x7fc4f3c6920d
+                                               ↘   0x00007fc4f3c691f5:   movabsq		$0x7ff8000000000000, %r14
+                                                   0x00007fc4f3c691ff:   vmovq		%r14, %xmm0
+                                                   0x00007fc4f3c69204:   jmp		0x7fc4f3c6920d
+....................................................................................................
+  17.54%  <total for region 2>
+
+....[Hottest Region 3]..............................................................................
+c2, level 4, org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+
+                   0x00007fc4f3c68ebd:   vpxor		%xmm15, %xmm15, %xmm15
+                   0x00007fc4f3c68ec2:   vucomisd		%xmm15, %xmm4
+          ╭        0x00007fc4f3c68ec7:   je		0x7fc4f3c68ece
+          │╭       0x00007fc4f3c68ec9:   jmp		0x7fc4f3c68ef4
+          ↘│       0x00007fc4f3c68ece:   vpand		%xmm5, %xmm4, %xmm4
+           │╭      0x00007fc4f3c68ed2:   jmp		0x7fc4f3c68ef4
+           ││╭     0x00007fc4f3c68ed7:   jmp		0x7fc4f3c68ef4
+           │││     0x00007fc4f3c68edc:   movabsq		$0x7ff8000000000000, %rcx
+           │││     0x00007fc4f3c68ee6:   vmovq		%rcx, %xmm4         ;   {other}
+           │││╭    0x00007fc4f3c68eeb:   jmp		0x7fc4f3c68ef4
+   3.79%   ││││    0x00007fc4f3c68ef0:   vmovapd		%xmm5, %xmm4
+   3.94%   ↘↘↘↘    0x00007fc4f3c68ef4:   vucomisd		%xmm6, %xmm4
+   0.56%           0x00007fc4f3c68ef8:   ja		0x7fc4f3c68f33
+   2.78%       ╭   0x00007fc4f3c68efa:   jp		0x7fc4f3c68f1b
+   1.05%       │   0x00007fc4f3c68efc:   jb		0x7fc4f3c68f2f
+               │   0x00007fc4f3c68efe:   vpxor		%xmm5, %xmm5, %xmm5
+               │   0x00007fc4f3c68f02:   vucomisd		%xmm5, %xmm4
+               │╭  0x00007fc4f3c68f06:   je		0x7fc4f3c68f0d
+               ││  0x00007fc4f3c68f08:   jmp		0x7fc4f3c68f33
+               │↘  0x00007fc4f3c68f0d:   vpand		%xmm6, %xmm4, %xmm4
+               │   0x00007fc4f3c68f11:   jmp		0x7fc4f3c68f33
+               │   0x00007fc4f3c68f16:   jmp		0x7fc4f3c68f33
+               ↘   0x00007fc4f3c68f1b:   movabsq		$0x7ff8000000000000, %rcx
+                   0x00007fc4f3c68f25:   vmovq		%rcx, %xmm4
+                   0x00007fc4f3c68f2a:   jmp		0x7fc4f3c68f33
+....................................................................................................
+  12.13%  <total for region 3>
+
+....[Hottest Regions]...............................................................................
+  31.22%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+  17.54%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+  12.13%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   7.70%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   5.94%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   3.64%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   3.61%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   3.61%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   3.31%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   3.01%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   2.63%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   2.07%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   1.16%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   0.41%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   0.30%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   0.30%           libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.11%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   0.08%   [kernel.kallsyms]  sync_regs
+   0.08%                      <unknown>
+   0.08%           libjvm.so  fileStream::write(char const*, unsigned long)
+   1.05%  <...other 28 warm regions...>
+....................................................................................................
+  99.96%  <totals>
+
+....[Hottest Methods (after inlining)]..............................................................
+  98.38%         c2, level 4  org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_doubleMaxSimple_jmhTest::doubleMaxSimple_thrpt_jmhStub, version 5, compile id 883
+   0.30%           libjvm.so  ElfSymbolTable::lookup(unsigned char*, int*, int*, int*, ElfFuncDescTable*)
+   0.11%                      <unknown>
+   0.08%           libjvm.so  fileStream::write(char const*, unsigned long)
+   0.08%   [kernel.kallsyms]  sync_regs
+   0.04%   [kernel.kallsyms]  mas_preallocate
+   0.04%           libjvm.so  ClassFileParser::verify_legal_method_name(Symbol const*, JavaThread*) const [clone .part.0]
+   0.04%           libjvm.so  InstanceKlass::find_method_index(Array<Method*> const*, Symbol const*, Symbol const*, Klass::OverpassLookupMode, Klass::StaticLookupMode, Klass::PrivateLookupMode) [clone .constprop.0]
+   0.04%   [kernel.kallsyms]  iomap_write_iter
+   0.04%   [kernel.kallsyms]  up_write
+   0.04%   [kernel.kallsyms]  vm_normal_folio
+   0.04%           libjvm.so  CompilerOracle::tag_blackhole_if_possible(methodHandle const&)
+   0.04%         interpreter  nofast_getfield  234 nofast_getfield
+   0.04%   [kernel.kallsyms]  _copy_from_iter
+   0.04%         interpreter  nofast_aload_0  236 nofast_aload_0
+   0.04%   [kernel.kallsyms]  copy_mc_enhanced_fast_string
+   0.04%         interpreter  ifeq  153 ifeq
+   0.04%    libcapstone.so.5  X86_get_insn_id
+   0.04%         interpreter  invokevirtual  182 invokevirtual
+   0.04%           libjvm.so  HandshakeState::~HandshakeState()
+   0.45%  <...other 12 warm methods...>
+....................................................................................................
+  99.96%  <totals>
+
+....[Distribution by Source]........................................................................
+  98.38%         c2, level 4
+   0.60%           libjvm.so
+   0.60%   [kernel.kallsyms]
+   0.23%         interpreter
+   0.11%
+   0.04%    libcapstone.so.5
+....................................................................................................
+  99.96%  <totals>
+
+
+
+
+
+#+end_src
+** Base vs UseNewCode2 vs Patch
+Compare base vs UseNewCode2:
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt     Base    Error  UseNewCode2     Error   Units  Diff
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  325.799 ±  7.630      322.931 ± 269.051  ops/ms   -1%
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  474.184 ±  3.458      418.477 ±  14.307  ops/ms  -12%
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  882.477 ±  1.929      485.951 ±  22.420  ops/ms  -45%
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  401.416 ± 18.421      341.968 ±  24.671  ops/ms  -15%
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  709.069 ± 23.239      485.322 ±  18.857  ops/ms  -32%
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  456.260 ±  3.944      490.796 ±  11.223  ops/ms   +8%
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  331.785 ±  3.514      263.711 ±   7.388  ops/ms  -21%
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  459.588 ±  1.688      428.186 ±  29.316  ops/ms   -7%
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  842.430 ± 68.200      527.294 ±  19.141  ops/ms  -37%
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  425.140 ± 13.303      270.402 ±  63.874  ops/ms  -36%
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  725.329 ± 49.896      401.937 ±  54.728  ops/ms  -45%
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  456.257 ± 13.325      500.815 ±  12.952  ops/ms  +10%
+#+end_src
+
+Base
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt    Score    Error   Units
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  325.799 ±  7.630  ops/ms
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  474.184 ±  3.458  ops/ms
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  882.477 ±  1.929  ops/ms
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  401.416 ± 18.421  ops/ms
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  709.069 ± 23.239  ops/ms
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  456.260 ±  3.944  ops/ms
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  331.785 ±  3.514  ops/ms
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  459.588 ±  1.688  ops/ms
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  842.430 ± 68.200  ops/ms
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  425.140 ± 13.303  ops/ms
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  725.329 ± 49.896  ops/ms
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  456.257 ± 13.325  ops/ms
+#+end_src
+
+UseNewCode2
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt    Score     Error   Units
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  322.931 ± 269.051  ops/ms
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  418.477 ±  14.307  ops/ms
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  485.951 ±  22.420  ops/ms
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  341.968 ±  24.671  ops/ms
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  485.322 ±  18.857  ops/ms
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  490.796 ±  11.223  ops/ms
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  263.711 ±   7.388  ops/ms
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  428.186 ±  29.316  ops/ms
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  527.294 ±  19.141  ops/ms
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  270.402 ±  63.874  ops/ms
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  401.937 ±  54.728  ops/ms
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  500.815 ±  12.952  ops/ms
+#+end_src
+
+Patch
+#+begin_src bash
+Benchmark                                         (SIZE)  (seed)   Mode  Cnt    Score   Error   Units
+VectorReduction2.NoSuperword.doubleMaxBig           2048       0  thrpt    3  179.518 ± 0.998  ops/ms
+VectorReduction2.NoSuperword.doubleMaxDotProduct    2048       0  thrpt    3  173.991 ± 5.296  ops/ms
+VectorReduction2.NoSuperword.doubleMaxSimple        2048       0  thrpt    3  162.763 ± 0.996  ops/ms
+VectorReduction2.NoSuperword.doubleMinBig           2048       0  thrpt    3  176.863 ± 5.309  ops/ms
+VectorReduction2.NoSuperword.doubleMinDotProduct    2048       0  thrpt    3  191.516 ± 0.122  ops/ms
+VectorReduction2.NoSuperword.doubleMinSimple        2048       0  thrpt    3  138.533 ± 2.828  ops/ms
+VectorReduction2.NoSuperword.floatMaxBig            2048       0  thrpt    3  177.964 ± 1.209  ops/ms
+VectorReduction2.NoSuperword.floatMaxDotProduct     2048       0  thrpt    3  171.313 ± 6.501  ops/ms
+VectorReduction2.NoSuperword.floatMaxSimple         2048       0  thrpt    3  163.204 ± 0.610  ops/ms
+VectorReduction2.NoSuperword.floatMinBig            2048       0  thrpt    3  173.676 ± 0.090  ops/ms
+VectorReduction2.NoSuperword.floatMinDotProduct     2048       0  thrpt    3  195.628 ± 0.752  ops/ms
+VectorReduction2.NoSuperword.floatMinSimple         2048       0  thrpt    3  138.935 ± 0.142  ops/ms
+#+end_src
 * 1.7.26
 +UseNewCode2
 #+begin_src bash
@@ -779,12 +3075,12 @@ short:
   344  Halt  === 341 1 1 8 1  [[ 0 ]]  !jvms: VectorReduction2::shortXorBig @ bci:70 (line 737)
   371  Blackhole  === 338 332  [[ 372 ]]  !jvms: Blackhole::consume @ bci:7 (line 375) VectorReduction2::shortXorBig @ bci:70 (line 737)
   372  Proj  === 371  [[ 375 ]] #0 !jvms: Blackhole::consume @ bci:7 (line 375) VectorReduction2::shortXorBig @ bci:70 (line 737)
-  375  Return  === 372 6 7 8 9  [[ 0 ]] 
+  375  Return  === 372 6 7 8 9  [[ 0 ]]
   381  CmpI  === _ 315 1360  [[ 382 ]]  !orig=[323] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
   382  Bool  === _ 381  [[ 1754 ]] [lt] !orig=[324] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
   383  CountedLoopEnd  === 1500 1699  [[ 1515 326 ]] [lt] P=0.999512, C=12415373.000000 !orig=[325] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
   386  IfTrue  === 1754  [[ 387 ]] #1
-  387  OuterStripMinedLoop  === 387 1716 386  [[ 387 1500 1685 1686 ]] 
+  387  OuterStripMinedLoop  === 387 1716 386  [[ 387 1500 1685 1686 ]]
   389  SafePoint  === 1515 1 7 1 1 390 10 11 1659 315 1  [[ 1754 ]]  SafePoint  !orig=316 !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
   390  LoadP  === 1515 7 319  [[ 389 ]]  @rawptr:BotPTR, idx=Raw; #rawptr:BotPTR (does not depend only on test, raw access) !orig=[320] !jvms: VectorReduction2::shortXorBig @ bci:65 (line 733)
   391  Region  === 391 493 395 522 411 437 536 452 478 551  [[ 391 54 ]]  !orig=[50] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
@@ -793,7 +3089,7 @@ short:
   395  IfFalse  === 393  [[ 391 ]] #0
   403  ConvI2L  === _ 25  [[ 524 1560 ]]  #long:minint..maxint, 0u..maxulong, widen: 3 !orig=[445]
   406  ConvI2L  === _ 125  [[ 407 ]]  #long:>=0
-  407  CmpUL  === _ 524 406  [[ 408 ]] 
+  407  CmpUL  === _ 524 406  [[ 408 ]]
   408  Bool  === _ 407  [[ 409 ]] [lt]
   409  If  === 521 408  [[ 410 411 ]] P=0.999999, C=-1.000000
   410  IfTrue  === 409  [[ 435 732 ]] #1 !orig=[420],[432]
@@ -803,7 +3099,7 @@ short:
   436  IfTrue  === 435  [[ 1737 1393 1478 165 474 568 736 1492 926 1224 1376 1057 1441 1404 1071 1427 1187 1461 1238 1207 ]] #1
   437  IfFalse  === 435  [[ 391 ]] #0
   447  ConvI2L  === _ 165  [[ 448 ]]  #long:>=0
-  448  CmpUL  === _ 524 447  [[ 449 ]] 
+  448  CmpUL  === _ 524 447  [[ 449 ]]
   449  Bool  === _ 448  [[ 450 ]] [lt]
   450  If  === 535 449  [[ 451 452 ]] P=0.999999, C=-1.000000
   451  IfTrue  === 450  [[ 476 736 ]] #1 !orig=[461]
@@ -815,7 +3111,7 @@ short:
   479  AddP  === _ 1740 1740 23  [[ 480 ]]  !orig=[230] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
   480  LoadRange  === 477 7 479  [[ 540 488 1681 1671 627 609 ]]  @aryptr:bottom[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR+12,iid=bot [narrow], idx=6; #int:>=0 !orig=[231] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
   488  ConvI2L  === _ 480  [[ 489 ]]  #long:>=0
-  489  CmpUL  === _ 524 488  [[ 490 ]] 
+  489  CmpUL  === _ 524 488  [[ 490 ]]
   490  Bool  === _ 489  [[ 491 ]] [lt]
   491  If  === 550 490  [[ 492 493 ]] P=0.999999, C=-1.000000
   492  IfTrue  === 491  [[ 1674 739 ]] #1 !orig=[502],[514] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
@@ -864,39 +3160,39 @@ short:
   584  Region  === 584 582 585  [[ 584 36 586 ]]  !orig=[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
   585  IfFalse  === 591  [[ 584 ]] #0 !orig=[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
   586  Phi  === 584 557 754  [[ 332 ]]  #short, widen: 3
-  589  CmpI  === _ 756 25  [[ 590 ]] 
+  589  CmpI  === _ 756 25  [[ 590 ]]
   590  Bool  === _ 589  [[ 591 ]] [lt]
   591  If  === 752 590  [[ 585 592 ]] P=0.500000, C=-1.000000
   592  IfTrue  === 591  [[ 1748 1683 ]] #1 !orig=[712]
   609  CmpU  === _ 1684 480  [[ 610 ]]  !orig=[507]
   610  Bool  === _ 609  [[ 1753 ]] [lt] !orig=[508]
   614  IfFalse  === 1753  [[ 616 ]] #0
-  616  Halt  === 614 1 1 8 1  [[ 0 ]] 
+  616  Halt  === 614 1 1 8 1  [[ 0 ]]
   617  IfTrue  === 1753  [[ 576 ]] #1
   627  CmpU  === _ 756 480  [[ 628 ]]  !orig=[495]
   628  Bool  === _ 627  [[ 1752 ]] [lt] !orig=[496]
   632  IfFalse  === 1752  [[ 634 ]] #0
-  634  Halt  === 632 1 1 8 1  [[ 0 ]] 
+  634  Halt  === 632 1 1 8 1  [[ 0 ]]
   635  IfTrue  === 1752  [[ 571 1753 ]] #1 !orig=[605]
   652  CmpU  === _ 1684 165  [[ 653 ]]  !orig=[466]
   653  Bool  === _ 652  [[ 1751 ]] [lt] !orig=[467]
   657  IfFalse  === 1751  [[ 659 ]] #0
-  659  Halt  === 657 1 1 8 1  [[ 0 ]] 
+  659  Halt  === 657 1 1 8 1  [[ 0 ]]
   660  IfTrue  === 1751  [[ 1752 ]] #1 !orig=[626]
   670  CmpU  === _ 756 165  [[ 671 ]]  !orig=[454]
   671  Bool  === _ 670  [[ 1750 ]] [lt] !orig=[455]
   675  IfFalse  === 1750  [[ 677 ]] #0
-  677  Halt  === 675 1 1 8 1  [[ 0 ]] 
+  677  Halt  === 675 1 1 8 1  [[ 0 ]]
   678  IfTrue  === 1750  [[ 568 1751 ]] #1 !orig=[648]
   695  CmpU  === _ 1684 125  [[ 696 ]]  !orig=[425]
   696  Bool  === _ 695  [[ 1749 ]] [lt] !orig=[426]
   700  IfFalse  === 1749  [[ 702 ]] #0
-  702  Halt  === 700 1 1 8 1  [[ 0 ]] 
+  702  Halt  === 700 1 1 8 1  [[ 0 ]]
   703  IfTrue  === 1749  [[ 1750 ]] #1 !orig=[669]
   713  CmpU  === _ 756 125  [[ 714 ]]  !orig=[413]
   714  Bool  === _ 713  [[ 1748 ]] [lt] !orig=[414]
   718  IfFalse  === 1748  [[ 720 ]] #0
-  720  Halt  === 718 1 1 8 1  [[ 0 ]] 
+  720  Halt  === 718 1 1 8 1  [[ 0 ]]
   721  IfTrue  === 1748  [[ 1684 564 1749 ]] #1 !orig=[691]
   726  RShiftI  === _ 727 309  [[ 1685 754 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
   727  LShiftI  === _ 728 309  [[ 726 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
@@ -912,9 +3208,9 @@ short:
   753  IfFalse  === 1754  [[ 752 ]] #0 !orig=[587]
   754  Phi  === 752 726 1659  [[ 579 586 ]]  #short, widen: 3
   756  Phi  === 752 37 315  [[ 713 1683 1684 589 670 627 ]]  #int:>=1, widen: 3 !orig=[588]
-  817  Halt  === 1729 1 1 8 1  [[ 0 ]] 
-  860  Halt  === 1725 1 1 8 1  [[ 0 ]] 
-  903  Halt  === 1721 1 1 8 1  [[ 0 ]] 
+  817  Halt  === 1729 1 1 8 1  [[ 0 ]]
+  860  Halt  === 1725 1 1 8 1  [[ 0 ]]
+  903  Halt  === 1721 1 1 8 1  [[ 0 ]]
   910  ConL  === 0  [[ 1701 1703 ]]  #long:minint
   918  AddI  === _ 925 1009  [[ 917 ]]  !orig=308 !jvms: VectorReduction2::shortXorBig @ bci:52 (line 734)
   922  LoadS  === 1720 7 923  |394  [[ 1009 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=434,[146],[212] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
@@ -924,13 +3220,13 @@ short:
   927  AddP  === _ 1736 1494 105  [[ 926 ]]  !orig=182,[277] !jvms: VectorReduction2::shortXorBig @ bci:23 (line 734)
   929  LoadS  === 1728 7 930  |477  [[ 1008 925 ]]  @aryptr:short[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=7; #short (does not depend only on test, unknown control) !orig=515,[250],[306] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
   930  AddP  === _ 1740 1497 105  [[ 929 ]]  !orig=248,[304] !jvms: VectorReduction2::shortXorBig @ bci:36 (line 734)
-  984  AddI  === _ 568 571  [[ 985 ]] 
+  984  AddI  === _ 568 571  [[ 985 ]]
   985  MulI  === _ 564 984  [[ 560 ]]  !orig=[561],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
-  995  AddI  === _ 736 739  [[ 996 ]] 
+  995  AddI  === _ 736 739  [[ 996 ]]
   996  MulI  === _ 732 995  [[ 728 ]]  !orig=[729],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
- 1008  AddI  === _ 926 929  [[ 1009 ]] 
+ 1008  AddI  === _ 926 929  [[ 1009 ]]
  1009  MulI  === _ 922 1008  [[ 918 ]]  !orig=[919],[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
- 1011  AddI  === _ 474 515  [[ 1012 ]] 
+ 1011  AddI  === _ 474 515  [[ 1012 ]]
  1012  MulI  === _ 434 1011  [[ 308 ]]  !orig=[252] !jvms: VectorReduction2::shortXorBig @ bci:38 (line 734)
  1037  ConL  === 0  [[ 1471 1476 1479 ]]  #long:18
  1045  RShiftI  === _ 1046 309  [[ 1656 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
@@ -1124,12 +3420,12 @@ short:
  1507  ConvI2L  === _ 1512  [[ 1498 ]]  #long:1..maxint-16, widen: 3 !orig=[1248],[1084],[935],[142],[208] !jvms: VectorReduction2::shortXorBig @ bci:17 (line 734)
  1512  Phi  === 1500 1686 315  [[ 315 1507 ]]  #int:1..maxint-16, widen: 3 #tripcount !orig=1250,1085,936,102,[433],[141],[207] !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
  1515  IfFalse  === 383  [[ 389 390 ]] #0 !orig=[1257],[1088],[942],[384],[327] !jvms: VectorReduction2::shortXorBig @ bci:9 (line 733)
- 1530  Halt  === 1717 1 1 8 1  [[ 0 ]] 
- 1542  Halt  === 1713 1 1 8 1  [[ 0 ]] 
- 1554  Halt  === 1709 1 1 8 1  [[ 0 ]] 
+ 1530  Halt  === 1717 1 1 8 1  [[ 0 ]]
+ 1542  Halt  === 1713 1 1 8 1  [[ 0 ]]
+ 1554  Halt  === 1709 1 1 8 1  [[ 0 ]]
  1556  ConL  === 0  [[ ]]  #long:-8
  1559  ConL  === 0  [[ 1560 ]]  #long:-15
- 1560  AddL  === _ 403 1559  [[ 1701 1703 ]] 
+ 1560  AddL  === _ 403 1559  [[ 1701 1703 ]]
  1564  ConI  === 0  [[ ]]  #int:15
  1604  ConL  === 0  [[ 1208 1205 1200 ]]  #long:36
  1607  ConL  === 0  [[ 1183 1188 1191 ]]  #long:38
@@ -1145,21 +3441,21 @@ XorI(Phi, XorI(RshiftI, XorI()))
   916  RShiftI  === _ 917 309  [[ 1657 ]]  !orig=311 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
   917  LShiftI  === _ 918 309  [[ 916 ]]  !orig=310 !jvms: VectorReduction2::shortXorBig @ bci:53 (line 734)
  1503  Phi  === 1500 1685 1659  [[ 1659 ]]  #short, widen: 3 !orig=1252,1082,937,101 !jvms: VectorReduction2::shortXorBig @ bci:12 (line 734)
- 1644  XorI  === _ 1466 1483  [[ 1645 ]] 
- 1645  XorI  === _ 1449 1644  [[ 1646 ]] 
- 1646  XorI  === _ 1432 1645  [[ 1647 ]] 
- 1647  XorI  === _ 1415 1646  [[ 1648 ]] 
- 1648  XorI  === _ 1398 1647  [[ 1649 ]] 
- 1649  XorI  === _ 1381 1648  [[ 1650 ]] 
- 1650  XorI  === _ 1364 1649  [[ 1651 ]] 
- 1651  XorI  === _ 1229 1650  [[ 1652 ]] 
- 1652  XorI  === _ 1212 1651  [[ 1653 ]] 
- 1653  XorI  === _ 1195 1652  [[ 1654 ]] 
- 1654  XorI  === _ 1178 1653  [[ 1655 ]] 
- 1655  XorI  === _ 1062 1654  [[ 1656 ]] 
- 1656  XorI  === _ 1045 1655  [[ 1657 ]] 
- 1657  XorI  === _ 916 1656  [[ 1658 ]] 
- 1658  XorI  === _ 311 1657  [[ 1659 ]] 
+ 1644  XorI  === _ 1466 1483  [[ 1645 ]]
+ 1645  XorI  === _ 1449 1644  [[ 1646 ]]
+ 1646  XorI  === _ 1432 1645  [[ 1647 ]]
+ 1647  XorI  === _ 1415 1646  [[ 1648 ]]
+ 1648  XorI  === _ 1398 1647  [[ 1649 ]]
+ 1649  XorI  === _ 1381 1648  [[ 1650 ]]
+ 1650  XorI  === _ 1364 1649  [[ 1651 ]]
+ 1651  XorI  === _ 1229 1650  [[ 1652 ]]
+ 1652  XorI  === _ 1212 1651  [[ 1653 ]]
+ 1653  XorI  === _ 1195 1652  [[ 1654 ]]
+ 1654  XorI  === _ 1178 1653  [[ 1655 ]]
+ 1655  XorI  === _ 1062 1654  [[ 1656 ]]
+ 1656  XorI  === _ 1045 1655  [[ 1657 ]]
+ 1657  XorI  === _ 916 1656  [[ 1658 ]]
+ 1658  XorI  === _ 311 1657  [[ 1659 ]]
  1659  XorI  === _ 1503 1658  [[ 754 389 1503 1685 ]]  !orig=[312],[314] !jvms: VectorReduction2::shortXorBig @ bci:59 (line 735)
 #+end_src
 * 15.6.26
