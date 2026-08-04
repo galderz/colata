@@ -1,51 +1,88 @@
-ID ?= mw-valhalla
+CLASS ?= Test
+# ID ?= ...
+JDK_HOME ?= $(HOME)/src/jdk
 
-# Workaround for compiler errors after upgrade to Xcode 16.3 on Nix:
-# .../src/java.desktop/macosx/native/libjsound/PLATFORM_API_MacOSX_Ports.cpp:127:39: error: variable length arrays in C++ are a Clang extension [-Werror,-Wvla-cxx-extension]
-#    127 |                 AudioDeviceID devices[count];
-#        |                                       ^~~~~
 NO_WARNINGS_ERRORS := true
 
-default: build-jdk
+default: run
 
 TOPDIR = ..
 include $(TOPDIR)/make/MakeBase.gmk
 include $(TOPDIR)/make/OpenJDK.gmk
-include $(TOPDIR)/make/Hibernate.gmk
-include $(TOPDIR)/make/Quarkus.gmk
 
-JOL_CLASS ?= RequestMatch
+base_jvm_args += -Xbatch
+base_jvm_args += -XX:-BackgroundCompilation
+base_jvm_args += -XX:-UseOnStackReplacement
+base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
+base_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::*
+base_jvm_args += -XX:-TieredCompilation
 
-jol_quarkus_jar = jol-quarkus/target/jol-quarkus.jar
-quarkus_jar = getting-started-command-mode/target/quarkus-app/quarkus-run.jar
-hibernate_jar = hibernate-orm-quickstart/target/quarkus-app/quarkus-run.jar
+# Use these exact JVM arguments, examples:
+#
+# Inspect which methods are compiled:
+# JVM_ARGS=-XX:CompileCommand=printcompilation,*::*
+#
+# Narrow down the methods
+# JVM_ARGS=-XX:CompileCommand=printcompilation,First::*
+#
+# Force all executions to run on interpreter
+# JVM_ARGS="-Xint -XX:CompileCommand=printcompilation,First::*"
+#
+# Disable background compilation
+# JVM_ARGS="-Xbatch -XX:CompileCommand=printcompilation,First::*"
+#
+# Stop at C1 compilation:
+# JVM_ARGS="-XX:TieredStopAtLevel=3 -Xbatch -XX:CompileCommand=compileonly,First::test -XX:CompileCommand=printcompilation,First::*"
+#
+# Only C2 compilation:
+# JVM_ARGS="-XX:-TieredCompilation -Xbatch -XX:CompileCommand=compileonly,First::test -XX:CompileCommand=printcompilation,First::*"
+JVM_ARGS ?=
 
-run-hibernate: $(hibernate_jar)
-> $(compile_jdk)/bin/java -jar $<
+# Append to default JVM arguments, examples:
+#
+# Display the C2 machine independent IR:
+# JVM_ARGS_APPEND=-XX:+PrintIdeal
+#
+# Display assembly, OptoAssembly output and bytecode
+# JVM_ARGS_APPEND=-XX:CompileCommand=print,First::test
+#
+# Display assembly and OptoAssembly output (without bytecode)
+# JVM_ARGS_APPEND=-XX:CompileCommand=printassembly,First::test
+#
+# Display inlining decisions
+# JVM_ARGS_APPEND=-XX:CompileCommand=printinlining,Inline::test
+#
+# Display CPU information
+# JVM_ARGS_APPEND=-Xlog:os+cpu=info
+#
+# Display method data, e.g. branch taken/not-taken counters while on interpreter
+# It also works with release builds, but it needs to be prepended with `-XX:+UnlockDiagnosticVMOptions`.
+# JVM_ARGS_APPEND=-XX:+PrintMethodData
+# JVM_ARGS_APPEND="-XX:+UnlockDiagnosticVMOptions -XX:+PrintMethodData"
+#
+# Collects timing information about a compilation,
+# i.e. it measures how much time was spent in individual compilation phases and optimization passes.
+# Also repeat compilation to get more stable measurement of compilation times.
+# JVM_ARGS_APPEND="-XX:+CITime -XX:RepeatCompilation=1000"
+JVM_ARGS_APPEND ?=
 
-$(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.java')
-$(hibernate_jar): $(shell find hibernate-orm-quickstart/src -type f -name '*.properties')
-$(hibernate_jar): $(quarkus_extensions_hibernate_orm_jar)
-> cd hibernate-orm-quickstart
-> JAVA_HOME=$(compile_jdk) ./mvnw package -DskipTests
+ifdef JVM_ARGS_APPEND
+  jvm_args += $(base_jvm_args)
+  jvm_args += $(JVM_ARGS_APPEND)
+else ifdef JVM_ARGS
+  jvm_args += $(JVM_ARGS)
+else
+  jvm_args += $(base_jvm_args)
+endif
 
-run-quarkus: $(quarkus_jar)
-> $(java) -XX:+PrintFieldLayout --enable-preview -jar $<
+ifdef RR
+  call_java += rr
+endif
 
-$(quarkus_jar): $(shell find getting-started-command-mode/src -type f -name '*.java')
-$(quarkus_jar): getting-started-command-mode/pom.xml
-> cd getting-started-command-mode
-> JAVA_HOME=$(compile_jdk) ./mvnw package
+call_java += $(java)
 
-run-jol: $(jol_quarkus_jar)
-> $(boot_jdk_java) -cp $< jol.quarkus.$(JOL_CLASS)Jol
-
-$(jol_quarkus_jar): $(shell find jol-quarkus/src -type f -name '*.java')
-$(jol_quarkus_jar): jol-quarkus/pom.xml
-> cd jol-quarkus
-> mvn -DskipTests package
-
-clean:
-> rm -drf jol-quarkus/target
-> rm -drf getting-started-command-mode/target
-.PHONY: clean
+run: clear-logs $(java)
+> $(call_java) \
+>   $(jvm_args) \
+>   $(shell pwd)/$(CLASS).java
+.PHONY: run
