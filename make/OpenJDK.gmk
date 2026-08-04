@@ -319,6 +319,7 @@ $(jtreg_bin): $(jtreg_readme)
 > bash make/build.sh --jdk $(JAVA_25_HOME)
 
 $(jtreg_readme):
+> mkdir -p $(OPT)
 > cd $(OPT)
 > git clone https://github.com/openjdk/jtreg
 
