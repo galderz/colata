@@ -22,13 +22,14 @@
 #   --help                    Show this help message
 
 set -euo pipefail
+#set -x
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 # Resolve paths relative to the script's location so the script works
 # regardless of the caller's working directory.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+ROOT_DIR="$HOME/src"
 
 HIBERNATE_REPO="$ROOT_DIR/hibernate-orm"
 QUARKUS_REPO="$ROOT_DIR/quarkus"
@@ -96,8 +97,8 @@ TAG_NAME="${ORIGINAL_VERSION%.Final}"
 echo "============================================================"
 echo " Hibernate ORM version Quarkus expects: $ORIGINAL_VERSION"
 echo " Custom version to build:               $CUSTOM_VERSION"
-echo " Git tag to checkout:                    $TAG_NAME"
-echo " Marker:                                 $MARKER"
+echo " Git tag to checkout:                   $TAG_NAME"
+echo " Marker:                                $MARKER"
 echo "============================================================"
 echo
 
@@ -125,9 +126,9 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
     sed -i 's|return VERSION;|return VERSION + " ['"$MARKER"']";|' "$VERSION_JAVA"
 
     # Build and publish to local Maven repository
-    echo "    Running: ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache"
+    echo "    Running: ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache -Dorg.gradle.java.home=$JAVA_25_HOME"
     echo
-    ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache
+    ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache -Dorg.gradle.java.home=$JAVA_25_HOME
 
     # Verify the artifact was published
     ARTIFACT_DIR="$HOME/.m2/repository/org/hibernate/orm/hibernate-core/$CUSTOM_VERSION"
@@ -158,10 +159,12 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
     # Build Quarkus
     echo "    Running: mvn clean install -DskipTests -DskipDocs -Dquickly ..."
     echo
-    MAVEN_OPTS="-Xmx4g" mvn clean install \
+    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$JAVA_25_HOME mvn clean install \
+	-Dmaven.compiler.fork=true \
+	-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac \
         -DskipTests -DskipDocs -Dquickly \
         -Dinvoker.skip -DskipExtensionValidation \
-        -Dskip.gradle.tests -Dskip.gradle.build \
+        -Dskip.gradle.tests \
         -Dtruststore.skip -Dinsecure.repositories=WARN
 
     # Verify the BOM references our custom version
@@ -200,6 +203,11 @@ if [[ "$SKIP_SAMPLE" == false ]]; then
     sed -i '/<source>11<\/source>/d' pom.xml
     sed -i '/<target>11<\/target>/d' pom.xml
 
+    # Replace jackson packages
+    sed -i 's|import com.fasterxml.jackson.databind.ObjectMapper;|import tools.jackson.databind.json.JsonMapper;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
+    sed -i 's|import com.fasterxml.jackson.databind.node.ObjectNode;|import tools.jackson.databind.node.ObjectNode;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
+    sed -i 's|ObjectMapper objectMapper;|JsonMapper objectMapper;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
+
     # Write H2-based application.properties
     cat > src/main/resources/application.properties <<'PROPS'
 quarkus.datasource.db-kind=h2
@@ -233,7 +241,7 @@ JAVA
 
     # Build the sample app
     echo "    Building sample app ..."
-    mvn package -DskipTests -q
+    mvn package -DskipTests
 
     echo "    Sample app built at $OUTPUT_DIR"
     echo
