@@ -41,14 +41,16 @@ SKIP_HIBERNATE=false
 SKIP_QUARKUS=false
 SKIP_SAMPLE=false
 SKIP_VERIFY=false
+WITH_PREVIEW=false
+WITH_CLEAN=false
 
 # ── argument parsing ─────────────────────────────────────────────────────────
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --hibernate-repo)   HIBERNATE_REPO="$2";  shift 2 ;;
-        --quarkus-repo)     QUARKUS_REPO="$2";    shift 2 ;;
-        --quickstart-repo)  QUICKSTART_REPO="$2"; shift 2 ;;
+        --hibernate-repo)   HIBERNATE_REPO="$2";   shift 2 ;;
+        --quarkus-repo)     QUARKUS_REPO="$2";     shift 2 ;;
+        --quickstart-repo)  QUICKSTART_REPO="$2";  shift 2 ;;
         --output-dir)       OUTPUT_DIR="$2";       shift 2 ;;
         --version-suffix)   VERSION_SUFFIX="$2";   shift 2 ;;
         --marker)           MARKER="$2";           shift 2 ;;
@@ -56,6 +58,8 @@ while [[ $# -gt 0 ]]; do
         --skip-quarkus)     SKIP_QUARKUS=true;     shift ;;
         --skip-sample)      SKIP_SAMPLE=true;      shift ;;
         --skip-verify)      SKIP_VERIFY=true;      shift ;;
+        --with-preview)     WITH_PREVIEW=true;     shift ;;
+        --with-clean)       WITH_CLEAN=true;       shift ;;
         --help)
             sed -n '2,/^$/{ s/^# \{0,1\}//; p }' "$0"
             exit 0
@@ -125,10 +129,28 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
     echo "    Injecting marker into $VERSION_JAVA ..."
     sed -i 's|return VERSION;|return VERSION + " ['"$MARKER"']";|' "$VERSION_JAVA"
 
+    build_args=()
+    if [[ "$WITH_PREVIEW" == true ]]; then
+        sed -i "s|^orm.jdk.max=.*|orm.jdk.max=28|" gradle.properties
+	cp $SCRIPT_DIR/enable-preview.gradle $HIBERNATE_REPO
+	build_args+=(--init-script enable-preview.gradle)
+        build_args+=(-Dorg.gradle.java.home=$JAVA_28_HOME)
+    else
+        build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
+    fi
+    if [[ "$WITH_CLEAN" == true ]]; then
+	build_args+=(clean)
+    fi
+
+    build_args+=(publishToMavenLocal)
+    build_args+=(-x test)
+    build_args+=(-x javadoc)
+    build_args+=(--no-build-cache)
+ 
     # Build and publish to local Maven repository
-    echo "    Running: ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache -Dorg.gradle.java.home=$JAVA_25_HOME"
+    echo "    Running: ./gradlew ..."
     echo
-    ./gradlew publishToMavenLocal -x test -x javadoc --no-build-cache -Dorg.gradle.java.home=$JAVA_25_HOME
+    ./gradlew "${build_args[@]}"
 
     # Verify the artifact was published
     ARTIFACT_DIR="$HOME/.m2/repository/org/hibernate/orm/hibernate-core/$CUSTOM_VERSION"
@@ -156,16 +178,26 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
     echo "    Updating hibernate-orm.version in pom.xml ..."
     sed -i "s|<hibernate-orm.version>[^<]*</hibernate-orm.version>|<hibernate-orm.version>${CUSTOM_VERSION}</hibernate-orm.version>|" pom.xml
 
+    build_args=()
+    if [[ "$WITH_CLEAN" == true ]]; then
+	build_args+=(clean)
+    fi
+    build_args+=(install)
+    build_args+=(-Dmaven.compiler.fork=true)
+    build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
+    build_args+=(-DskipTests -DskipDocs -Dquickly)
+    build_args+=(-Dinvoker.skip -DskipExtensionValidation)
+    build_args+=(-Dskip.gradle.tests)
+    build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
+
+    if [[ "$WITH_PREVIEW" == true ]]; then
+	build_args+=(-Dmaven.compiler.enablePreview=true)
+    fi
+
     # Build Quarkus
     echo "    Running: mvn clean install -DskipTests -DskipDocs -Dquickly ..."
     echo
-    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$JAVA_25_HOME mvn clean install \
-	-Dmaven.compiler.fork=true \
-	-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac \
-        -DskipTests -DskipDocs -Dquickly \
-        -Dinvoker.skip -DskipExtensionValidation \
-        -Dskip.gradle.tests \
-        -Dtruststore.skip -Dinsecure.repositories=WARN
+    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$JAVA_25_HOME mvn "${build_args[@]}"
 
     # Verify the BOM references our custom version
     BOM_POM="$HOME/.m2/repository/io/quarkus/quarkus-bom/999-SNAPSHOT/quarkus-bom-999-SNAPSHOT.pom"

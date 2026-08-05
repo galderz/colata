@@ -1,0 +1,25 @@
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.JavaExec
+
+def previewVersion = 28
+
+gradle.projectsEvaluated {
+    rootProject.allprojects { project ->
+        project.tasks.withType(JavaCompile).configureEach {
+            options.release.set(previewVersion)
+
+            if (!options.compilerArgs.contains("--enable-preview")) {
+                options.compilerArgs.add("--enable-preview")
+            }
+        }
+
+        project.tasks.withType(Test).configureEach {
+            jvmArgs("--enable-preview")
+        }
+
+        project.tasks.withType(JavaExec).configureEach {
+            jvmArgs("--enable-preview")
+        }
+    }
+}
