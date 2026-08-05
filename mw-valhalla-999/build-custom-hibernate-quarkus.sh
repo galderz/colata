@@ -22,7 +22,7 @@
 #   --help                    Show this help message
 
 set -euo pipefail
-#set -x
+set -x
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 # Resolve paths relative to the script's location so the script works
@@ -133,8 +133,8 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
     if [[ "$WITH_PREVIEW" == true ]]; then
         sed -i "s|^orm.jdk.max=.*|orm.jdk.max=28|" gradle.properties
 	cp $SCRIPT_DIR/enable-preview.gradle $HIBERNATE_REPO
+	build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
 	build_args+=(--init-script enable-preview.gradle)
-        build_args+=(-Dorg.gradle.java.home=$JAVA_28_HOME)
     else
         build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
     fi
@@ -145,6 +145,8 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
     build_args+=(publishToMavenLocal)
     build_args+=(-x test)
     build_args+=(-x javadoc)
+    build_args+=(-x spotlessApply -x spotlessCheck -x spotlessJava -x spotlessJavaApply -x spotlessJavaCheck)
+    build_args+=(-x generateMavenPluginDescriptor)
     build_args+=(--no-build-cache)
  
     # Build and publish to local Maven repository
@@ -158,6 +160,38 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
         echo "ERROR: Expected artifact directory not found: $ARTIFACT_DIR" >&2
         exit 1
     fi
+
+    if [[ "$WITH_PREVIEW" == true ]]; then
+        # Strip the preview flag (minor version 0xFFFF -> 0x0000) from all
+        # Hibernate class files in the local Maven repo. This allows Quarkus
+        # (and its Maven plugins/ASM) to compile against Hibernate without
+        # needing --enable-preview, avoiding incompatibilities with tooling
+        # that cannot handle Java 28 preview class files.
+        echo "    Stripping preview flags from Hibernate class files ..."
+        HIBERNATE_M2_DIR="$HOME/.m2/repository/org/hibernate/orm"
+        for jar in $(find "$HIBERNATE_M2_DIR" -name "*${CUSTOM_VERSION}*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar"); do
+            echo "      Processing: $(basename $jar)"
+            TMPDIR_JAR=$(mktemp -d)
+            cd "$TMPDIR_JAR"
+            jar xf "$jar"
+            # Patch minor version: bytes 4-5 in each .class file
+            # Preview: 0xFF 0xFF -> Normal: 0x00 0x00
+            find . -name "*.class" | while read classfile; do
+                # Read minor version (bytes 4-5, big-endian)
+                minor=$(od -An -tx1 -j4 -N2 "$classfile" | tr -d ' ')
+                if [[ "$minor" == "ffff" ]]; then
+                    # Zero out the minor version bytes
+                    printf '\x00\x00' | dd of="$classfile" bs=1 seek=4 count=2 conv=notrunc 2>/dev/null
+                fi
+            done
+            # Repackage the jar
+            jar cf "$jar" *
+            cd "$SCRIPT_DIR"
+            rm -rf "$TMPDIR_JAR"
+        done
+        echo "    Preview flags stripped from Hibernate artifacts."
+    fi
+
     echo
     echo "    Hibernate ORM $CUSTOM_VERSION published to local Maven repo."
     echo
@@ -183,21 +217,48 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
 	build_args+=(clean)
     fi
     build_args+=(install)
-    build_args+=(-Dmaven.compiler.fork=true)
-    build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
     build_args+=(-DskipTests -DskipDocs -Dquickly)
+    build_args+=(-Dmaven.test.skip=true)
     build_args+=(-Dinvoker.skip -DskipExtensionValidation)
     build_args+=(-Dskip.gradle.tests)
     build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
 
+    QUARKUS_JAVA_HOME=$JAVA_25_HOME
     if [[ "$WITH_PREVIEW" == true ]]; then
-	build_args+=(-Dmaven.compiler.enablePreview=true)
+        # Run Maven on JDK 28 so the compiler can handle JDK 28 APIs.
+        # Hibernate was compiled with --enable-preview but the preview
+        # flags were stripped from its class files, so Quarkus does not
+        # need --enable-preview itself. This avoids producing version 72
+        # class files that break ASM-based Maven plugins.
+        QUARKUS_JAVA_HOME=$JAVA_28_HOME
+        # Use the JDK images build (with lib/modules jimage) instead
+        # of the exploded modules build, so Kotlin's kapt can find
+        # JDK class roots properly.
+        # Use the JDK images build (with lib/modules jimage) so Kotlin
+        # and other tools can find JDK class roots properly.
+        QUARKUS_JAVA_HOME=$(cd "$JAVA_28_HOME/../images/jdk" && pwd)
+        # Exclude Kotlin Panache modules that use kapt - kapt doesn't
+        # support JDK 28 yet ('tools.jar' lookup fails).
+        # Exclude modules incompatible with JDK 28:
+        # - Kotlin Panache modules use kapt which can't find tools.jar on JDK 28
+        # - quarkus-maven-plugin uses sisu which can't handle JDK 28 class files
+        # - Gradle plugins also use sisu/Groovy incompatible with JDK 28
+        EXCL_MODS=""
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-orm-panache-kotlin-parent"
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-orm-panache-kotlin"
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-orm-panache-kotlin-deployment"
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-reactive-panache-kotlin-parent"
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-reactive-panache-kotlin"
+        EXCL_MODS+=",!io.quarkus:quarkus-hibernate-reactive-panache-kotlin-deployment"
+        EXCL_MODS+=",!io.quarkus:quarkus-maven-plugin"
+        EXCL_MODS+=",!io.quarkus:quarkus-config-doc-maven-plugin"
+        build_args+=(-pl "${EXCL_MODS:1}")  # strip leading comma
     fi
 
     # Build Quarkus
     echo "    Running: mvn clean install -DskipTests -DskipDocs -Dquickly ..."
     echo
-    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$JAVA_25_HOME mvn "${build_args[@]}"
+    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$QUARKUS_JAVA_HOME mvn "${build_args[@]}"
 
     # Verify the BOM references our custom version
     BOM_POM="$HOME/.m2/repository/io/quarkus/quarkus-bom/999-SNAPSHOT/quarkus-bom-999-SNAPSHOT.pom"
