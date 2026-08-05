@@ -241,7 +241,7 @@ JAVA
 
     # Build the sample app
     echo "    Building sample app ..."
-    mvn package -DskipTests
+    mvn package
 
     echo "    Sample app built at $OUTPUT_DIR"
     echo
