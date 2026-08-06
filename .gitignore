@@ -1,6 +1,8 @@
 # C++.gitignore
 *.o
 *.dylib
+# Java.gitignore
+*.class
 # IDEA.gitignore
 .idea
 *.iml
