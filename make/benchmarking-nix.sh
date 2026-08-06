@@ -34,20 +34,25 @@ disable_hyperthreading() {
 }
 
 disable_turbo() {
-    local no_turbo=$(cat "/sys/devices/system/cpu/intel_pstate/no_turbo")
+    local no_turbo="/sys/devices/system/cpu/intel_pstate/no_turbo"
     local desired_value="1"
 
-    # Check if the value is 1
-    if [ "$no_turbo" == "$desired_value" ]; then
+    if [ -f "$no_turbo" ]; then
+      local no_turbo_value=$(cat $no_turbo)
+      # Check if the value is 1
+      if [ "$no_turbo_value" == "$desired_value" ]; then
         echo "SUCCESS: No turbo boost is 1. Nothing to do."
-    else
-        echo "ERROR: No turbo boost is not 1. It's $no_turbo."
+      else
+        echo "ERROR: No turbo boost is not 1. It's $no_turbo_value."
         if [[ $dry_run == "true" ]]; then
             echo "Dry-run mode: No turbo boost would be enabled if not in dry-run mode."
         else
             echo "Run mode: No turbo boost to $desired_value value..."
             echo "$desired_value" | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo >/dev/null
         fi
+      fi
+    else
+	echo "SUCCESS: Not an intel machine."
     fi
 }
 
