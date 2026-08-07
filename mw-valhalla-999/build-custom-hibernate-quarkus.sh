@@ -114,9 +114,11 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
 
     cd "$HIBERNATE_REPO"
 
-    # Checkout the matching tag
-    echo "    Checking out tag $TAG_NAME ..."
-    git checkout "$TAG_NAME" --quiet
+    if [[ "$WITH_PREVIEW" == false ]]; then
+      # Checkout the matching tag
+      echo "    Checking out tag $TAG_NAME ..."
+      git checkout "$TAG_NAME" --quiet
+    fi
 
     # Patch the version
     echo "    Setting version to $CUSTOM_VERSION ..."
@@ -134,7 +136,10 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
         sed -i "s|^orm.jdk.max=.*|orm.jdk.max=28|" gradle.properties
 	cp $SCRIPT_DIR/enable-preview.gradle $HIBERNATE_REPO
 	build_args+=(--init-script enable-preview.gradle)
-        build_args+=(-Dorg.gradle.java.home=$JAVA_28_HOME)
+        build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
+        # Skip spotless checks
+	build_args+=(-x spotlessApply -x spotlessCheck -x spotlessJava \
+             -x spotlessJavaApply -x spotlessJavaCheck)
     else
         build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
     fi
@@ -142,6 +147,7 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
 	build_args+=(clean)
     fi
 
+    build_args+=(-Igradle/init.gradle)
     build_args+=(publishToMavenLocal)
     build_args+=(-x test)
     build_args+=(-x javadoc)
