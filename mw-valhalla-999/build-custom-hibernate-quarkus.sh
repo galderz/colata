@@ -22,7 +22,7 @@
 #   --help                    Show this help message
 
 set -euo pipefail
-#set -x
+set -x
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 # Resolve paths relative to the script's location so the script works
@@ -135,6 +135,14 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
     if [[ "$WITH_PREVIEW" == true ]]; then
         sed -i "s|^orm.jdk.max=.*|orm.jdk.max=28|" gradle.properties
 	cp $SCRIPT_DIR/enable-preview.gradle $HIBERNATE_REPO
+
+        # Patch the bnd OSGi plugin to handle Valhalla stack map frame types.
+        # See ISSUES.md §1 for details.  The script is idempotent.
+        echo "    Patching bnd OSGi plugin (if needed)..."
+        "$SCRIPT_DIR/patch-bnd-stackmap.sh" "$JAVA_25_HOME"
+        # Restart the Gradle daemon so it picks up patched classes
+        ./gradlew --stop 2>/dev/null || true
+
 	build_args+=(--init-script enable-preview.gradle)
         build_args+=(-Dorg.gradle.java.home=$JAVA_25_HOME)
         # Skip spotless checks
@@ -189,21 +197,52 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
 	build_args+=(clean)
     fi
     build_args+=(install)
-    build_args+=(-Dmaven.compiler.fork=true)
-    build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
     build_args+=(-DskipTests -DskipDocs -Dquickly)
     build_args+=(-Dinvoker.skip -DskipExtensionValidation)
     build_args+=(-Dskip.gradle.tests)
     build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
 
+    QUARKUS_JAVA_HOME=$JAVA_25_HOME
+    QUARKUS_MAVEN_OPTS="-Xmx4g"
+
     if [[ "$WITH_PREVIEW" == true ]]; then
-	build_args+=(-Dmaven.compiler.enablePreview=true)
+        # Patch ASM to accept JDK 28 class files (major version 72).
+        # See ISSUES.md §7 for details.  The script is idempotent.
+        echo "    Patching ASM ClassReader (if needed)..."
+        "$SCRIPT_DIR/patch-asm-classreader.sh"
+
+        # When building with preview, we need to:
+        # 1. Run Maven on the Valhalla JDK so annotation processors compiled with
+        #    preview features can be loaded (hibernate-processor has class version 72.65535)
+        # 2. Pass --enable-preview to the Maven JVM via MAVEN_OPTS
+        # 3. Set --release 28 for the compiler
+        # 4. Skip impsort (JavaParser doesn't support Java 28 language level)
+        # 5. Build only the hibernate-orm extension and its dependents, not all of Quarkus
+        # 6. Exclude Kotlin modules that don't compile with preview
+        QUARKUS_JAVA_HOME=$JAVA_28_HOME
+        QUARKUS_MAVEN_OPTS="-Xmx4g --enable-preview"
+        build_args+=(-Dmaven.compiler.enablePreview=true)
+        build_args+=(-Dmaven.compiler.release=28)
+        build_args+=(-Dformat.skip=true)
+        build_args+=(-pl extensions/hibernate-orm --also-make-dependents)
+        # Kotlin modules that fail with preview features
+        build_args+=(-pl '!io.quarkus:quarkus-hibernate-orm-panache-kotlin')
+        build_args+=(-pl '!io.quarkus:quarkus-hibernate-orm-panache-kotlin-deployment')
+        build_args+=(-pl '!io.quarkus:quarkus-hibernate-reactive-panache-kotlin')
+        build_args+=(-pl '!io.quarkus:quarkus-hibernate-reactive-panache-kotlin-deployment')
+        build_args+=(-pl '!io.quarkus:quarkus-integration-test-hibernate-orm-panache-kotlin')
+        build_args+=(-pl '!io.quarkus:quarkus-integration-test-hibernate-reactive-panache-kotlin')
+        build_args+=(-pl '!io.quarkus:quarkus-integration-test-mongodb-panache-kotlin')
+        build_args+=(-pl '!io.quarkus:quarkus-integration-test-logging-panache-kotlin')
+    else
+        build_args+=(-Dmaven.compiler.fork=true)
+        build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
     fi
 
     # Build Quarkus
-    echo "    Running: mvn clean install -DskipTests -DskipDocs -Dquickly ..."
+    echo "    Running: mvn install ..."
     echo
-    MAVEN_OPTS="-Xmx4g" JAVA_HOME=$JAVA_25_HOME mvn "${build_args[@]}"
+    MAVEN_OPTS="$QUARKUS_MAVEN_OPTS" JAVA_HOME=$QUARKUS_JAVA_HOME mvn "${build_args[@]}"
 
     # Verify the BOM references our custom version
     BOM_POM="$HOME/.m2/repository/io/quarkus/quarkus-bom/999-SNAPSHOT/quarkus-bom-999-SNAPSHOT.pom"
@@ -277,9 +316,26 @@ public class HibernateVersionResource {
 }
 JAVA
 
+    if [[ "$WITH_PREVIEW" == true ]]; then
+        # Patch ASM to accept JDK 28 class files (major version 72).
+        # See ISSUES.md §7 for details.  The script is idempotent.
+        echo "    Patching ASM ClassReader (if needed)..."
+        "$SCRIPT_DIR/patch-asm-classreader.sh"
+    fi
+
     # Build the sample app
     echo "    Building sample app ..."
-    mvn package
+    if [[ "$WITH_PREVIEW" == true ]]; then
+        # The sample app depends on Hibernate classes compiled with JDK 28
+        # preview features, so it must also be compiled with --enable-preview
+        # and --release 28 on the Valhalla JDK.
+        MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn package \
+            -Dmaven.compiler.enablePreview=true \
+            -Dmaven.compiler.release=28 \
+            -DskipTests
+    else
+        mvn package
+    fi
 
     echo "    Sample app built at $OUTPUT_DIR"
     echo
@@ -311,7 +367,11 @@ if [[ "$SKIP_VERIFY" == false ]]; then
     echo "    [Check 2] Runtime verification:"
     echo "      Starting Quarkus app ..."
 
-    java -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
+    if [[ "$WITH_PREVIEW" == true ]]; then
+        $JAVA_28_HOME/bin/java --enable-preview -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
+    else
+        java -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
+    fi
     APP_PID=$!
 
     # Wait for the app to start (poll for up to 30 seconds)

@@ -53,5 +53,11 @@ gradle.projectsEvaluated {
         project.tasks.withType(JavaExec).configureEach {
             jvmArgs("--enable-preview")
         }
+
+        // The Maven plugin descriptor generator (org.gradlex.maven-plugin-development)
+        // cannot handle JDK 28 class files. Disable it for preview builds.
+        project.tasks.matching { it.name == 'generateMavenPluginDescriptor' }.configureEach {
+            it.enabled = false
+        }
     }
 }
