@@ -325,7 +325,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/value-classes")
-public class HibernateVersionResource {
+public class ValueClassesResource {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
