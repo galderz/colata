@@ -359,7 +359,6 @@ JAVA
         MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn package \
             -Dmaven.compiler.enablePreview=true \
             -Dmaven.compiler.release=28 \
-            -DskipTests
     else
         mvn package
     fi
