@@ -2,6 +2,13 @@
 
 set -ex
 
+# make sure you create a ssh key first, e.g.
+# $ ssh-keygen -t rsa -b 4096 -C "spring-quarkus-perf-comparison"
+# add the key to authorized keys:
+# $ (cat ~/.ssh/id_rsa.pub; echo) >> ~/.ssh/authorized_keys
+# verify it works:
+# $ ssh localhost
+
 SRC=${1:-$HOME/src}
 REPO=$SRC/spring-quarkus-perf-comparison
 BRANCH=main
