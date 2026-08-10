@@ -1,10 +1,12 @@
+import java.lang.reflect.Method;
+import java.util.Set;
 import org.hibernate.Version;
 
 public class PrintHibernateVersion {
     public static void main(String[] args) {
         String version = Version.getVersionString();
         System.out.println("Hibernate version: " + version);
-        System.out.println("EntityKey is value class? " + isValueClass(org.hibernate.engine.spi.EntityKey));
+        System.out.println("EntityKey is value class? " + isValueClass(org.hibernate.engine.spi.EntityKey.class));
     }
 
     private static final Object IDENTITY_FLAG = findIdentityFlag();
