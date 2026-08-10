@@ -315,6 +315,26 @@ public class HibernateVersionResource {
     }
 }
 JAVA
+    cp "$SCRIPT_DIR/ValueClasses.java" "$ENDPOINT_DIR"
+    cat > "$ENDPOINT_DIR/ValueClassesResource.java" <<'JAVA'
+package org.acme.hibernate.orm;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+
+@Path("/value-classes")
+public class HibernateVersionResource {
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getValueClasses() {
+        final String ek = "EntityKey is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKey.class);
+        return ek;
+    }
+}
+JAVA
 
     if [[ "$WITH_PREVIEW" == true ]]; then
         # Patch ASM to accept JDK 28 class files (major version 72).
@@ -399,6 +419,9 @@ if [[ "$SKIP_VERIFY" == false ]]; then
         else
             echo "      FAIL: version '$CUSTOM_VERSION' not found in response" >&2
         fi
+
+        VC_RESPONSE=$(curl -s http://localhost:8080/value-classes)
+        echo "      GET /value-classes => $VC_RESPONSE"
     else
         echo "      FAIL: app did not start within 30 seconds" >&2
         echo "      Log output:"
