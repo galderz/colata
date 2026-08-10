@@ -349,9 +349,11 @@ JAVA
         # The sample app depends on Hibernate classes compiled with JDK 28
         # preview features, so it must also be compiled with --enable-preview
         # and --release 28 on the Valhalla JDK.
+        # Also pass in surefire argLine with --enable-preview
         MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn package \
             -Dmaven.compiler.enablePreview=true \
-            -Dmaven.compiler.release=28
+            -Dmaven.compiler.release=28 \
+            -DargLine="--enable-preview"
     else
         mvn package
     fi
