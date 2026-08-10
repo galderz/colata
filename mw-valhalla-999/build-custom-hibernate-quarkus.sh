@@ -280,13 +280,6 @@ if [[ "$SKIP_SAMPLE" == false ]]; then
     sed -i '/<source>11<\/source>/d' pom.xml
     sed -i '/<target>11<\/target>/d' pom.xml
 
-    # Enable preview in compiler
-    # sed -i 's|<parameters>true</parameters>|<parameters>true</parameters><enablePreview>true</enablePreview>|' pom.xml
-    # Upgrade compiler release to latest
-    # sed -i 's|<maven.compiler.release>17</maven.compiler.release>|<maven.compiler.release>28</maven.compiler.release>|' pom.xml
-    # Run surefire with enable preview
-    # sed -i 's|</systemPropertyVariables>|</systemPropertyVariables><argLine>--enable-preview</argLine>|' pom.xml
-
     # Replace jackson packages
     sed -i 's|import com.fasterxml.jackson.databind.ObjectMapper;|import tools.jackson.databind.json.JsonMapper;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
     sed -i 's|import com.fasterxml.jackson.databind.node.ObjectNode;|import tools.jackson.databind.node.ObjectNode;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
