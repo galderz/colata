@@ -351,7 +351,7 @@ JAVA
         # and --release 28 on the Valhalla JDK.
         MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn package \
             -Dmaven.compiler.enablePreview=true \
-            -Dmaven.compiler.release=28 \
+            -Dmaven.compiler.release=28
     else
         mvn package
     fi
