@@ -284,6 +284,8 @@ if [[ "$SKIP_SAMPLE" == false ]]; then
     sed -i 's|<parameters>true</parameters>|<parameters>true</parameters><enablePreview>true</enablePreview>|' pom.xml
     # Upgrade compiler release to latest
     sed -i 's|<maven.compiler.release>17</maven.compiler.release>|<maven.compiler.release>28</maven.compiler.release>|' pom.xml
+    # Run surefire with enable preview
+    sed -i 's|</systemPropertyVariables>|</systemPropertyVariables><argLine>--enable-preview</argLine>|' pom.xml
 
     # Replace jackson packages
     sed -i 's|import com.fasterxml.jackson.databind.ObjectMapper;|import tools.jackson.databind.json.JsonMapper;|' src/main/java/org/acme/hibernate/orm/FruitResource.java
