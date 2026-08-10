@@ -1,5 +1,8 @@
 package org.acme.hibernate.orm;
 
+import java.lang.reflect.Method;
+import java.util.Set;
+
 public class ValueClasses
 {
     private static final Object IDENTITY_FLAG = findIdentityFlag();
