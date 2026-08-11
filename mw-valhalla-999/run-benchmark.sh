@@ -31,11 +31,16 @@ cd $REPO/scripts/perf-lab
 
 #  --quarkus-build-config-args "-Dquarkus.platform.group-id=io.quarkus" \
 
-#jvm_args=()
 jvm_args+=(-XX:+UseNUMA)
 jvm_args+=(-Dserver.tomcat.threads.max=50 -Dserver.tomcat.threads.min-spare=50)
 if [[ "$WITH_PREVIEW" == true ]]; then
     jvm_args+=(--enable-preview)
+fi
+
+quarkus_build_args=()
+if [[ "$WITH_PREVIEW" == true ]]; then
+    quarkus_build_args+=(-Dmaven.compiler.enablePreview=true)
+    quarkus_build_args+=(-Dmaven.compiler.release=28)
 fi
 
 ./run-benchmarks.sh \
@@ -61,6 +66,7 @@ fi
   --output-dir run \
   --profiler none \
   --quarkus-version 999-SNAPSHOT \
+  --quarkus-build-config-args "${quarkus_build_args[*]}" \
   --runtimes quarkus3-jvm \
   --run-identifier local-1 \
   --tests run-load-test \
