@@ -350,12 +350,12 @@ JAVA
         # preview features, so it must also be compiled with --enable-preview
         # and --release 28 on the Valhalla JDK.
         # Also pass in surefire argLine with --enable-preview
-        MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn package \
+        MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn clean package \
             -Dmaven.compiler.enablePreview=true \
             -Dmaven.compiler.release=28 \
             -DargLine="--enable-preview"
     else
-        mvn package
+        mvn clean package
     fi
 
     echo "    Sample app built at $OUTPUT_DIR"
@@ -388,11 +388,8 @@ if [[ "$SKIP_VERIFY" == false ]]; then
     echo "    [Check 2] Runtime verification:"
     echo "      Starting Quarkus app ..."
 
-    if [[ "$WITH_PREVIEW" == true ]]; then
-        $JAVA_28_HOME/bin/java --enable-preview -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
-    else
-        java -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
-    fi
+    # Always run with --enable-preview to be able to answer questions about value classes correctly
+    java --enable-preview -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
     APP_PID=$!
 
     # Wait for the app to start (poll for up to 30 seconds)
