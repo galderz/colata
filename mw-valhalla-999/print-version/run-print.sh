@@ -9,6 +9,7 @@ CP="$HIBERNATE_JAR:$JBOSS_LOG_JAR"
 
 echo "Print major/minor version"
 javap -verbose -classpath "$HIBERNATE_JAR" org.hibernate.Version | grep -E 'major version|minor version'
+javap -verbose -classpath "$HIBERNATE_JAR" org.hibernate.engine.spi.EntityKey | grep -E 'major version|minor version'
 
 echo "Compiling PrintHibernateVersion.java..."
 #"$JAVA_HOME/bin/javac" -cp "$CP" "$SCRIPT_DIR/PrintHibernateVersion.java"
