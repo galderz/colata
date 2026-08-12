@@ -9,6 +9,7 @@ QDUP_USER=$USER
 # requires `make images`
 JAVA_HOME=$HOME/src/jdk/build/release-linux-x86_64/images/jdk
 WITH_PREVIEW=false
+WITH_VC=false
 
 # ── argument parsing ─────────────────────────────────────────────────────────
 
@@ -16,6 +17,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --src)              SRC="$2";            shift 2 ;;
         --with-preview)     WITH_PREVIEW=true;   shift ;;
+        --with-vc)          WITH_VC=true;        shift ;;
+        --with-egc)         WITH_EGC=true;       shift ;;
         --help)
             sed -n '2,/^$/{ s/^# \{0,1\}//; p }' "$0"
             exit 0
@@ -38,9 +41,15 @@ if [[ "$WITH_PREVIEW" == true ]]; then
 fi
 
 quarkus_build_args=()
-if [[ "$WITH_PREVIEW" == true ]]; then
+if [[ "$WITH_VC" == true ]]; then
     quarkus_build_args+=(-Dmaven.compiler.enablePreview=true)
     quarkus_build_args+=(-Dmaven.compiler.release=28)
+fi
+
+if [[ "$WITH_EGC" == true ]]; then
+    jvm_args+=(-XX:+UseEpsilonGC)
+    jvm_args+=(-XX:+HeapDumpOnOutOfMemoryError)
+    jvm_args+=(-XX:HeapDumpPath=$HOME/tmp/quarkus.hprof)
 fi
 
 ./run-benchmarks.sh \
