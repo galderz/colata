@@ -171,6 +171,14 @@ build-jdk:
 > touch $(java)
 .PHONY: build-jdk
 
+images:
+> $(info Building OpenJDK feature version $(JDK_FEATURE))
+> pushd $(JDK_HOME)
+> CONF=$(conf_name) make -s images
+> popd
+> touch $(java)
+.PHONY: images
+
 # Build hsdis manually into a JDK for older versions (e.g. 17)
 build-hsdis:
 > $(TOPDIR)/make/build-hsdis.sh $(JDK_HOME)
