@@ -22,7 +22,7 @@
 #   --help                    Show this help message
 
 set -euo pipefail
-set -x
+#set -x
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 # Resolve paths relative to the script's location so the script works
@@ -136,6 +136,9 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
         sed -i "s|^orm.jdk.max=.*|orm.jdk.max=28|" gradle.properties
 	cp $SCRIPT_DIR/enable-preview.gradle $HIBERNATE_REPO
 
+	# Download bnd jar to patch it
+	"$SCRIPT_DIR/download-bnd.sh"
+
         # Patch the bnd OSGi plugin to handle Valhalla stack map frame types.
         # See ISSUES.md §1 for details.  The script is idempotent.
         echo "    Patching bnd OSGi plugin (if needed)..."
@@ -192,17 +195,8 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
     echo "    Updating hibernate-orm.version in pom.xml ..."
     sed -i "s|<hibernate-orm.version>[^<]*</hibernate-orm.version>|<hibernate-orm.version>${CUSTOM_VERSION}</hibernate-orm.version>|" pom.xml
 
-    build_args=()
-    if [[ "$WITH_CLEAN" == true ]]; then
-	build_args+=(clean)
-    fi
-    build_args+=(install)
-    build_args+=(-DskipTests -DskipDocs -Dquickly)
-    build_args+=(-Dinvoker.skip -DskipExtensionValidation)
-    build_args+=(-Dskip.gradle.tests)
-    build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
 
-    QUARKUS_JAVA_HOME=$JAVA_25_HOME
+    QUARKUS_JAVA_HOME=$JAVA_28_HOME
     QUARKUS_MAVEN_OPTS="-Xmx4g"
 
     if [[ "$WITH_PREVIEW" == true ]]; then
@@ -211,38 +205,22 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
         echo "    Patching ASM ClassReader (if needed)..."
         "$SCRIPT_DIR/patch-asm-classreader.sh"
 
-        # When building with preview, we need to:
-        # 1. Run Maven on the Valhalla JDK so annotation processors compiled with
-        #    preview features can be loaded (hibernate-processor has class version 72.65535)
-        # 2. Pass --enable-preview to the Maven JVM via MAVEN_OPTS
-        # 3. Set --release 28 for the compiler
-        # 4. Skip impsort (JavaParser doesn't support Java 28 language level)
-        # 5. Build only the hibernate-orm extension and its dependents, not all of Quarkus
-        # 6. Exclude Kotlin modules that don't compile with preview
-        QUARKUS_JAVA_HOME=$JAVA_28_HOME
-        QUARKUS_MAVEN_OPTS="-Xmx4g --enable-preview"
-        build_args+=(-Dmaven.compiler.enablePreview=true)
-        build_args+=(-Dmaven.compiler.release=28)
-        build_args+=(-Dformat.skip=true)
-        build_args+=(-pl extensions/hibernate-orm --also-make-dependents)
-        # Kotlin modules that fail with preview features
-        build_args+=(-pl '!io.quarkus:quarkus-hibernate-orm-panache-kotlin')
-        build_args+=(-pl '!io.quarkus:quarkus-hibernate-orm-panache-kotlin-deployment')
-        build_args+=(-pl '!io.quarkus:quarkus-hibernate-reactive-panache-kotlin')
-        build_args+=(-pl '!io.quarkus:quarkus-hibernate-reactive-panache-kotlin-deployment')
-        build_args+=(-pl '!io.quarkus:quarkus-integration-test-hibernate-orm-panache-kotlin')
-        build_args+=(-pl '!io.quarkus:quarkus-integration-test-hibernate-reactive-panache-kotlin')
-        build_args+=(-pl '!io.quarkus:quarkus-integration-test-mongodb-panache-kotlin')
-        build_args+=(-pl '!io.quarkus:quarkus-integration-test-logging-panache-kotlin')
+        # Build hibernate for value classes
+	"$SCRIPT_DIR/build-with-preview.sh"
     else
+        build_args=()
+        if [[ "$WITH_CLEAN" == true ]]; then
+	    build_args+=(clean)
+        fi
+        build_args+=(install)
+        build_args+=(-DskipTests -DskipDocs -Dquickly)
+        build_args+=(-Dinvoker.skip -DskipExtensionValidation)
+        build_args+=(-Dskip.gradle.tests)
+        build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
         build_args+=(-Dmaven.compiler.fork=true)
         build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
+        MAVEN_OPTS="$QUARKUS_MAVEN_OPTS" JAVA_HOME=$QUARKUS_JAVA_HOME ./mvnw "${build_args[@]}"
     fi
-
-    # Build Quarkus
-    echo "    Running: mvn install ..."
-    echo
-    MAVEN_OPTS="$QUARKUS_MAVEN_OPTS" JAVA_HOME=$QUARKUS_JAVA_HOME mvn "${build_args[@]}"
 
     # Verify the BOM references our custom version
     BOM_POM="$HOME/.m2/repository/io/quarkus/quarkus-bom/999-SNAPSHOT/quarkus-bom-999-SNAPSHOT.pom"
@@ -350,12 +328,12 @@ JAVA
         # preview features, so it must also be compiled with --enable-preview
         # and --release 28 on the Valhalla JDK.
         # Also pass in surefire argLine with --enable-preview
-        MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME mvn clean package \
+        MAVEN_OPTS="-Xmx2g --enable-preview" JAVA_HOME=$JAVA_28_HOME ./mvnw clean package \
             -Dmaven.compiler.enablePreview=true \
             -Dmaven.compiler.release=28 \
             -DargLine="--enable-preview"
     else
-        mvn clean package
+        ./mvnw clean package
     fi
 
     echo "    Sample app built at $OUTPUT_DIR"
@@ -375,7 +353,7 @@ if [[ "$SKIP_VERIFY" == false ]]; then
 
     # Check 1: dependency tree
     echo "    [Check 1] Maven dependency tree:"
-    DEP_LINE=$(mvn dependency:tree 2>/dev/null | grep "hibernate-core" || true)
+    DEP_LINE=$(./mvnw dependency:tree 2>/dev/null | grep "hibernate-core" || true)
     echo "      $DEP_LINE"
     if echo "$DEP_LINE" | grep -q "$CUSTOM_VERSION"; then
         echo "      PASS: dependency tree shows $CUSTOM_VERSION"
