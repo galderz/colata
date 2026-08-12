@@ -176,7 +176,7 @@ images:
 > pushd $(JDK_HOME)
 > CONF=$(conf_name) make -s images
 > popd
-> touch $(java)
+> touch $(java_images_jdk_dir)/bin/java
 .PHONY: images
 
 # Build hsdis manually into a JDK for older versions (e.g. 17)
@@ -363,12 +363,13 @@ clean-jtreg:
 .PHONY: clean-jtreg
 
 define tools
-sudo dnf groupinstall -y "Development Tools"
 sudo dnf install -y \
+  autoconf \
   alsa-lib-devel \
   capstone-devel \
   cups-devel \
   fontconfig-devel \
+  g++ \
   libXi-devel \
   libXrandr-devel \
   libXrender-devel \
