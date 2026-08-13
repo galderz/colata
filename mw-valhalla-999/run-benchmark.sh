@@ -47,6 +47,7 @@ if [[ "$WITH_VC" == true ]]; then
 fi
 
 if [[ "$WITH_EGC" == true ]]; then
+    jvm_args+=(-XX:+UnlockExperimentalVMOptions)
     jvm_args+=(-XX:+UseEpsilonGC)
     jvm_args+=(-XX:+HeapDumpOnOutOfMemoryError)
     jvm_args+=(-XX:HeapDumpPath=$HOME/tmp/quarkus.hprof)
