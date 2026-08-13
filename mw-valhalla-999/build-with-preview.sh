@@ -74,6 +74,7 @@ JAVA_HOME="$JAVA_28_HOME" ./mvnw install -Dquickly \
   -pl extensions/jdbc/jdbc-postgresql/deployment \
   -pl extensions/container-image/container-image-jib/deployment \
   -pl extensions/observability-devservices/sink/lgtm \
+  -pl extensions/observability-devservices/deployment \
   -pl test-framework/junit-mockito \
   -pl devtools/maven \
   -pl '!devtools/maven' \
