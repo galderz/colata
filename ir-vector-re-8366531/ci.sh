@@ -12,4 +12,5 @@ tests=(
     "test/hotspot/jtreg/compiler/vectorapi/reshape/TestVectorReinterpret.java"
 )
 
+JAVA_OPTIONS="-XX:UseAVX=1" TEST="${tests[*]}" make jtreg
 TEST="${tests[*]}" make jtreg
