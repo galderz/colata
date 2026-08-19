@@ -1,3 +1,53 @@
+* 19.8.26
+Fixed with this to cover long/double min based on environment
+#+begin_src java
+IRNode.VECTOR_REINTERPRET_D, IRNode.VECTOR_SIZE + "min(max_long, max_double)", "> 0"},
+#+end_src
+
+#+begin_src bash
+  967  IfFalse  === 440  [[ 446 447 ]] #0 !orig=[870],[772],[441],[400],[176] !jvms: TestCompatibleUseDefTypeSize::test10 @ bci:5 (line 425)
+  972  ConI  === 0  [[ 437 985 ]]  #int:8
+  975  CmpU  === _ 985 219  [[ 976 ]]  !orig=[712]
+  976  Bool  === _ 975  [[ 1196 ]] [lt] !orig=[713]
+  980  IfFalse  === 1196  [[ 982 ]] #0
+  982  Halt  === 980 1 1 9 1  [[ 0 ]] 
+  983  IfTrue  === 1196  [[ 1197 ]] #1 !orig=[886],[793]
+  985  AddI  === _ 589 972  [[ 986 975 ]]  !orig=[659],[660]
+  986  CmpU  === _ 985 171  [[ 987 ]]  !orig=[661]
+  987  Bool  === _ 986  [[ 1193 ]] [lt] !orig=[662]
+  991  IfFalse  === 1193  [[ 993 ]] #0
+  993  Halt  === 991 1 1 9 1  [[ 0 ]] 
+  994  IfTrue  === 1193  [[ 1194 ]] #1 !orig=[897],[805]
+  998  ConL  === 0  [[ ]]  #long:-4
+ 1000  ConL  === 0  [[ ]]  #long:-7
+ 1003  ConI  === 0  [[ 1004 1106 ]]  #int:-7
+ 1004  AddI  === _ 684 1003  [[ 613 438 1081 ]]  !orig=[913]
+ 1005  ConI  === 0  [[ ]]  #int:7
+ 1006  ConI  === 0  [[ ]]  #int:6
+ 1007  ConI  === 0  [[ ]]  #int:5
+ 1008  ConI  === 0  [[ 1011 ]]  #int:-64
+ 1009  CastP2X  === _ 63  [[ 1010 ]] 
+ 1010  ConvL2I  === _ 1009  [[ 1011 ]]  #int
+ 1011  SubI  === _ 1008 1010  [[ 1012 ]] 
+ 1012  URShiftI  === _ 1011 197  [[ 1013 ]] 
+ 1013  SubI  === _ 1012 728  [[ 1014 ]] 
+ 1014  AndI  === _ 1013 93  [[ 1017 ]] 
+ 1015  ConvI2L  === _ 728  [[ 1018 ]]  #long:>=0, widen: 3
+ 1017  ConvI2L  === _ 1014  [[ 1018 ]]  #long:0..1
+ 1018  AddL  === _ 1015 1017  [[ 1094 1096 ]] 
+ 1020  ConvL2I  === _ 1096  [[ 567 ]]  #int:>=0, widen: 3 !orig=[619]
+ 1021  LoadVector  === 647 8 933  |355 960  [[ 1022 ]]  @aryptr:long[int:>=0] (java/lang/Cloneable,java/io/Serializable):NotNull:exact+any,iid=bot, idx=6; mismatched barrier(0x0) #vectorx<J,2>
+ 1022  VectorReinterpret  === _ 1021  [[ 1023 ]]  #vectorx<D,2>
+
+1) Method "compiler.loopopts.superword.TestCompatibleUseDefTypeSize::test10" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={DEFAULT}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={"sse4.1", "true", "asimd", "true", "rvv", "true"}, counts={"_#V#LOAD_VECTOR_L#_", "> 0", "_#STORE_VECTOR#_", "> 0", "_#V#VECTOR_REINTERPRET_D#_", "> 0"}, applyIfPlatform={"64-bit", "true"}, failOn={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "PrintIdeal":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 3: "(\d+(\s){2}(VectorReinterpret.*)+(\s){2}===.*vector[A-Za-z]<D,4>)"
+           - Failed comparison: [found] 0 > 0 [given]
+           - No nodes matched!
+
+#+end_src
 * 21.5.26
 Need to handle vector size 8 and 16:
 #+begin_src bash
