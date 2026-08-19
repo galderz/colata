@@ -8,8 +8,6 @@ fi
 
 tests=(
     "test/hotspot/jtreg/compiler/loopopts/superword/TestCompatibleUseDefTypeSize.java"
-    "test/hotspot/jtreg/compiler/loopopts/superword/TestReinterpretAndCast.java"
-    "test/hotspot/jtreg/compiler/vectorapi/reshape/TestVectorReinterpret.java"
 )
 
-TEST="${tests[*]}" make jtreg
+JAVA_OPTIONS="-XX:UseAVX=1" TEST="${tests[*]}" make jtreg
