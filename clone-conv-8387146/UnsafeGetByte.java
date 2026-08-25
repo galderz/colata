@@ -1,5 +1,11 @@
+import jdk.internal.misc.Unsafe;
+import java.util.Objects;
+
 public class UnsafeGetByte
 {
+    private static final Unsafe UNSAFE = Unsafe.getUnsafe();
+    private static final int BASE = (int) UNSAFE.arrayBaseOffset(byte[].class);
+
     public static void main(String[] args)
     {
         // Especially with a debug build, the JVM startup can take a while,

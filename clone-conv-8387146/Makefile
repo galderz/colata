@@ -15,6 +15,8 @@ base_jvm_args += -XX:-UseOnStackReplacement
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
 base_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::*
 base_jvm_args += -XX:-TieredCompilation
+base_jvm_args += --add-exports
+base_jvm_args += java.base/jdk.internal.misc=ALL-UNNAMED
 
 # Use these exact JVM arguments, examples:
 #
