@@ -208,18 +208,21 @@ if [[ "$SKIP_QUARKUS" == false ]]; then
         # Build hibernate for value classes
 	"$SCRIPT_DIR/build-with-preview.sh"
     else
-        build_args=()
-        if [[ "$WITH_CLEAN" == true ]]; then
-	    build_args+=(clean)
-        fi
-        build_args+=(install)
-        build_args+=(-DskipTests -DskipDocs -Dquickly)
-        build_args+=(-Dinvoker.skip -DskipExtensionValidation)
-        build_args+=(-Dskip.gradle.tests)
-        build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
-        build_args+=(-Dmaven.compiler.fork=true)
-        build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
-        MAVEN_OPTS="$QUARKUS_MAVEN_OPTS" JAVA_HOME=$QUARKUS_JAVA_HOME ./mvnw "${build_args[@]}"
+        # Build hibernate for value classes
+	"$SCRIPT_DIR/build-no-preview.sh"
+
+        # build_args=()
+        # if [[ "$WITH_CLEAN" == true ]]; then
+	#     build_args+=(clean)
+        # fi
+        # build_args+=(install)
+        # build_args+=(-DskipTests -DskipDocs -Dquickly)
+        # build_args+=(-Dinvoker.skip -DskipExtensionValidation)
+        # build_args+=(-Dskip.gradle.tests)
+        # build_args+=(-Dtruststore.skip -Dinsecure.repositories=WARN)
+        # build_args+=(-Dmaven.compiler.fork=true)
+        # build_args+=(-Dmaven.compiler.executable=$JAVA_28_HOME/bin/javac)
+        # MAVEN_OPTS="$QUARKUS_MAVEN_OPTS" JAVA_HOME=$QUARKUS_JAVA_HOME ./mvnw "${build_args[@]}"
     fi
 
     # Verify the BOM references our custom version
@@ -309,7 +312,8 @@ public class ValueClassesResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String getValueClasses() {
         final String ek = "EntityKey is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKey.class);
-        return ek;
+        final String ek2 = "EntityKeyImpl is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKeyImpl.class);
+        return ek2;
     }
 }
 JAVA
@@ -367,7 +371,7 @@ if [[ "$SKIP_VERIFY" == false ]]; then
     echo "      Starting Quarkus app ..."
 
     # Always run with --enable-preview to be able to answer questions about value classes correctly
-    java --enable-preview -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
+    $JAVA_28_HOME/bin/java --enable-preview -jar target/quarkus-app/quarkus-run.jar &>/tmp/quarkus-verify.log &
     APP_PID=$!
 
     # Wait for the app to start (poll for up to 30 seconds)

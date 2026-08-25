@@ -8,8 +8,10 @@ BRANCH=main
 QDUP_USER=$USER
 # requires `make images`
 JAVA_HOME=$HOME/src/jdk/build/release-linux-x86_64/images/jdk
+PROFILER=none
 WITH_PREVIEW=false
 WITH_VC=false
+WITH_PROF=false
 
 # ── argument parsing ─────────────────────────────────────────────────────────
 
@@ -19,6 +21,7 @@ while [[ $# -gt 0 ]]; do
         --with-preview)     WITH_PREVIEW=true;   shift ;;
         --with-vc)          WITH_VC=true;        shift ;;
         --with-egc)         WITH_EGC=true;       shift ;;
+        --with-prof)        WITH_PROF=true;      shift ;;
         --help)
             sed -n '2,/^$/{ s/^# \{0,1\}//; p }' "$0"
             exit 0
@@ -53,6 +56,11 @@ if [[ "$WITH_EGC" == true ]]; then
     jvm_args+=(-XX:HeapDumpPath=$HOME/tmp/quarkus.hprof)
 fi
 
+if [[ "$WITH_PROF" == true ]]; then
+    jvm_args+=(-Xlog:gc*:file=$HOME/tmp/gc.log:level,time,tags,uptime)
+    PROFILER=jfr
+fi
+
 ./run-benchmarks.sh \
   --cpus-app 28,29,30,31 \
   --cpus-db 24,25,26 \
@@ -74,7 +82,7 @@ fi
   --springboot3-version 3.5.13 \
   --springboot4-version 4.0.5 \
   --output-dir run \
-  --profiler none \
+  --profiler $PROFILER \
   --quarkus-version 999-SNAPSHOT \
   --quarkus-build-config-args "${quarkus_build_args[*]}" \
   --runtimes quarkus3-jvm \
