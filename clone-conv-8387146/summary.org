@@ -1,6 +1,22 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 25.8.26
+in base you'd see 1 ~convI2L_reg_reg~
+#+begin_src bash
+Failed IR Rules (1) of Methods (1)
+----------------------------------
+1) Method "compiler.c2.TestArrayAddressingUnsafe::test" - [Failed IR rules: 1]:
+   * @IR rule 1: "@compiler.lib.ir_framework.IR(phase={MATCHING}, applyIfPlatformAnd={}, applyIfCPUFeatureOr={}, counts={"_#X86_SCONV_I2L#_", "= 0"}, applyIfPlatform={"x64", "true"}, failOn={}, applyIfPlatformOr={}, applyIfOr={}, applyIfCPUFeatureAnd={}, applyIf={}, applyIfCPUFeature={}, applyIfAnd={}, applyIfNot={})"
+     > Phase "After Matching":
+       - counts: Graph contains wrong number of nodes:
+         * Constraint 1: "(\d+(\s){2}(convI2L_reg_reg.*)+(\s){2}===.*)"
+           - Failed comparison: [found] 1 = 0 [given]
+             - Matched node:
+               * 37  convI2L_reg_reg  === _ 38  [[ 34 35 ]]  long:>=0, widen: 3 !jvms: TestArrayAddressingUnsafe::test @ bci:13 (line 71)
+
+>>> Check stdout for compilation output of the failed methods
+#+end_src
 * 23.6.26
 ** issue
 While working on JDK-8351409, I decided to implement reassociation for all commutative AddNode instances,
