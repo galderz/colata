@@ -1,7 +1,721 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 28.8.26
+** PR response draft
+#+begin_src markdown
+I made a mistake by blindly copying what was happening in aarch64 when I was trying to fix this bug,
+and that is the cause of the issue with Unsafe.
+
+With `VectorReduction2.byteXorBig` and the test cases first added in this PR,
+the code path that was being tested is the one that has the shape of `AddP(AddP(reg, ConvI2L(idx)), off)`,
+so I was really only tested the upper branch in the `if (off->is_Con()) {` of `Matcher::pd_clone_address_expressions`.
+
+The Unsafe test case tests the `else` section, and in that case in x86 there is no benefit to cloning ConvI2L.
+Whereas in aarch64 there is `indIndexI2L` which can match `AddP reg (ConvI2L ireg)`,
+there is no equivalent in x86.
+
+So, to fix the bug that Tobias noticed, I removed the `clone_conv` invocation in the `else`,
+and added a comment to make it clear why `clone_conv` is not called.
+
+
+#+end_src
+** Test failure with `make test`
+#+begin_src bash
+Test selection 'test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java', will run:
+ jtreg:test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java
+Clean up dirs for jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java
+
+Running test 'jtreg:test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java'
+--------------------------------------------------
+TEST: compiler/c2/TestArrayAddressing.java
+TEST JDK: /home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk
+
+ACTION: build -- Passed. Build successful
+REASON: Named class compiled on demand
+TIME:   15.13 seconds
+messages:
+command: build compiler.c2.TestArrayAddressing
+reason: Named class compiled on demand
+started: Fri Aug 28 06:56:43.748 GMT 2026
+Test directory:
+  compile: compiler.c2.TestArrayAddressing
+finished: Fri Aug 28 06:56:58.878 GMT 2026
+elapsed time (seconds): 15.13
+
+ACTION: compile -- Passed. Compilation successful
+REASON: .class file out of date or does not exist
+TIME:   15.115 seconds
+messages:
+command: compile /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java
+reason: .class file out of date or does not exist
+started: Fri Aug 28 06:56:43.762 GMT 2026
+Additional options from @modules: --add-modules java.base --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
+Mode: agentvm
+Agent id: 1
+Process id: 605518
+finished: Fri Aug 28 06:56:58.877 GMT 2026
+elapsed time (seconds): 15.115
+configuration:
+Boot Layer (javac runtime environment)
+  class path: /home/agentuser/opt/jtreg/build/images/jtreg/lib/javatest.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/jtreg.jar
+  patch:      java.base /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/patches/java.base
+
+javac compilation environment
+  add modules: java.base
+  add exports: java.base/jdk.internal.misc ALL-UNNAMED
+  source path: /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2
+               /home/agentuser/src/jdk/test/lib
+               /home/agentuser/src/jdk/test/hotspot/jtreg
+  class path:  /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2
+               /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d
+               /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib
+
+rerun:
+cd /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/scratch/0 && \
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+DOCS_JDK_IMAGE_DIR=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/docs \
+HOME=/home/agentuser \
+LANG=C.UTF-8 \
+LC_ALL=C.UTF-8 \
+PATH=/bin:/usr/bin:/usr/sbin \
+TEST_IMAGE_DIR=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/test \
+XDG_RUNTIME_DIR=/run/user/1000 \
+XDG_SESSION_CLASS=user \
+XDG_SESSION_ID=c13 \
+XDG_SESSION_TYPE=tty \
+_JVM_DWARF_PATH=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/symbols \
+    /home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk/bin/javac \
+        -J-XX:MaxRAMPercentage=1.5625 \
+        -J-Dtest.boot.jdk=/usr/lib/jvm/java-26 \
+        -J-Djava.io.tmpdir=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/tmp \
+        -J-Dtest.vm.opts='-XX:MaxRAMPercentage=1.5625 -Dtest.boot.jdk=/usr/lib/jvm/java-26 -Djava.io.tmpdir=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/tmp' \
+        -J-Dtest.tool.vm.opts='-J-XX:MaxRAMPercentage=1.5625 -J-Dtest.boot.jdk=/usr/lib/jvm/java-26 -J-Djava.io.tmpdir=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/tmp' \
+        -J-Dtest.compiler.opts= \
+        -J-Dtest.java.opts= \
+        -J-Dtest.jdk=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk \
+        -J-Dcompile.jdk=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk \
+        -J-Dtest.timeout.factor=4.0 \
+        -J-Dtest.nativepath=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/test/hotspot/jtreg/native \
+        -J-Dtest.root=/home/agentuser/src/jdk/test/hotspot/jtreg \
+        -J-Dtest.name=compiler/c2/TestArrayAddressing.java \
+        -J-Dtest.verbose=Verbose[p=SUMMARY,f=FULL,e=FULL,t=false,m=false] \
+        -J-Dtest.file=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java \
+        -J-Dtest.main.class=compiler.c2.TestArrayAddressing \
+        -J-Dtest.src=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2 \
+        -J-Dtest.src.path=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/test/lib:/home/agentuser/src/jdk/test/hotspot/jtreg \
+        -J-Dtest.classes=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d \
+        -J-Dtest.class.path=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d \
+        -J-Dtest.class.path.prefix=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib \
+        -J-Dtest.modules=java.base/jdk.internal.misc:+open \
+        --add-modules java.base \
+        --add-exports java.base/jdk.internal.misc=ALL-UNNAMED \
+        -d /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d \
+        -sourcepath /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/test/lib:/home/agentuser/src/jdk/test/hotspot/jtreg \
+        -classpath /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java
+
+ACTION: driver -- Failed. Execution failed: `main' threw exception: java.lang.IllegalAccessError: class compiler.c2.templated.ArrayAddressing (in unnamed module @0x26fe59e4) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x26fe59e4
+REASON: User specified action: run driver ${test.main.class}
+TIME:   6.657 seconds
+messages:
+command: driver compiler.c2.TestArrayAddressing
+reason: User specified action: run driver ${test.main.class}
+started: Fri Aug 28 06:56:58.879 GMT 2026
+Mode: agentvm
+Agent id: 2
+Process id: 605608
+Additional exports to unnamed modules from @modules: java.base/jdk.internal.misc
+Additional opens to unnamed modules from @modules: java.base/jdk.internal.misc
+finished: Fri Aug 28 06:57:05.536 GMT 2026
+elapsed time (seconds): 6.657
+configuration:
+Boot Layer
+  class path: /home/agentuser/opt/jtreg/build/images/jtreg/lib/javatest.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/jtreg.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/junit-platform-console-standalone-1.14.2.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/testng-7.3.0.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/guice-5.1.0.jar
+              /home/agentuser/opt/jtreg/build/images/jtreg/lib/jcommander-1.82.jar
+  patch:      java.base /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/patches/java.base
+
+Test Layer
+  add exports: java.base/jdk.internal.misc ALL-UNNAMED
+  add opens:   java.base/jdk.internal.misc ALL-UNNAMED
+  class path:  /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d
+               /home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2
+               /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib
+               /home/agentuser/src/jdk/test/lib
+               /home/agentuser/src/jdk/test/hotspot/jtreg
+
+rerun:
+cd /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/scratch/0 && \
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+DOCS_JDK_IMAGE_DIR=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/docs \
+HOME=/home/agentuser \
+LANG=C.UTF-8 \
+LC_ALL=C.UTF-8 \
+PATH=/bin:/usr/bin:/usr/sbin \
+TEST_IMAGE_DIR=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/test \
+XDG_RUNTIME_DIR=/run/user/1000 \
+XDG_SESSION_CLASS=user \
+XDG_SESSION_ID=c13 \
+XDG_SESSION_TYPE=tty \
+_JVM_DWARF_PATH=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/symbols \
+    /home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk/bin/java \
+        -Dtest.vm.opts='-XX:MaxRAMPercentage=1.5625 -Dtest.boot.jdk=/usr/lib/jvm/java-26 -Djava.io.tmpdir=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/tmp' \
+        -Dtest.tool.vm.opts='-J-XX:MaxRAMPercentage=1.5625 -J-Dtest.boot.jdk=/usr/lib/jvm/java-26 -J-Djava.io.tmpdir=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/tmp' \
+        -Dtest.compiler.opts= \
+        -Dtest.java.opts= \
+        -Dtest.jdk=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk \
+        -Dcompile.jdk=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/jdk \
+        -Dtest.timeout.factor=4.0 \
+        -Dtest.nativepath=/home/agentuser/src/jdk/build/fast-linux-x86_64/images/test/hotspot/jtreg/native \
+        -Dtest.root=/home/agentuser/src/jdk/test/hotspot/jtreg \
+        -Dtest.name=compiler/c2/TestArrayAddressing.java \
+        -Dtest.verbose=Verbose[p=SUMMARY,f=FULL,e=FULL,t=false,m=false] \
+        -Dtest.file=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java \
+        -Dtest.main.class=compiler.c2.TestArrayAddressing \
+        -Dtest.src=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2 \
+        -Dtest.src.path=/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/test/lib:/home/agentuser/src/jdk/test/hotspot/jtreg \
+        -Dtest.classes=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d \
+        -Dtest.class.path=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d \
+        -Dtest.class.path.prefix=/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib \
+        -Dtest.modules=java.base/jdk.internal.misc:+open \
+        -classpath /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d:/home/agentuser/src/jdk/test/hotspot/jtreg/compiler/c2:/home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/classes/0/compiler/c2/TestArrayAddressing.d/test/lib:/home/agentuser/src/jdk/test/lib:/home/agentuser/src/jdk/test/hotspot/jtreg:/home/agentuser/opt/jtreg/build/images/jtreg/lib/javatest.jar:/home/agentuser/opt/jtreg/build/images/jtreg/lib/jtreg.jar \
+        compiler.c2.TestArrayAddressing
+STDOUT:
+For random generator using seed: -6024077401596398780
+To re-run test with same seed value please add "-Djdk.test.lib.random.seed=-6024077401596398780" to command line.
+------------------ CompileFramework: Compilation ------------------
+Source directory: ./compile-framework-sources-7271059315426615218
+Classes directory: ./compile-framework-classes-187494713881437938
+For random generator using seed: 8596023385083321303
+To re-run test with same seed value please add "-Djdk.test.lib.random.seed=8596023385083321303" to command line.
+STDERR:
+java.lang.IllegalAccessError: class compiler.c2.templated.ArrayAddressing (in unnamed module @0x26fe59e4) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x26fe59e4
+	at compiler.c2.templated.ArrayAddressing.<clinit>(ArrayAddressing.java:19)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:561)
+	at compiler.lib.compile_framework.CompileFramework.getClass(CompileFramework.java:115)
+	at compiler.lib.compile_framework.CompileFramework.findMethod(CompileFramework.java:163)
+	at compiler.lib.compile_framework.CompileFramework.invoke(CompileFramework.java:130)
+	at compiler.c2.TestArrayAddressing.main(TestArrayAddressing.java:62)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at com.sun.javatest.regtest.agent.MainActionHelper$AgentVMRunnable.run(MainActionHelper.java:360)
+	at java.base/java.lang.Thread.run(Thread.java:1527)
+
+JavaTest Message: Test threw exception: java.lang.IllegalAccessError
+JavaTest Message: shutting down test
+
+
+TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.IllegalAccessError: class compiler.c2.templated.ArrayAddressing (in unnamed module @0x26fe59e4) cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @0x26fe59e4
+--------------------------------------------------
+Test results: failed: 1
+Report written to /home/agentuser/src/jdk/build/fast-linux-x86_64/test-results/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java/html/report.html
+Results written to /home/agentuser/src/jdk/build/fast-linux-x86_64/test-support/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java
+Error: Some tests failed or other problems occurred.
+Finished running test 'jtreg:test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java'
+Test report is stored in build/fast-linux-x86_64/test-results/jtreg_test_hotspot_jtreg_compiler_c2_TestArrayAddressing_java
+
+==============================
+Test summary
+==============================
+   TEST                                              TOTAL  PASS  FAIL ERROR  SKIP
+   jtreg:test/hotspot/jtreg/compiler/c2/TestArrayAddressing.java
+>>                                                       1     0     1     0     0 <<
+==============================
+TEST FAILURE
+
+make[2]: *** [/home/agentuser/src/jdk/make/Init.gmk:155: main] Error 1
+make[1]: *** [/home/agentuser/src/jdk/make/PreInit.gmk:160: test] Error 2
+make[1]: Leaving directory '/home/agentuser/src/jdk'
+make: *** [../make/OpenJDK.gmk:203: test] Error 2
+#+end_src
+* 27.8.26
+** pd_clone_address_expressions logging
+Question: in the original test case, which path was being followed?
+
+For *byteXorBig*, in *baseline* the *nested_addp* is followed.
+With *patch*, the *nested_addp* is also followed but cloning happens.
+
+TestXorByte:
+#+begin_src bash
+# patch
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,TestXorByte::test,MATCHING -XX:+UseNewCode2 -XX:-UseNewCode" CLASS=TestXorByte make run
+[pd_clone_addr] AddP(501): base=Parm(11) adr=AddP(510) off=ConL(140) off->is_Con=1 users=[LoadB(500) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   cloned successfully
+[pd_clone_addr] AddP(506): base=Parm(12) adr=AddP(511) off=ConL(140) off->is_Con=1 users=[LoadB(505) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   cloned successfully
+[pd_clone_addr] AddP(504): base=Parm(10) adr=AddP(509) off=ConL(140) off->is_Con=1 users=[LoadB(503) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   cloned successfully
+
+# baseline
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,TestXorByte::test,MATCHING -XX:+UseNewCode2 -XX:+UseNewCode" CLASS=TestXorByte make run
+[pd_clone_addr] AddP(501): base=Parm(11) adr=AddP(510) off=ConL(140) off->is_Con=1 users=[LoadB(500) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   clone_shift=false, clone_conv=false -> push as Pre_Visit
+[pd_clone_addr] AddP(506): base=Parm(12) adr=AddP(511) off=ConL(140) off->is_Con=1 users=[LoadB(505) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   clone_shift=false, clone_conv=false -> push as Pre_Visit
+[pd_clone_addr] AddP(504): base=Parm(10) adr=AddP(509) off=ConL(140) off->is_Con=1 users=[LoadB(503) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(512) outcnt=3
+[pd_clone_addr]   clone_shift=false, clone_conv=false -> push as Pre_Visit
+#+end_src
+
+In the *unsafe* case, in *baseline* the *no_match* path was being followed.
+with *patch* the *no_const_off_cloned* path is being followed instead.
+
+DiffOffset:
+#+begin_src bash
+# patch
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:+UseNewCode2 -XX:-UseNewCode" CLASS=DiffOffset make run
+
+[pd_clone_addr] AddP(85): base=Parm(10) adr=AddP(86) off=ConL(80) off->is_Con=1 users=[LoadB(89) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   cloned successfully
+[pd_clone_addr] AddP(110): base=Parm(10) adr=AddP(86) off=ConL(121) off->is_Con=1 users=[LoadB(114) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   cloned successfully
+
+# base
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:+UseNewCode2 -XX:+UseNewCode" CLASS=DiffOffset make run
+[pd_clone_addr] AddP(85): base=Parm(10) adr=AddP(86) off=ConL(80) off->is_Con=1 users=[LoadB(89) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   clone_shift=false, clone_conv=false -> push as Pre_Visit
+[pd_clone_addr] AddP(110): base=Parm(10) adr=AddP(86) off=ConL(121) off->is_Con=1 users=[LoadB(114) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   clone_shift=false, clone_conv=false -> push as Pre_Visit
+#+end_src
+
+UnsafeGetByte:
+#+begin_src bash
+# patch
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:+UseNewCode2 -XX:-UseNewCode" CLASS=UnsafeGetByte make run
+[pd_clone_addr] AddP(76): base=Parm(10) adr=Parm(10) off=ConvI2L(62) off->is_Con=0 users=[LoadB(79) ]
+[pd_clone_addr]   PATH=non_const_off_cloned (shift or conv)
+[pd_clone_addr] AddP(93): base=Parm(11) adr=Parm(11) off=ConvI2L(62) off->is_Con=0 users=[LoadB(96) ]
+[pd_clone_addr]   PATH=non_const_off_cloned (shift or conv)
+
+# base
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:+UseNewCode2 -XX:+UseNewCode" CLASS=UnsafeGetByte make run
+[pd_clone_addr] AddP(76): base=Parm(10) adr=Parm(10) off=ConvI2L(62) off->is_Con=0 users=[LoadB(79) ]
+[pd_clone_addr]   PATH=no_match, returning false
+[pd_clone_addr] AddP(93): base=Parm(11) adr=Parm(11) off=ConvI2L(62) off->is_Con=0 users=[LoadB(96) ]
+[pd_clone_addr]   PATH=no_match, returning false
+#+end_src
+** Prompt
+#+begin_src markdown
+You are in learning mode.
+
+You are working on issue JDK-8387146.
+
+You have sent PR https://github.com/openjdk/jdk/pull/31683,
+but in https://github.com/openjdk/jdk/pull/31683#issuecomment-5342174195 the reviewer has found an edge case that regresses witn the patch.
+
+You have the jdk branch checked out locally and it has already been built with fast debug mode.
+Some additional changes have been made:
+
+- TestArrayAddressingUnsafe has been created to replicate the regression.
+- UseNewCode usage has been added. When +UseNewCode is passed in, the code works like the baseline. When -UseNewCode is passed in, the code works like in the patch. The default is -UseNewCode when no flag is passed in.
+
+You want to learn what is different about the use case in the edge that makes the patch regress.
+
+The intention of the patch was to clone ConvI2L for byte array address access to allow matching `indPosIndexOffset`
+instead of the less efficient `indIndexOffSet`.
+
+After the JIRA was created a simpler reproducer was created that looks like this:
+```java
+public class DiffOffset
+{
+        public static void main(String[] args)
+    {
+        // Especially with a debug build, the JVM startup can take a while,
+        // so it can take a while until our code is executed.
+        System.out.println("Run");
+
+        byte[] b = new byte[1024];
+        int index = 42;
+        b[index] = 22;
+
+        // Repeatedly call the test method, so that it can become hot and
+        // get JIT compiled.
+        for (int i = 0; i < 10_000; i++)
+        {
+            test(b, index);
+        }
+        System.out.println("Done");
+    }
+
+    static int test(byte[] b, int i) {
+        i = Integer.min(Integer.max(i, 0), 1000);
+        return b[i] + b[i + 1];
+    }
+}
+```
+
+When you run `DiffOffset` with `-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:+UseNewCode` to act as the baseline,
+you will see a lingering `convI2L_reg_reg` node:
+
+```bash
+ 50  convI2L_reg_reg  === _ 26  [[ 49 54 ]]  long:0..1000, widen: 3 !jvms: DiffOffset::test @ bci:14 (line 24)
+```
+
+When you run `DiffOffset` with `-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:-UseNewCode` to act as the patch,
+you will see no lingering `convI2L_reg_reg`.
+
+To test the regression, you can use the following standalone code:
+```java
+import jdk.internal.misc.Unsafe;
+import java.util.Objects;
+
+public class UnsafeGetByte
+{
+    private static final Unsafe UNSAFE = Unsafe.getUnsafe();
+    private static final int BASE = (int) UNSAFE.arrayBaseOffset(byte[].class);
+
+    public static void main(String[] args)
+    {
+        // Especially with a debug build, the JVM startup can take a while,
+        // so it can take a while until our code is executed.
+        System.out.println("Run");
+
+        byte[] a = new byte[1024];
+        byte[] b = new byte[1024];
+        a[42] = 20;
+        b[42] = 22;
+
+        int offset = BASE + 42;
+
+        // Repeatedly call the test method, so that it can become hot and
+        // get JIT compiled.
+        for (int i = 0; i < 10_000; i++)
+        {
+            test(a, b, offset);
+        }
+        System.out.println("Done");
+    }
+
+    // The test method we will focus on.
+    public static int test(byte[] a, byte[] b, int offset)
+    {
+        int checkedOffset = Objects.checkIndex(offset, 1000);
+        return UNSAFE.getByte(a, (long) checkedOffset) + UNSAFE.getByte(b, (long) checkedOffset);
+    }
+}
+```
+
+When you run `UnsafeGetByte` with `-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:+UseNewCode`
+you will find just one `convI2L_reg_reg` node:
+```bash
+ 37  convI2L_reg_reg  === _ 38  [[ 34 35 ]]  long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+```
+
+When you run `UnsafeGetByte` with `-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:-UseNewCode`
+you will find two `convI2L_reg_reg` nodes:
+```bash
+ 35  convI2L_reg_reg  === _ 39  [[ 34 ]]  long:>=0, widen: 3
+ 37  convI2L_reg_reg  === _ 39  [[ 36 ]]  long:>=0, widen: 3
+```
+
+With the regression, it seems that cloning of ConvI2L node is happening,
+but that is not causing any benefit in this use case.
+The additional node is not desirable since that means unnecessary additional code to run as shown in the assembly by the PR reviewer.
+
+How is accessing a byte array via unsafe different to the traditional byte array access?
+Does this end up using `ind*IndexOffset` operations? Or does it use something else?
+
+Since you are in learning mode, you should provide hints on where to add logging to find out more,
+or alternatively indicate how to run gdb to understand the issue.
+
+Any additional logging should be behind `UseNewCode2` flag to be able to control when to enable the logging.
+
+If logging is needed, instruct what logging to add and wait for the log output to be provided.
+Then make sure that if additional logging is needed, you update your understandig of the code,
+so that the additional logging matching lines represent the current code as changes are made.
+#+end_src
+** Testing
+With UnsafeGetShort:
+#+begin_src bash
+# patch
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeGetShort::test,MATCHING -XX:-UseNewCode" CLASS=UnsafeGetShort make run | grep convI2L
+ 37  convI2L_reg_reg  === _ 38  [[ 34 35 ]]  long:>=0, widen: 3 !jvms: UnsafeGetShort::test @ bci:13 (line 35)
+
+# base
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeGetShort::test,MATCHING -XX:+UseNewCode" CLASS=UnsafeGetShort make run | grep convI2L
+ 35  convI2L_reg_reg  === _ 39  [[ 34 ]]  long:>=0, widen: 3
+ 37  convI2L_reg_reg  === _ 39  [[ 36 ]]  long:>=0, widen: 3
+#+end_src
+
+With CheckIndex you use same logic in regression but regular addressing:
+#+begin_src bash
+# patch
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,CheckIndex::test,MATCHING -XX:-UseNewCode" CLASS=CheckIndex make run | grep convI2L
+<no output>
+
+# base
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,CheckIndex::test,MATCHING -XX:+UseNewCode" CLASS=CheckIndex make run | grep convI2L
+ 63  convI2L_reg_reg  === _ 31  [[ 62 67 ]]  long:>=0, widen: 3 !jvms: CheckIndex::test @ bci:10 (line 30)
+#+end_src
+
+With UnsafeDiffOffset you use unsafe instead of regular array addressing:
+#+begin_src bash
+# patch
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeDiffOffset::test,MATCHING -XX:-UseNewCode" CLASS=UnsafeDiffOffset make run | grep convI2L
+ 17  convI2L_reg_reg  === _ 28  [[ 16 ]]  long:0..1000, widen: 3
+
+# base
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeDiffOffset::test,MATCHING -XX:+UseNewCode" CLASS=UnsafeDiffOffset make run | grep convI2L
+ 20  convI2L_reg_reg  === _ 29  [[ 19 ]]  long:0..1000, widen: 3
+#+end_src
+
+DiffOffset example gets a reduction of 1 convI2L node down to 0 with patch:
+#+begin_src bash
+# patch
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:-UseNewCode" CLASS=DiffOffset make run | grep convI2L
+<no output>
+
+# base
+$ JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,DiffOffset::test,MATCHING -XX:+UseNewCode" CLASS=DiffOffset make run | grep convI2L
+ 50  convI2L_reg_reg  === _ 26  [[ 49 54 ]]  long:0..1000, widen: 3 !jvms: DiffOffset::test @ bci:14 (line 24)
+#+end_src
+
 * 25.8.26
+what happens if instead of Unsafe you use plain byte[] access?
+what happens with short? create a UnsafeGetShort and see if that fails.
+what happens with base and the IR test? How many conv nodes are found instead?
+
+x64 base vs patch (after matching):
+#+begin_src bash
+# base
+ 34  loadB  === 30 15 19 37  [[ 33 ]]  byte
+ 35  loadB  === 32 15 20 37  [[ 33 ]]  byte
+ 37  convI2L_reg_reg  === _ 38  [[ 34 35 ]]  long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+ 38  castII  === 25 13  [[ 37 ]]  int:>=0, widen: 3
+
+# patch
+ 34  loadB  === 30 15 19 35  [[ 33 ]]  byte
+ 35  convI2L_reg_reg  === _ 39  [[ 34 ]]  long:>=0, widen: 3
+ 36  loadB  === 32 15 20 37  [[ 33 ]]  byte
+ 37  convI2L_reg_reg  === _ 39  [[ 36 ]]  long:>=0, widen: 3
+ 39  castII  === 25 13  [[ 35 37 ]]  int:>=0, widen: 3 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+#+end_src
+
+x64 base after matching:
+#+begin_src bash
+JVM_ARGS_APPEND="-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:+UseNewCode" CLASS=UnsafeGetByte make run
+rm -f *.log
+~/src/jdk/build/fast-linux-x86_64/jdk/bin/java \
+   -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,UnsafeGetByte::test* -XX:CompileCommand=printcompilation,UnsafeGetByte::* -XX:-TieredCompilation --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING -XX:+UseNewCode \
+   /home/agentuser/src/colata/clone-conv-8387146/UnsafeGetByte.java
+CompileCommand: compileonly UnsafeGetByte.test* intx compileonly = 1111
+CompileCommand: PrintCompilation UnsafeGetByte.* bool PrintCompilation = true
+CompileCommand: PrintIdealPhase UnsafeGetByte.test const char* PrintIdealPhase = 'MATCHING'
+Run
+6212  102    b        UnsafeGetByte::test (28 bytes)
+AFTER: MATCHING
+  0  Con  === 1  [[ ]]  #top
+  1  Root  === 1 2 21 26 31  [[ 1 12 7 6 0 ]] inner
+  2  ShouldNotReachHere  === 3 0 0 16 0  [[ 1 ]]  bottom !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  3  MachProj  === 4  [[ 2 ]] #0/unmatched !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  4  CallStaticJavaDirect  === 8 14 15 16 17 18 19 20 0 0 0 0 13 7 6  [[ 5 3 ]] Static wrapper for: uncommon_trap(reason='range_check' action='make_not_entrant') # void ( int ) C=0.000100 Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34) !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  5  MachProj  === 4  [[ ]] #10005/fat
+  6  ConP  === 1  [[ 4 ]]  #ptr:null+0
+  7  ConI  === 1  [[ 4 ]]  #int:1000
+  8  IfFalse  === 9  [[ 4 ]] #0 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  9  jmpConU  === 11 10  [[ 8 25 ]] P=0.999999, C=-1.000000
+ 10  compU_rReg_imm  === _ 13  [[ 9 ]] #1000/0x000003e8 int:-1..1, 0u..maxuint
+ 11  MachProj  === 12  [[ 9 ]] #0/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 12  Start  === 12 1  [[ 12 11 13 14 15 16 17 19 20 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 6:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 7:int} !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 13  MachProj  === 12  [[ 10 4 38 ]] #7 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 14  MachProj  === 12  [[ 4 31 ]] #1/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 15  MachProj  === 12  [[ 4 31 34 35 ]] #2/unmatched  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 16  MachProj  === 12  [[ 4 2 21 26 31 ]] #3 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 17  MachProj  === 12  [[ 4 31 ]] #4 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 18  loadConI  === _  [[ 4 ]]   [1020000000018]
+ 19  MachProj  === 12  [[ 4 24 34 ]] #5 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 20  MachProj  === 12  [[ 4 29 35 ]] #6 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 21  ShouldNotReachHere  === 22 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 22  IfFalse  === 23  [[ 21 ]] #0 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 23  jmpCon  === 25 24  [[ 22 30 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 24  testP_reg  === _ 19  [[ 23 ]] ptr:null+0 int:-1..1, 0u..maxuint
+ 25  IfTrue  === 9  [[ 23 38 ]] #1 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 26  ShouldNotReachHere  === 27 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 27  IfFalse  === 28  [[ 26 ]] #0 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 28  jmpCon  === 30 29  [[ 27 32 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 29  testP_reg  === _ 20  [[ 28 ]] ptr:null+0 int:-1..1, 0u..maxuint
+ 30  IfTrue  === 23  [[ 28 34 ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 31  Ret  === 32 14 15 16 17 33  [[ 1 ]]  bottom
+ 32  IfTrue  === 28  [[ 31 35 ]] #1 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 33  addI_rReg  === _ 34 35  [[ 36 31 ]]  int !jvms: UnsafeGetByte::test @ bci:26 (line 35)
+ 34  loadB  === 30 15 19 37  [[ 33 ]]  byte
+ 35  loadB  === 32 15 20 37  [[ 33 ]]  byte
+ 36  MachProj  === 33  [[ ]] #1
+ 37  convI2L_reg_reg  === _ 38  [[ 34 35 ]]  long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+ 38  castII  === 25 13  [[ 37 ]]  int:>=0, widen: 3
+Done
+#+end_src
+
+aarch64 patch after matching:
+#+begin_src bash
+$ JVM_ARGS_APPEND=-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING CLASS=UnsafeGetByte make run
+rm -f *.log
+/Users/g/src/jdk-clone-conv/build/fast-darwin-arm64/jdk/bin/java \
+   -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,UnsafeGetByte::test* -XX:CompileCommand=printcompilation,UnsafeGetByte::* -XX:-TieredCompilation --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING \
+   /Users/g/src/colata/clone-conv-8387146/UnsafeGetByte.java
+CompileCommand: compileonly UnsafeGetByte.test* intx compileonly = 1111
+CompileCommand: PrintCompilation UnsafeGetByte.* bool PrintCompilation = true
+CompileCommand: PrintIdealPhase UnsafeGetByte.test const char* PrintIdealPhase = 'MATCHING'
+Run
+1767  102    b        UnsafeGetByte::test (28 bytes)
+AFTER: MATCHING
+  0  Con  === 1  [[ ]]  #top
+  1  Root  === 1 2 21 25 29  [[ 1 12 7 6 0 ]] inner
+  2  ShouldNotReachHere  === 3 0 0 16 0  [[ 1 ]]  bottom !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  3  MachProj  === 4  [[ 2 ]] #0/unmatched !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  4  CallStaticJavaDirect  === 8 14 15 16 17 18 19 20 0 0 0 0 13 7 6  [[ 5 3 ]] Static wrapper for: uncommon_trap(reason='range_check' action='make_not_entrant') # void ( int ) C=0.000100 Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34) !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  5  MachProj  === 4  [[ ]] #10005/fat
+  6  ConP  === 1  [[ 4 ]]  #ptr:null+0
+  7  ConI  === 1  [[ 4 ]]  #int:1000
+  8  IfFalse  === 9  [[ 4 ]] #0 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  9  branchConU  === 11 10  [[ 8 24 ]] P=0.999999, C=-1.000000
+ 10  compU_reg_immIAddSub  === _ 13  [[ 9 ]] #1000/0x000003e8 int:-1..1, 0u..maxuint
+ 11  MachProj  === 12  [[ 9 ]] #0/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 12  Start  === 12 1  [[ 12 11 13 14 15 16 17 19 20 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 6:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 7:int} !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 13  MachProj  === 12  [[ 10 4 34 ]] #7 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 14  MachProj  === 12  [[ 4 29 ]] #1/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 15  MachProj  === 12  [[ 4 29 32 33 ]] #2/unmatched  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 16  MachProj  === 12  [[ 4 2 21 25 29 ]] #3 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 17  MachProj  === 12  [[ 4 29 ]] #4 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 18  loadConI  === _  [[ 4 ]]   [1020000000018]
+ 19  MachProj  === 12  [[ 4 23 32 ]] #5 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 20  MachProj  === 12  [[ 4 27 33 ]] #6 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 21  ShouldNotReachHere  === 22 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 22  IfFalse  === 23  [[ 21 ]] #0 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 23  cmpP_imm0_branch  === 24 19  [[ 22 28 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 24  IfTrue  === 9  [[ 23 34 ]] #1 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 25  ShouldNotReachHere  === 26 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 26  IfFalse  === 27  [[ 25 ]] #0 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 27  cmpP_imm0_branch  === 28 20  [[ 26 30 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 28  IfTrue  === 23  [[ 27 32 ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 29  Ret  === 30 14 15 16 17 31  [[ 1 ]]  bottom
+ 30  IfTrue  === 27  [[ 29 33 ]] #1 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 31  addI_reg_reg  === _ 32 33  [[ 29 ]]  int !jvms: UnsafeGetByte::test @ bci:26 (line 35)
+ 32  loadB  === 28 15 19 34  [[ 31 ]]  byte
+ 33  loadB  === 30 15 20 34  [[ 31 ]]  byte
+ 34  castII_nosp  === 24 13  [[ 32 33 ]]  int:>=0, widen: 3 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+Done
+#+end_src
+
+x64 patch before matching:
+#+begin_src bash
+JVM_ARGS_APPEND=-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,BEFORE_MATCHING CLASS=UnsafeGetByte make run
+rm -f *.log
+~/src/jdk/build/fast-linux-x86_64/jdk/bin/java \
+   -Xbatch -XX:-BackgroundCompilation -XX:-UseOnStackReplacement -XX:CompileCommand=compileonly,UnsafeGetByte::test* -XX:CompileCommand=printcompilation,UnsafeGetByte::* -XX:-TieredCompilation --add-exports java.base/jdk.internal.misc=ALL-UNNAMED -XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,BEFORE_MATCHING \
+   /home/agentuser/src/colata/clone-conv-8387146/UnsafeGetByte.java
+CompileCommand: compileonly UnsafeGetByte.test* intx compileonly = 1111
+CompileCommand: PrintCompilation UnsafeGetByte.* bool PrintCompilation = true
+CompileCommand: PrintIdealPhase UnsafeGetByte.test const char* PrintIdealPhase = 'BEFORE_MATCHING'
+Run
+6108  102    b        UnsafeGetByte::test (28 bytes)
+AFTER: BEFORE_MATCHING
+   0  Root  === 0 58 72 90 98  [[ 0 1 3 24 35 53 ]] inner
+   1  Con  === 0  [[ ]]  #top
+   3  Start  === 3 0  [[ 3 5 6 7 8 9 10 11 12 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 6:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 7:int}
+   5  Parm  === 3  [[ 100 ]] Control !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+   6  Parm  === 3  [[ 98 54 ]] I_O !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+   7  Parm  === 3  [[ 98 96 79 54 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+   8  Parm  === 3  [[ 98 72 58 54 90 ]] FramePtr !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+   9  Parm  === 3  [[ 98 54 ]] ReturnAdr !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  10  Parm  === 3  [[ 54 76 66 76 ]] Parm0: aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot !orig=[63] !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  11  Parm  === 3  [[ 54 93 84 93 ]] Parm1: aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot !orig=[81] !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  12  Parm  === 3  [[ 54 46 99 ]] Parm2: int !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  24  ConI  === 0  [[ 46 54 ]]  #int:1000
+  35  ConP  === 0  [[ 54 84 66 ]]  #ptr:null+0
+  46  CmpU  === _ 12 24  [[ 47 100 ]]  !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  47  Bool  === _ 46  [[ 100 ]] [lt] !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  49  IfTrue  === 100  [[ 69 99 ]] #1 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  52  IfFalse  === 100  [[ 54 ]] #0 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  53  ConI  === 0  [[ 54 ]]  #int:-28
+  54  CallStaticJava  === 52 6 7 8 9 (53 10 11 1 1 1 1 12 24 35 ) [[ 55 ]] # Static uncommon_trap(reason='range_check' action='make_not_entrant')  void ( int ) C=0.000100 Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34) !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  55  Proj  === 54  [[ 58 ]] #0 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  58  Halt  === 55 1 1 8 1  [[ 0 ]]  !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  62  ConvI2L  === _ 99  [[ 76 93 ]]  #long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+  66  CmpP  === _ 10 35  [[ 67 69 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  67  Bool  === _ 66  [[ 69 ]] [ne] !orig=[68] !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  69  If  === 49 67 66  [[ 70 73 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  70  IfFalse  === 69  [[ 72 ]] #0 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  72  Halt  === 70 1 1 8 1  [[ 0 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  73  IfTrue  === 69  [[ 87 79 ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  76  AddP  === _ 10 10 62  [[ 79 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  79  LoadB  === 73 7 76  [[ 97 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=4; unsafe #byte (does not depend only on test, unknown control) !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  84  CmpP  === _ 11 35  [[ 85 87 ]]  !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  85  Bool  === _ 84  [[ 87 ]] [ne] !orig=[86] !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  87  If  === 73 85 84  [[ 88 91 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  88  IfFalse  === 87  [[ 90 ]] #0 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  90  Halt  === 88 1 1 8 1  [[ 0 ]]  !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  91  IfTrue  === 87  [[ 98 96 ]] #1 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  93  AddP  === _ 11 11 62  [[ 96 ]]  !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  96  LoadB  === 91 7 93  [[ 97 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=4; unsafe #byte (does not depend only on test, unknown control) !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+  97  AddI  === _ 79 96  [[ 98 ]]  !jvms: UnsafeGetByte::test @ bci:26 (line 35)
+  98  Return  === 91 6 7 8 9 returns 97  [[ 0 ]]
+  99  CastII  === 49 12  [[ 62 ]]  #int:>=0, widen: 3 floating non-narrowing dependency !orig=[59] !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 100  If  === 5 47 46  [[ 52 49 ]] P=0.999999, C=-1.000000
+Done
+#+end_src
+
+x64 patch after matching:
+#+begin_src bash
+$ JVM_ARGS_APPEND=-XX:CompileCommand=PrintIdealPhase,UnsafeGetByte::test,MATCHING CLASS=UnsafeGetByte make run
+AFTER: MATCHING
+  0  Con  === 1  [[ ]]  #top
+  1  Root  === 1 2 21 26 31  [[ 1 12 7 6 0 ]] inner
+  2  ShouldNotReachHere  === 3 0 0 16 0  [[ 1 ]]  bottom !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  3  MachProj  === 4  [[ 2 ]] #0/unmatched !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  4  CallStaticJavaDirect  === 8 14 15 16 17 18 19 20 0 0 0 0 13 7 6  [[ 5 3 ]] Static wrapper for: uncommon_trap(reason='range_check' action='make_not_entrant') # void ( int ) C=0.000100 Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34) !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  5  MachProj  === 4  [[ ]] #10005/fat
+  6  ConP  === 1  [[ 4 ]]  #ptr:null+0
+  7  ConI  === 1  [[ 4 ]]  #int:1000
+  8  IfFalse  === 9  [[ 4 ]] #0 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+  9  jmpConU  === 11 10  [[ 8 25 ]] P=0.999999, C=-1.000000
+ 10  compU_rReg_imm  === _ 13  [[ 9 ]] #1000/0x000003e8 int:-1..1, 0u..maxuint
+ 11  MachProj  === 12  [[ 9 ]] #0/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 12  Start  === 12 1  [[ 12 11 13 14 15 16 17 19 20 ]]  #{0:control, 1:abIO, 2:memory, 3:rawptr:BotPTR, 4:return_address, 5:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 6:aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact,iid=bot, 7:int} !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 13  MachProj  === 12  [[ 10 4 39 ]] #7 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 14  MachProj  === 12  [[ 4 31 ]] #1/unmatched !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 15  MachProj  === 12  [[ 4 31 34 36 ]] #2/unmatched  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 16  MachProj  === 12  [[ 4 2 21 26 31 ]] #3 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 17  MachProj  === 12  [[ 4 31 ]] #4 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 18  loadConI  === _  [[ 4 ]]   [1020000000018]
+ 19  MachProj  === 12  [[ 4 24 34 ]] #5 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 20  MachProj  === 12  [[ 4 29 36 ]] #6 !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+ 21  ShouldNotReachHere  === 22 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 22  IfFalse  === 23  [[ 21 ]] #0 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 23  jmpCon  === 25 24  [[ 22 30 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 24  testP_reg  === _ 19  [[ 23 ]] ptr:null+0 int:-1..1, 0u..maxuint
+ 25  IfTrue  === 9  [[ 23 39 ]] #1 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+ 26  ShouldNotReachHere  === 27 0 0 16 0  [[ 1 ]]  bottom !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 27  IfFalse  === 28  [[ 26 ]] #0 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 28  jmpCon  === 30 29  [[ 27 32 ]] P=0.999999, C=-1.000000 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 29  testP_reg  === _ 20  [[ 28 ]] ptr:null+0 int:-1..1, 0u..maxuint
+ 30  IfTrue  === 23  [[ 28 34 ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+ 31  Ret  === 32 14 15 16 17 33  [[ 1 ]]  bottom
+ 32  IfTrue  === 28  [[ 31 36 ]] #1 !jvms: UnsafeGetByte::test @ bci:23 (line 35)
+ 33  addI_rReg  === _ 34 36  [[ 38 31 ]]  int !jvms: UnsafeGetByte::test @ bci:26 (line 35)
+ 34  loadB  === 30 15 19 35  [[ 33 ]]  byte
+ 35  convI2L_reg_reg  === _ 39  [[ 34 ]]  long:>=0, widen: 3
+ 36  loadB  === 32 15 20 37  [[ 33 ]]  byte
+ 37  convI2L_reg_reg  === _ 39  [[ 36 ]]  long:>=0, widen: 3
+ 38  MachProj  === 33  [[ ]] #1
+ 39  castII  === 25 13  [[ 35 37 ]]  int:>=0, widen: 3 !jvms: Objects::checkIndex @ bci:3 (line 365) UnsafeGetByte::test @ bci:4 (line 34)
+Done
+#+end_src
+
 in base you'd see 1 ~convI2L_reg_reg~
 #+begin_src bash
 Failed IR Rules (1) of Methods (1)
@@ -352,7 +1066,7 @@ index 7f888ac2382..761f380c021 100644
 @@ -3931,6 +3931,23 @@ uint Matcher::vector_ideal_reg(int size) {
    return 0;
  }
- 
+
 +static bool clone_conv(Node* conv, Matcher* matcher, Matcher::MStack& mstack, VectorSet& address_visited) {
 +  if (conv->Opcode() == Op_ConvI2L &&
 +      conv->as_Type()->type()->is_long()->_lo >= 0 &&
@@ -431,7 +1145,7 @@ index a76853016d9..12ca9850ce1 100644
 @@ -2883,6 +2883,11 @@ public class IRNode {
          machOnlyNameRegex(X86_SCONV_F2L, "convF2L_reg_reg");
      }
- 
+
 +    public static final String X86_SCONV_I2L = PREFIX + "X86_SCONV_I2L" + POSTFIX;
 +    static {
 +        machOnlyNameRegex(X86_SCONV_I2L, "convI2L_reg_reg");
@@ -455,7 +1169,7 @@ index 599e95bd6ab..31a012cea6b 100644
          byte acc = 0; // neutral element
          for (int i = 0; i < SIZE; i++) {
 @@ -992,6 +995,9 @@ private static char charOrBig() {
- 
+
      @Test
      @IR(failOn = IRNode.LOAD_VECTOR_C) // does not vectorize for now, might in the future.
 +    @IR(counts = {IRNode.X86_SCONV_I2L, "= 4"},
