@@ -19,9 +19,8 @@ fi
 
 benchmark_all()
 {
-    local branch=$1
-    local extra_args=$2
-    local rff_prefix=$3
+    local extra_args=$1
+    local rff_prefix=$2
 
     log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.VectorReduction2\.NoSuperword.byteXorBig\" MICRO=\"OPTIONS=-rff ${rff_prefix}-xor.csv ${extra_args}\" CONF=release LOG=warn make test
 }
@@ -39,7 +38,7 @@ benchmark_branch()
         CONF=release BUILD_LOG=warn make configure clean-jdk build-jdk
     fi
 
-    benchmark_all ${branch} "${extra_args} ${common_args};FORK=1" "${rff_suffix}"
+    benchmark_all "${extra_args} ${common_args};FORK=1" "${rff_suffix}"
 }
 
 log()
