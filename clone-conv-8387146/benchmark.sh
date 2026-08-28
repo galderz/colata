@@ -28,14 +28,9 @@ benchmark_all()
 
 benchmark_branch()
 {
-    local branch=$1
-    local extra_args=$2
-    local rff_suffix=$3
+    local extra_args=$1
+    local rff_suffix=$2
     local common_args="-bm thrpt -tu ms"
-
-    pushd $HOME/src/jdk
-    git checkout ${branch}
-    popd
 
     make print-branch-commit
 
@@ -64,13 +59,13 @@ CONF=release make clean-csv
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
 # Patch
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode -prof ${ASM_PROFILER}" "patch-perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode -prof perfnorm:events=${EVENTS}" "patch-perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode " "patch-noprof"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode -prof ${ASM_PROFILER}" "patch-perfasm"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode -prof perfnorm:events=${EVENTS}" "patch-perfnorm"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:-UseNewCode " "patch-noprof"
 # Base
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof ${ASM_PROFILER}" "base-perfasm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof perfnorm:events=${EVENTS}" "base-perfnorm"
-benchmark_branch "topic.reassoc-reduct-chain.all-add" "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode " "base-noprof"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof ${ASM_PROFILER}" "base-perfasm"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof perfnorm:events=${EVENTS}" "base-perfnorm"
+benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode " "base-noprof"
 
 zipdir="$HOME/src/jdk/build/release-linux-x86_64/images/test"
 zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
