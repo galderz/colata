@@ -7,7 +7,7 @@ public class DiffOffset
         System.out.println("Run");
 
         byte[] b = new byte[1024];
-	int index = 42;
+        int index = 42;
         b[index] = 22;
 
         // Repeatedly call the test method, so that it can become hot and
