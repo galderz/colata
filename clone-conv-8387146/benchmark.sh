@@ -70,4 +70,4 @@ benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -
 benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof perfnorm:events=${EVENTS}" "base-perfnorm"
 benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode " "base-noprof"
 
-make results
+CONF=release make results
