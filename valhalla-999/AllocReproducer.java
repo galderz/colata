@@ -37,8 +37,19 @@ public class AllocReproducer {
         @Override public String toString() { return "V(" + x + "," + y + ")"; }
     }
 
+    // ---- value class (JEP 401) ----
+    static value class ValuePointTyped {
+        int x;
+        int y;
+        public ValuePointTyped(int x, int y) { this.x = x; this.y = y; }
+        @Override public String toString() { return "V(" + x + "," + y + ")"; }
+    }
+
     // Prevent dead-code elimination
     static volatile Object sink;
+
+    // What happens with a typed sink?
+    static volatile ValuePointTyped typedSink;
 
     /**
      * Allocate identity-class instances in a loop.
@@ -60,6 +71,12 @@ public class AllocReproducer {
         }
     }
 
+    static void allocateValueTyped(int count) {
+        for (int i = 0; i < count; i++) {
+            typedSink = new ValuePointTyped(i, i + 1);
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         final int ITERATIONS = 50_000_000;
 
@@ -72,6 +89,7 @@ public class AllocReproducer {
         // Warm up
         allocateIdentity(1_000_000);
         allocateValue(1_000_000);
+        allocateValueTyped(1_000_000);
 
         // Steady-state – profile this part
         for (int round = 0; round < 5; round++) {
