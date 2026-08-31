@@ -2,6 +2,111 @@
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
 * 31.8.26
+** PR draft
+#+begin_src bash
+
+#+end_src
+** 01 multi unroll
+default unroll:
+#+begin_src bash
+Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.871   72.715  ops/ms  -51% # default
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.877   72.679  ops/ms  -52% # -XX:LoopMaxUnroll=16
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  148.959  124.189  ops/ms  -17% # -XX:LoopMaxUnroll=8
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  143.399  148.408  ops/ms   +3% # -XX:LoopMaxUnroll=4
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  138.647  139.393  ops/ms   +1% # -XX:LoopMaxUnroll=2
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  116.525  126.651  ops/ms   +9% # -XX:LoopMaxUnroll=0
+#+end_src
+
+max unroll 4, no spilling:
+#+begin_src bash
+   2.33%  │ │  0x00007f7ec3cfa0b3:   movsbl		0xc(%rbp, %rdx), %ebx
+   2.46%  │ │  0x00007f7ec3cfa0b8:   imull		%eax, %ebx
+   1.75%  │ │  0x00007f7ec3cfa0bb:   addl		%r13d, %ebx
+   2.20%  │ │  0x00007f7ec3cfa0be:   movsbl		%bl, %eax
+   2.14%  │ │  0x00007f7ec3cfa0c1:   xorl		%edi, %eax
+   2.23%  │ │  0x00007f7ec3cfa0c3:   movl		%r9d, %edi
+   1.94%  │ │  0x00007f7ec3cfa0c6:   imull		%r8d, %edi
+   1.94%  │ │  0x00007f7ec3cfa0ca:   addl		%r8d, %r9d
+   2.30%  │ │  0x00007f7ec3cfa0cd:   imull		%r9d, %r11d
+   2.52%  │ │  0x00007f7ec3cfa0d1:   addl		%edi, %r11d
+   1.62%  │ │  0x00007f7ec3cfa0d4:   movsbl		%r11b, %r8d
+   2.46%  │ │  0x00007f7ec3cfa0d8:   xorl		%eax, %r8d
+   2.39%  │ │  0x00007f7ec3cfa0db:   xorl		%r8d, %r10d
+   2.01%  │ │  0x00007f7ec3cfa0de:   xorl		%r10d, %esi         ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │ │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │ │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   2.04%  │ │  0x00007f7ec3cfa0e1:   addl		$4, %edx            ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          │ │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 318)
+          │ │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   2.65%  │ │  0x00007f7ec3cfa0e4:   cmpl		0x48(%rsp), %edx
+          ╰ │  0x00007f7ec3cfa0e8:   jl		0x7f7ec3cfa040      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+            │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 318)
+            │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+#+end_src
+
+max unroll 8, some spilling:
+#+begin_src bash
+   0.96%  ││  0x00007fe0afcf9dab:   movsbl		0xc(%rsi, %r10), %eax
+          ││  0x00007fe0afcf9db1:   imull		%r13d, %eax
+   1.63%  ││  0x00007fe0afcf9db5:   vmovd		%xmm6, %r8d
+   0.29%  ││  0x00007fe0afcf9dba:   addl		%r8d, %eax
+   0.64%  ││  0x00007fe0afcf9dbd:   movsbl		%al, %eax
+   0.03%  ││  0x00007fe0afcf9dc0:   vmovd		%xmm7, %r13d
+   1.54%  ││  0x00007fe0afcf9dc5:   xorl		%r13d, %eax
+   0.19%  ││  0x00007fe0afcf9dc8:   movl		%edx, %r8d
+   0.54%  ││  0x00007fe0afcf9dcb:   imull		%ebp, %r8d
+          ││  0x00007fe0afcf9dcf:   addl		%ebp, %edx
+   1.83%  ││  0x00007fe0afcf9dd1:   imull		%edx, %edi
+   0.29%  ││  0x00007fe0afcf9dd4:   addl		%r8d, %edi
+   0.77%  ││  0x00007fe0afcf9dd7:   movsbl		%dil, %r8d
+          ││  0x00007fe0afcf9ddb:   xorl		%eax, %r8d
+   1.50%  ││  0x00007fe0afcf9dde:   xorl		%r8d, %ecx
+   0.22%  ││  0x00007fe0afcf9de1:   xorl		%ecx, %ebx
+   0.93%  ││  0x00007fe0afcf9de3:   xorl		%ebx, %r9d
+          ││  0x00007fe0afcf9de6:   xorl		%r9d, %r11d
+   1.31%  ││  0x00007fe0afcf9de9:   vmovd		%xmm8, %r8d
+   0.38%  ││  0x00007fe0afcf9dee:   xorl		%r11d, %r8d
+   0.90%  ││  0x00007fe0afcf9df1:   vmovd		%xmm5, %r11d
+          ││  0x00007fe0afcf9df6:   xorl		%r8d, %r11d         ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   1.25%  ││  0x00007fe0afcf9df9:   vmovd		%r11d, %xmm7
+   0.51%  ││  0x00007fe0afcf9dfe:   addl		$8, %r10d           ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          ││                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 318)
+          ││                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+#+end_src
+
+default (max unroll 16) spilling:
+#+begin_src bash
+   0.03%  │  0x00007f83b7cfdd4b:   xorl		%r8d, %r10d
+   3.53%  │  0x00007f83b7cfdd4e:   xorl		%r10d, %r14d
+   0.20%  │  0x00007f83b7cfdd51:   xorl		%r14d, %r13d
+   0.49%  │  0x00007f83b7cfdd54:   xorl		%r13d, %r9d
+   2.52%  │  0x00007f83b7cfdd57:   xorl		%r11d, %r9d
+   8.63%  │  0x00007f83b7cfdd5a:   xorl		%r9d, %ebp
+   5.76%  │  0x00007f83b7cfdd5d:   xorl		%ebp, %edx
+   3.76%  │  0x00007f83b7cfdd5f:   xorl		%edx, %esi
+   2.42%  │  0x00007f83b7cfdd61:   vmovd		%xmm12, %r10d
+          │  0x00007f83b7cfdd66:   xorl		%esi, %r10d
+   1.21%  │  0x00007f83b7cfdd69:   vmovd		%xmm13, %r11d
+          │  0x00007f83b7cfdd6e:   xorl		%r10d, %r11d
+   1.24%  │  0x00007f83b7cfdd71:   vmovd		%xmm10, %r10d
+          │  0x00007f83b7cfdd76:   xorl		%r11d, %r10d
+   1.14%  │  0x00007f83b7cfdd79:   vmovd		%xmm11, %r11d
+          │  0x00007f83b7cfdd7e:   xorl		%r10d, %r11d
+   1.83%  │  0x00007f83b7cfdd81:   vmovd		%xmm8, %r10d
+   0.07%  │  0x00007f83b7cfdd86:   xorl		%r11d, %r10d
+   1.34%  │  0x00007f83b7cfdd89:   vmovd		%xmm9, %r11d
+   0.07%  │  0x00007f83b7cfdd8e:   xorl		%r10d, %r11d
+   1.34%  │  0x00007f83b7cfdd91:   vmovd		%xmm6, %r10d
+          │  0x00007f83b7cfdd96:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+          │                                                            ;   {other}
+   0.92%  │  0x00007f83b7cfdd99:   vmovd		%r10d, %xmm15
+#+end_src
+** 00 default unroll only
 On howard benchmarking byteXorBig:
 #+begin_src bash
 Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base   Patch   Units  Diff
@@ -142,7 +247,6 @@ base:
                                                                          ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 318)
                                                                          ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
 #+end_src
-
 * 28.8.26
 ** PR response draft
 #+begin_src markdown
