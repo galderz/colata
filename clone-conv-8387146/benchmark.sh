@@ -39,6 +39,10 @@ benchmark_branch()
     fi
 
     benchmark_all "${extra_args} ${common_args};FORK=1" "${rff_suffix}"
+
+    for unroll_factor in 0 2 4 8 16; do
+       benchmark_all "${extra_args} -jvmArgsAppend -XX:LoopMaxUnroll=${unroll_factor} ${common_args};FORK=1" "${rff_suffix}-u${unroll_factor}"
+    done
 }
 
 log()
@@ -66,6 +70,4 @@ benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -
 benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode -prof perfnorm:events=${EVENTS}" "base-perfnorm"
 benchmark_branch "-jvmArgsAppend -XX:+UnlockDiagnosticVMOptions -jvmArgsAppend -XX:+UseNewCode " "base-noprof"
 
-zipdir="$HOME/src/jdk/build/release-linux-x86_64/images/test"
-zipfile="results-benchmark-$(date +%Y%m%d-%H%M%S).zip"
-zip -j "$zipfile" "$zipdir"/*.csv && realpath "$zipfile"
+make results
