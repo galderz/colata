@@ -22,14 +22,14 @@ benchmark_all()
     local extra_args=$1
     local rff_prefix=$2
 
-    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.ByteArrayAddressing\" MICRO=\"OPTIONS=-rff ${rff_prefix}-xor.csv ${extra_args}\" CONF=release LOG=warn make test
+    log TEST=\"micro:org\.openjdk\.bench\.vm\.compiler\.ByteArrayAddressing\" MICRO=\"OPTIONS=-rff ${rff_prefix}-addressing.csv ${extra_args}\" CONF=release LOG=warn make test
 }
 
 benchmark_branch()
 {
     local extra_args=$1
     local rff_suffix=$2
-    local common_args="-bm thrpt -tu ms"
+    local common_args="-bm thrpt -tu ns"
 
     make print-branch-commit
 
