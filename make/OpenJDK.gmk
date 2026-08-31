@@ -454,6 +454,5 @@ update-build-docs:
 .PHONY: update-build-docs
 
 results:
-> zipdir="$HOME/src/jdk-reassoc-reduct-chain/build/release-linux-x86_64/images/test"
-> zip -j results-benchmark-$(DATE).zip $(java_images_test_dir)/*.csv && realpath results-benchmark-$(DATE).zip
+> zip -j results-benchmark-$$(date +%Y%m%d-%H%M).zip $(java_images_test_dir)/*.csv && realpath results-benchmark-$$(date +%Y%m%d-%H%M).zip
 .PHONY: results
