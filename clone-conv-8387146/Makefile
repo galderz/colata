@@ -69,9 +69,9 @@ JVM_ARGS_APPEND ?=
 
 ifdef JVM_ARGS_APPEND
   jvm_args += $(base_jvm_args)
-  jvm_args += $(JVM_ARGS_APPEND)
+  jvm_args += $(subst @CLASS@,$(CLASS),$(JVM_ARGS_APPEND))
 else ifdef JVM_ARGS
-  jvm_args += $(JVM_ARGS)
+  jvm_args += $(subst @CLASS@,$(CLASS),$(JVM_ARGS))
 else
   jvm_args += $(base_jvm_args)
 endif
