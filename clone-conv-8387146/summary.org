@@ -1,11 +1,380 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 1.9.26
+** PR draft
+#+begin_src bash
+I made a mistake by blindly copying what was happening in aarch64 when I was trying to fix this bug,
+and that is the cause of the issue with `Unsafe`.
+
+With `VectorReduction2.byteXorBig` and the test cases first added in this PR,
+the code path that was being tested is the one that has the shape of `AddP (AddP reg (ConvI2L idx)) off` which is matched by the `indPosIndexOffset` x86.ad operand,
+so I was really only tested the upper branch in the `if (off->is_Con()) {` of `Matcher::pd_clone_address_expressions`:
+
+```
+AFTER: BEFORE_MATCHING
+   7  Parm  === 3  [[ 116 114 101 89 75 66 57 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: DiffOffset::test @ bci:-1 (line 23)
+  70  IfTrue  === 122  [[ 124 89 ]] #1 !jvms: DiffOffset::test @ bci:14 (line 24)
+  80  ConL  === 0  [[ 85 ]]  #long:12
+  83  ConvI2L  === _ 47  [[ 86 ]]  #long:0..1000, widen: 3 !jvms: DiffOffset::test @ bci:14 (line 24)
+  85  AddP  === _ 10 86 80  [[ 89 ]]  !jvms: DiffOffset::test @ bci:14 (line 24)
+  86  AddP  === _ 10 10 83  [[ 85 110 ]]  !orig=[119] !jvms: DiffOffset::test @ bci:14 (line 24)
+  89  LoadB  === 70 7 85  |54  [[ 115 101 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=5; #byte !jvms: DiffOffset::test @ bci:14 (line 24)
+
+LoadB(89) IfTrue(70) Param(7) (AddP(85) (AddP(86) reg (ConvI2L(83) idx)) ConL(80))
+```
+
+The Unsafe test case tests the `else` section, and in that case in x86 there is no benefit to cloning ConvI2L.
+Whereas in aarch64 there is `indIndexI2L` which can match `AddP reg (ConvI2L ireg)`,
+there is no equivalent in x86:
+
+```
+AFTER: BEFORE_MATCHING
+   7  Parm  === 3  [[ 98 96 79 54 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  62  ConvI2L  === _ 99  [[ 76 93 ]]  #long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+  76  AddP  === _ 10 10 62  [[ 79 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  73  IfTrue  === 69  [[ 87 79p ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  79  LoadB  === 73 7 76  [[ 97 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=4; unsafe #byte (does not depend only on test, unknown control) !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+
+LoadB(79) IfTrue(73) Param(7) (AddP(76) reg (ConvI2L(62) idx))
+```
+
+So, to fix the bug that Tobias noticed, I removed the `clone_conv` invocation in the `else`,
+and added a comment to make it clear why `clone_conv` is not called.
+
+I added additional test cases to the jtreg test to verify things work as expected with Unsafe array lookups.
+I also run tier1-3 tests successfully.
+
+Additionally, I run `VectorReduction2.NoSuperword.byteXorBig` micro benchmark to see the effects,
+and initially I was seeing a considerable performance decrease:
+
+```bash
+Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base   Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.848  72.699  ops/ms  -51%
+```
+
+The reason for the degradation is register spilling.
+As already hinted in the JIRA issue, this change enables more CPU-level parallelism which stresses the number of concurrent registers in use.
+By default the test gets unrolled 16 times on my Xeon server and without the patch we can see how the unrolled chunks are executed in lock step without register spilling:
+
+```bash
+   0.42%  │    0x00007efe97cf9fee:   movsbl		0x18(%rdx, %rsi), %r11d;   {other}
+   0.74%  │    0x00007efe97cf9ff4:   movl		%r8d, %ecx
+   0.58%  │    0x00007efe97cf9ff7:   imull		%r10d, %ecx
+   0.42%  │    0x00007efe97cf9ffb:   addl		%r10d, %r8d
+   0.45%  │    0x00007efe97cf9ffe:   imull		%r8d, %r11d
+   0.42%  │    0x00007efe97cfa002:   addl		%ecx, %r11d
+   0.58%  │    0x00007efe97cfa005:   movsbl		%r11b, %ecx
+   0.77%  │    0x00007efe97cfa009:   xorl		%r9d, %ecx
+   0.29%  │    0x00007efe97cfa00c:   movsbl		0x19(%rbp, %rsi), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.74%  │    0x00007efe97cfa012:   movsbl		0x19(%rbx, %rsi), %r8d
+   0.48%  │    0x00007efe97cfa018:   movsbl		0x19(%rdx, %rsi), %r11d
+   0.70%  │    0x00007efe97cfa01e:   movl		%r8d, %r9d
+   0.42%  │    0x00007efe97cfa021:   imull		%r10d, %r9d
+   0.54%  │    0x00007efe97cfa025:   addl		%r10d, %r8d
+   0.51%  │    0x00007efe97cfa028:   imull		%r8d, %r11d
+   0.74%  │    0x00007efe97cfa02c:   addl		%r9d, %r11d
+   0.77%  │    0x00007efe97cfa02f:   movsbl		%r11b, %r9d
+   0.64%  │    0x00007efe97cfa033:   xorl		%ecx, %r9d
+   0.61%  │    0x00007efe97cfa036:   movsbl		0x1a(%rdx, %rsi), %r10d
+   0.80%  │    0x00007efe97cfa03c:   movsbl		0x1a(%rbx, %rsi), %r8d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.38%  │    0x00007efe97cfa042:   movsbl		0x1a(%rbp, %rsi), %r11d
+   0.70%  │    0x00007efe97cfa048:   movsbl		0x1b(%rdx, %rsi), %ecx
+   0.45%  │    0x00007efe97cfa04d:   movsbl		0x1b(%rbp, %rsi), %edi;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.64%  │    0x00007efe97cfa052:   leal		(%r11, %r8), %eax
+   0.51%  │    0x00007efe97cfa056:   imull		%eax, %r10d
+   0.48%  │    0x00007efe97cfa05a:   imull		%r8d, %r11d
+   0.54%  │    0x00007efe97cfa05e:   addl		%r10d, %r11d
+   0.70%  │    0x00007efe97cfa061:   movsbl		%r11b, %r8d
+   0.45%  │    0x00007efe97cfa065:   xorl		%r9d, %r8d
+   0.54%  │    0x00007efe97cfa068:   leal		(%r14, %rdi), %r10d
+   0.48%  │    0x00007efe97cfa06c:   imull		%r10d, %ecx
+   0.51%  │    0x00007efe97cfa070:   imull		%edi, %r14d
+   0.61%  │    0x00007efe97cfa074:   addl		%ecx, %r14d
+   0.80%  │    0x00007efe97cfa077:   movsbl		%r14b, %r10d
+   0.51%  │    0x00007efe97cfa07b:   xorl		%r8d, %r10d         ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.61%  │    0x00007efe97cfa07e:   addl		$0x10, %r13d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 318)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.48%  │    0x00007efe97cfa082:   cmpl		0x48(%rsp), %r13d
+          ╰    0x00007efe97cfa087:   jl		0x7efe97cf9df0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                         ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 318)
+                                                                         ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+With the patch, we can see how the unrolled chunks can be executed in parallel, and with 16 parallel chunks register spilling happens:
+
+```bash
+   0.03%  │  0x00007f83b7cfdd4b:   xorl		%r8d, %r10d
+   3.53%  │  0x00007f83b7cfdd4e:   xorl		%r10d, %r14d
+   0.20%  │  0x00007f83b7cfdd51:   xorl		%r14d, %r13d
+   0.49%  │  0x00007f83b7cfdd54:   xorl		%r13d, %r9d
+   2.52%  │  0x00007f83b7cfdd57:   xorl		%r11d, %r9d
+   8.63%  │  0x00007f83b7cfdd5a:   xorl		%r9d, %ebp
+   5.76%  │  0x00007f83b7cfdd5d:   xorl		%ebp, %edx
+   3.76%  │  0x00007f83b7cfdd5f:   xorl		%edx, %esi
+   2.42%  │  0x00007f83b7cfdd61:   vmovd		%xmm12, %r10d
+          │  0x00007f83b7cfdd66:   xorl		%esi, %r10d
+   1.21%  │  0x00007f83b7cfdd69:   vmovd		%xmm13, %r11d
+          │  0x00007f83b7cfdd6e:   xorl		%r10d, %r11d
+   1.24%  │  0x00007f83b7cfdd71:   vmovd		%xmm10, %r10d
+          │  0x00007f83b7cfdd76:   xorl		%r11d, %r10d
+   1.14%  │  0x00007f83b7cfdd79:   vmovd		%xmm11, %r11d
+          │  0x00007f83b7cfdd7e:   xorl		%r10d, %r11d
+   1.83%  │  0x00007f83b7cfdd81:   vmovd		%xmm8, %r10d
+   0.07%  │  0x00007f83b7cfdd86:   xorl		%r11d, %r10d
+   1.34%  │  0x00007f83b7cfdd89:   vmovd		%xmm9, %r11d
+   0.07%  │  0x00007f83b7cfdd8e:   xorl		%r10d, %r11d
+   1.34%  │  0x00007f83b7cfdd91:   vmovd		%xmm6, %r10d
+          │  0x00007f83b7cfdd96:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+          │                                                            ;   {other}
+   0.92%  │  0x00007f83b7cfdd99:   vmovd		%r10d, %xmm15
+```
+
+We can confirm this theory running with `LoopMaxUnroll` factors:
+
+```bash
+Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.871   72.715  ops/ms  -51% # default
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.877   72.679  ops/ms  -52% # -XX:LoopMaxUnroll=16
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  148.959  124.189  ops/ms  -17% # -XX:LoopMaxUnroll=8
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  143.399  148.408  ops/ms   +3% # -XX:LoopMaxUnroll=4
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  138.647  139.393  ops/ms   +1% # -XX:LoopMaxUnroll=2
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  116.525  126.651  ops/ms   +9% # -XX:LoopMaxUnroll=0
+```
+
+Even when the loop 8 times, register spilling occurs.
+But with 4 and 2 there are enough registers and we see a small performance increase.
+
+To have a clearer picture of the performance effects of this change independent of loops,
+I created a JMH benchmark based on the test cases that Roland had helped me create.
+This benchmark, `org.openjdk.bench.vm.compiler.ByteArrayAddressing` is included in the PR,
+and there we can observe that the performance goes ~5% up:
+
+```
+Benchmark                 (seed)   Mode  Cnt     Base    Patch   Units  Diff
+ByteArrayAddressing.test       0  thrpt    5  158.347  166.817  ops/us   +5%
+```
+
+After some discussions with Roland, it seems like there should be a matching operand on x64 to match `AddP reg (ConvI2L ireg)`,
+and make the optimization also work for Unsafe byte array access. I'll create a follow up JIRA shortly.
+#+end_src
+
+** today's logs
+DiffOffset:
+#+begin_src bash
+[pd_clone_addr] AddP(85): base=Parm(10) adr=AddP(86) off=ConL(80) off->is_Con=1 users=[LoadB(89) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   cloned successfully
+
+AddP(85) (AddP(86) reg (ConvI2L(83) idx)) ConL(80)
+
+AFTER: BEFORE_MATCHING
+   7  Parm  === 3  [[ 116 114 101 89 75 66 57 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: DiffOffset::test @ bci:-1 (line 23)
+  70  IfTrue  === 122  [[ 124 89 ]] #1 !jvms: DiffOffset::test @ bci:14 (line 24)
+  80  ConL  === 0  [[ 85 ]]  #long:12
+  83  ConvI2L  === _ 47  [[ 86 ]]  #long:0..1000, widen: 3 !jvms: DiffOffset::test @ bci:14 (line 24)
+  85  AddP  === _ 10 86 80  [[ 89 ]]  !jvms: DiffOffset::test @ bci:14 (line 24)
+  86  AddP  === _ 10 10 83  [[ 85 110 ]]  !orig=[119] !jvms: DiffOffset::test @ bci:14 (line 24)
+  89  LoadB  === 70 7 85  |54  [[ 115 101 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=5; #byte !jvms: DiffOffset::test @ bci:14 (line 24)
+
+LoadB(89) IfTrue(70) Param(7) (AddP(85) (AddP(86) reg (ConvI2L(83) idx)) ConL(80))
+#+end_src
+
+UnsafeGetByte:
+#+begin_src bash
+[pd_clone_addr] AddP(76): base=Parm(10) adr=Parm(10) off=ConvI2L(62) off->is_Con=0 users=[LoadB(79) ]
+[pd_clone_addr]   PATH=non_const_off_cloned (shift or conv)
+
+AddP(76) reg (ConvI2L(62) idx)
+
+AFTER: BEFORE_MATCHING
+   7  Parm  === 3  [[ 98 96 79 54 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  62  ConvI2L  === _ 99  [[ 76 93 ]]  #long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+  76  AddP  === _ 10 10 62  [[ 79 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  73  IfTrue  === 69  [[ 87 79p ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  79  LoadB  === 73 7 76  [[ 97 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=4; unsafe #byte (does not depend only on test, unknown control) !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+
+LoadB(79) IfTrue(73) Param(7) (AddP(76) reg (ConvI2L(62) idx))
+#+end_src
+** logs from 27.8
+DiffOffset:
+#+begin_src bash
+[pd_clone_addr] AddP(85): base=Parm(10) adr=AddP(86) off=ConL(80) off->is_Con=1 users=[LoadB(89) ]
+[pd_clone_addr]   PATH=nested_addp, inner_off=ConvI2L(83) outcnt=1
+[pd_clone_addr]   cloned successfully
+
+AddP(85) (AddP(86) reg (ConvI2L(83) idx)) ConL(80)
+#+end_src
+
+UnsafeGetByte:
+#+begin_src bash
+[pd_clone_addr] AddP(76): base=Parm(10) adr=Parm(10) off=ConvI2L(62) off->is_Con=0 users=[LoadB(79) ]
+
+AddP(76) reg (ConvI2L(62) idx)
+#+end_src
 * 31.8.26
 ** PR draft
 #+begin_src bash
+I made a mistake by blindly copying what was happening in aarch64 when I was trying to fix this bug,
+and that is the cause of the issue with Unsafe.
 
+With `VectorReduction2.byteXorBig` and the test cases first added in this PR,
+the code path that was being tested is the one that has the shape of `AddP (AddP reg (ConvI2L idx)) off` which is matched by the `indPosIndexOffset` x86.ad operand,
+so I was really only tested the upper branch in the `if (off->is_Con()) {` of `Matcher::pd_clone_address_expressions`.
+
+The Unsafe test case tests the `else` section, and in that case in x86 there is no benefit to cloning ConvI2L.
+Whereas in aarch64 there is `indIndexI2L` which can match `AddP reg (ConvI2L ireg)`,
+there is no equivalent in x86.
+
+// todo why is Unsafe ending up in the else branch?
+// todo what is the outer AddP shape like?
+
+So, to fix the bug that Tobias noticed, I removed the `clone_conv` invocation in the `else`,
+and added a comment to make it clear why `clone_conv` is not called.
+
+I added additional test cases to the jtreg test to verify things work as expected with Unsafe array lookups.
+I also run tier1-3 tests successfully.
+
+Additionally, I run `VectorReduction2.NoSuperword.byteXorBig` micro benchmark to see the effects,
+and initially I was seeing a considerable performance decrease:
+
+```bash
+Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base   Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.848  72.699  ops/ms  -51%
+```
+
+The reason for the degradation is register spilling.
+As already hinted in the JIRA issue, this change enables more CPU-level parallelism which stresses the number of concurrent registers in use.
+By default the test gets unrolled 16 times on my Xeon server,
+and without the patch we can see how its unroll is sequential:
+
+```bash
+   0.42%  │    0x00007efe97cf9fee:   movsbl		0x18(%rdx, %rsi), %r11d;   {other}
+   0.74%  │    0x00007efe97cf9ff4:   movl		%r8d, %ecx
+   0.58%  │    0x00007efe97cf9ff7:   imull		%r10d, %ecx
+   0.42%  │    0x00007efe97cf9ffb:   addl		%r10d, %r8d
+   0.45%  │    0x00007efe97cf9ffe:   imull		%r8d, %r11d
+   0.42%  │    0x00007efe97cfa002:   addl		%ecx, %r11d
+   0.58%  │    0x00007efe97cfa005:   movsbl		%r11b, %ecx
+   0.77%  │    0x00007efe97cfa009:   xorl		%r9d, %ecx
+   0.29%  │    0x00007efe97cfa00c:   movsbl		0x19(%rbp, %rsi), %r10d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.74%  │    0x00007efe97cfa012:   movsbl		0x19(%rbx, %rsi), %r8d
+   0.48%  │    0x00007efe97cfa018:   movsbl		0x19(%rdx, %rsi), %r11d
+   0.70%  │    0x00007efe97cfa01e:   movl		%r8d, %r9d
+   0.42%  │    0x00007efe97cfa021:   imull		%r10d, %r9d
+   0.54%  │    0x00007efe97cfa025:   addl		%r10d, %r8d
+   0.51%  │    0x00007efe97cfa028:   imull		%r8d, %r11d
+   0.74%  │    0x00007efe97cfa02c:   addl		%r9d, %r11d
+   0.77%  │    0x00007efe97cfa02f:   movsbl		%r11b, %r9d
+   0.64%  │    0x00007efe97cfa033:   xorl		%ecx, %r9d
+   0.61%  │    0x00007efe97cfa036:   movsbl		0x1a(%rdx, %rsi), %r10d
+   0.80%  │    0x00007efe97cfa03c:   movsbl		0x1a(%rbx, %rsi), %r8d;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@23 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.38%  │    0x00007efe97cfa042:   movsbl		0x1a(%rbp, %rsi), %r11d
+   0.70%  │    0x00007efe97cfa048:   movsbl		0x1b(%rdx, %rsi), %ecx
+   0.45%  │    0x00007efe97cfa04d:   movsbl		0x1b(%rbp, %rsi), %edi;*baload {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@36 (line 319)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.64%  │    0x00007efe97cfa052:   leal		(%r11, %r8), %eax
+   0.51%  │    0x00007efe97cfa056:   imull		%eax, %r10d
+   0.48%  │    0x00007efe97cfa05a:   imull		%r8d, %r11d
+   0.54%  │    0x00007efe97cfa05e:   addl		%r10d, %r11d
+   0.70%  │    0x00007efe97cfa061:   movsbl		%r11b, %r8d
+   0.45%  │    0x00007efe97cfa065:   xorl		%r9d, %r8d
+   0.54%  │    0x00007efe97cfa068:   leal		(%r14, %rdi), %r10d
+   0.48%  │    0x00007efe97cfa06c:   imull		%r10d, %ecx
+   0.51%  │    0x00007efe97cfa070:   imull		%edi, %r14d
+   0.61%  │    0x00007efe97cfa074:   addl		%ecx, %r14d
+   0.80%  │    0x00007efe97cfa077:   movsbl		%r14b, %r10d
+   0.51%  │    0x00007efe97cfa07b:   xorl		%r8d, %r10d         ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.61%  │    0x00007efe97cfa07e:   addl		$0x10, %r13d        ;*iinc {reexecute=0 rethrow=0 return_oop=0}
+          │                                                              ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@62 (line 318)
+          │                                                              ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+   0.48%  │    0x00007efe97cfa082:   cmpl		0x48(%rsp), %r13d
+          ╰    0x00007efe97cfa087:   jl		0x7efe97cf9df0      ;*if_icmpge {reexecute=0 rethrow=0 return_oop=0}
+                                                                         ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@9 (line 318)
+                                                                         ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+```
+
+With the patch, we can see how the unrolled computations and unrolls happen in parallel and we can see the register spilling in action:
+
+```bash
+   0.03%  │  0x00007f83b7cfdd4b:   xorl		%r8d, %r10d
+   3.53%  │  0x00007f83b7cfdd4e:   xorl		%r10d, %r14d
+   0.20%  │  0x00007f83b7cfdd51:   xorl		%r14d, %r13d
+   0.49%  │  0x00007f83b7cfdd54:   xorl		%r13d, %r9d
+   2.52%  │  0x00007f83b7cfdd57:   xorl		%r11d, %r9d
+   8.63%  │  0x00007f83b7cfdd5a:   xorl		%r9d, %ebp
+   5.76%  │  0x00007f83b7cfdd5d:   xorl		%ebp, %edx
+   3.76%  │  0x00007f83b7cfdd5f:   xorl		%edx, %esi
+   2.42%  │  0x00007f83b7cfdd61:   vmovd		%xmm12, %r10d
+          │  0x00007f83b7cfdd66:   xorl		%esi, %r10d
+   1.21%  │  0x00007f83b7cfdd69:   vmovd		%xmm13, %r11d
+          │  0x00007f83b7cfdd6e:   xorl		%r10d, %r11d
+   1.24%  │  0x00007f83b7cfdd71:   vmovd		%xmm10, %r10d
+          │  0x00007f83b7cfdd76:   xorl		%r11d, %r10d
+   1.14%  │  0x00007f83b7cfdd79:   vmovd		%xmm11, %r11d
+          │  0x00007f83b7cfdd7e:   xorl		%r10d, %r11d
+   1.83%  │  0x00007f83b7cfdd81:   vmovd		%xmm8, %r10d
+   0.07%  │  0x00007f83b7cfdd86:   xorl		%r11d, %r10d
+   1.34%  │  0x00007f83b7cfdd89:   vmovd		%xmm9, %r11d
+   0.07%  │  0x00007f83b7cfdd8e:   xorl		%r10d, %r11d
+   1.34%  │  0x00007f83b7cfdd91:   vmovd		%xmm6, %r10d
+          │  0x00007f83b7cfdd96:   xorl		%r11d, %r10d        ;*ixor {reexecute=0 rethrow=0 return_oop=0}
+          │                                                            ; - org.openjdk.bench.vm.compiler.VectorReduction2::byteXorBig@59 (line 320)
+          │                                                            ; - org.openjdk.bench.vm.compiler.jmh_generated.VectorReduction2_NoSuperword_byteXorBig_jmhTest::byteXorBig_thrpt_jmhStub@17 (line 121)
+          │                                                            ;   {other}
+   0.92%  │  0x00007f83b7cfdd99:   vmovd		%r10d, %xmm15
+```
+
+We can confirm this phenomenon by running with different `LoopMaxUnroll` factors where we observe these results:
+
+```bash
+Benchmark                                (SIZE)  (seed)   Mode  Cnt     Base    Patch   Units  Diff
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.871   72.715  ops/ms  -51% # default
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  149.877   72.679  ops/ms  -52% # -XX:LoopMaxUnroll=16
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  148.959  124.189  ops/ms  -17% # -XX:LoopMaxUnroll=8
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  143.399  148.408  ops/ms   +3% # -XX:LoopMaxUnroll=4
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  138.647  139.393  ops/ms   +1% # -XX:LoopMaxUnroll=2
+VectorReduction2.NoSuperword.byteXorBig    2048       0  thrpt    3  116.525  126.651  ops/ms   +9% # -XX:LoopMaxUnroll=0
+```
+
+Even when the loop 8 times, register spilling occurs.
+But with 4 and 2 there are enough registers and we see a small performance increase.
+
+To have a clearer picture of the performance effects of this change,
+I took simplest of the test cases that Roland had helped me create that didn't require loops,
+and created a JMH benchmark for it.
+This benchmark, `org.openjdk.bench.vm.compiler.ByteArrayAddressing` is included in the PR,
+and there we can observe that the performance goes ~5% up:
+
+```
+Benchmark                 (seed)   Mode  Cnt     Base    Patch   Units  Diff
+ByteArrayAddressing.test       0  thrpt    5  158.347  166.817  ops/us   +5%
+```
 #+end_src
+** 04 units addressing
+#+begin_src bash
+Benchmark                 (seed)   Mode  Cnt     Base    Patch   Units  Diff
+ByteArrayAddressing.test       0  thrpt    5  158.347  166.817  ops/us   +5%
+#+end_src
+
 ** 01 multi unroll
 default unroll:
 #+begin_src bash
