@@ -1,6 +1,57 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 3.9.26
+Title:
+Add indIndexI2L operand to x86.ad
+
+Consider adding a `indIndexI2L` operand in x86.ad that matches `AddP reg (ConvI2L ireg)`.
+This is a shape that can be observed when extracting values from a array using Unsafe:
+
+Source code:
+```
+public static int test(byte[] a, byte[] b, int offset) {
+    int checkedOffset = Objects.checkIndex(offset, 1000);
+    return UNSAFE.getByte(a, (long) checkedOffset) + UNSAFE.getByte(b, (long) checkedOffset);
+}
+```
+
+IR:
+```
+AFTER: BEFORE_MATCHING
+   7  Parm  === 3  [[ 98 96 79 54 ]] Memory  Memory: @ptr:BotPTR+bot, idx=Bot; !jvms: UnsafeGetByte::test @ bci:-1 (line 34)
+  62  ConvI2L  === _ 99  [[ 76 93 ]]  #long:>=0, widen: 3 !jvms: UnsafeGetByte::test @ bci:13 (line 35)
+  76  AddP  === _ 10 10 62  [[ 79 ]]  !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  73  IfTrue  === 69  [[ 87 79p ]] #1 !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+  79  LoadB  === 73 7 76  [[ 97 ]]  @aryptr:byte[int:>=0] (java/lang/Cloneable,java/io/Serializable):BotPTR:exact+any,iid=bot, idx=4; unsafe #byte (does not depend only on test, unknown control) !jvms: UnsafeGetByte::test @ bci:14 (line 35)
+
+LoadB(79) IfTrue(73) Param(7) (AddP(76) reg (ConvI2L(62) idx))
+```
+
+The operand should be added if it can produce a more efficient assembly after cloning ConvI2L.
+As shown in JDK-8387146, cloning ConvI2L can help produce more efficient assembly when accessing byte arrays in the standard way.
+Cloning in the standard byte array use case enables `AddP(base, AddP(base, base, ConvI2L(idx)), const_offset)` shape to be matched by the `indPosIndexOffset` operand.
+
+As a reference, aarch64.ad has an operand that matches the `AddP reg (ConvI2L ireg)` shape:
+
+```
+operand indIndexI2L(iRegP reg, iRegI ireg)
+%{
+  constraint(ALLOC_IN_RC(ptr_reg));
+  match(AddP reg (ConvI2L ireg));
+  op_cost(0);
+  format %{ "$reg, $ireg, 0, I2L" %}
+  interface(MEMORY_INTER) %{
+    base($reg);
+    index($ireg);
+    scale(0x0);
+    disp(0x0);
+  %}
+%}
+```
+
+One way to check if the new operand helps would be to clone ConvI2L node for the Unsafe case too (see https://github.com/openjdk/jdk/pull/31683#issuecomment-5492599309 from the JDK-8387146 PR),
+and then observe if a microbenchmark that uses Unsafe in similar ways to above to access byte arrays improves performance.
 * 1.9.26
 ** PR draft
 #+begin_src bash
