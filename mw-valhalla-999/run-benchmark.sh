@@ -12,6 +12,7 @@ PROFILER=none
 WITH_PREVIEW=false
 WITH_VC=false
 WITH_PROF=false
+WITH_DEBUG=false
 
 # ── argument parsing ─────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ while [[ $# -gt 0 ]]; do
         --src)              SRC="$2";            shift 2 ;;
         --with-preview)     WITH_PREVIEW=true;   shift ;;
         --with-vc)          WITH_VC=true;        shift ;;
+        --with-debug)       WITH_DEBUG=true;     shift ;;
         --with-egc)         WITH_EGC=true;       shift ;;
         --with-prof)        WITH_PROF=true;      shift ;;
         --help)
@@ -59,6 +61,10 @@ fi
 if [[ "$WITH_PROF" == true ]]; then
     jvm_args+=(-Xlog:gc*:file=$HOME/tmp/gc.log:level,time,tags,uptime)
     PROFILER=jfr
+fi
+
+if [[ "$WITH_DEBUG" == true ]]; then
+    jvm_args+=(-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005)
 fi
 
 ./run-benchmarks.sh \
