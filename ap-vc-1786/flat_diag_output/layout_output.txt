@@ -1,0 +1,1006 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+Field layout log format: @offset size/alignment [name] [signature] [comment]
+Heap oop size = 4
+Layout of class java/lang/Record@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 8 bytes
+---
+Layout of class java/lang/Boolean@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 1/1 "value" Z
+ @9 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TRUE" Ljava/lang/Boolean;
+ @124 REGULAR 4/4 "FALSE" Ljava/lang/Boolean;
+ @128 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @132 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @136 REGULAR 4/4 ".acmp_maps" [I
+ @140 EMPTY 4/1
+ @144 REGULAR 8/8 "serialVersionUID" J
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 2/2
+NULL_FREE_NON_ATOMIC_FLAT layout: 1/1
+NULL_FREE_ATOMIC_FLAT layout: 1/1
+NULLABLE_ATOMIC_FLAT layout: 2/2
+NULLABLE_NON_ATOMIC_FLAT layout: 2/1
+Null marker offset = 9
+Non-oop acmp map <offset,size>: <8,1> 
+oop acmp map: 
+---
+Layout of class java/lang/Character@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 2/2 "value" C
+ @10 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "MIN_RADIX" I
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "MAX_RADIX" I
+ @148 REGULAR 4/4 "ERROR" I
+ @152 REGULAR 4/4 "MIN_SUPPLEMENTARY_CODE_POINT" I
+ @156 REGULAR 4/4 "MIN_CODE_POINT" I
+ @160 REGULAR 4/4 "MAX_CODE_POINT" I
+ @164 REGULAR 4/4 "SIZE" I
+ @168 REGULAR 4/4 "BYTES" I
+ @172 REGULAR 2/2 "MIN_VALUE" C
+ @174 REGULAR 2/2 "MAX_VALUE" C
+ @176 REGULAR 2/2 "MIN_HIGH_SURROGATE" C
+ @178 REGULAR 2/2 "MAX_HIGH_SURROGATE" C
+ @180 REGULAR 2/2 "MIN_LOW_SURROGATE" C
+ @182 REGULAR 2/2 "MAX_LOW_SURROGATE" C
+ @184 REGULAR 2/2 "MIN_SURROGATE" C
+ @186 REGULAR 2/2 "MAX_SURROGATE" C
+ @188 REGULAR 1/1 "UNASSIGNED" B
+ @189 REGULAR 1/1 "UPPERCASE_LETTER" B
+ @190 REGULAR 1/1 "LOWERCASE_LETTER" B
+ @191 REGULAR 1/1 "TITLECASE_LETTER" B
+ @192 REGULAR 1/1 "MODIFIER_LETTER" B
+ @193 REGULAR 1/1 "OTHER_LETTER" B
+ @194 REGULAR 1/1 "NON_SPACING_MARK" B
+ @195 REGULAR 1/1 "ENCLOSING_MARK" B
+ @196 REGULAR 1/1 "COMBINING_SPACING_MARK" B
+ @197 REGULAR 1/1 "DECIMAL_DIGIT_NUMBER" B
+ @198 REGULAR 1/1 "LETTER_NUMBER" B
+ @199 REGULAR 1/1 "OTHER_NUMBER" B
+ @200 REGULAR 1/1 "SPACE_SEPARATOR" B
+ @201 REGULAR 1/1 "LINE_SEPARATOR" B
+ @202 REGULAR 1/1 "PARAGRAPH_SEPARATOR" B
+ @203 REGULAR 1/1 "CONTROL" B
+ @204 REGULAR 1/1 "FORMAT" B
+ @205 REGULAR 1/1 "PRIVATE_USE" B
+ @206 REGULAR 1/1 "SURROGATE" B
+ @207 REGULAR 1/1 "DASH_PUNCTUATION" B
+ @208 REGULAR 1/1 "START_PUNCTUATION" B
+ @209 REGULAR 1/1 "END_PUNCTUATION" B
+ @210 REGULAR 1/1 "CONNECTOR_PUNCTUATION" B
+ @211 REGULAR 1/1 "OTHER_PUNCTUATION" B
+ @212 REGULAR 1/1 "MATH_SYMBOL" B
+ @213 REGULAR 1/1 "CURRENCY_SYMBOL" B
+ @214 REGULAR 1/1 "MODIFIER_SYMBOL" B
+ @215 REGULAR 1/1 "OTHER_SYMBOL" B
+ @216 REGULAR 1/1 "INITIAL_QUOTE_PUNCTUATION" B
+ @217 REGULAR 1/1 "FINAL_QUOTE_PUNCTUATION" B
+ @218 REGULAR 1/1 "DIRECTIONALITY_UNDEFINED" B
+ @219 REGULAR 1/1 "DIRECTIONALITY_LEFT_TO_RIGHT" B
+ @220 REGULAR 1/1 "DIRECTIONALITY_RIGHT_TO_LEFT" B
+ @221 REGULAR 1/1 "DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC" B
+ @222 REGULAR 1/1 "DIRECTIONALITY_EUROPEAN_NUMBER" B
+ @223 REGULAR 1/1 "DIRECTIONALITY_EUROPEAN_NUMBER_SEPARATOR" B
+ @224 REGULAR 1/1 "DIRECTIONALITY_EUROPEAN_NUMBER_TERMINATOR" B
+ @225 REGULAR 1/1 "DIRECTIONALITY_ARABIC_NUMBER" B
+ @226 REGULAR 1/1 "DIRECTIONALITY_COMMON_NUMBER_SEPARATOR" B
+ @227 REGULAR 1/1 "DIRECTIONALITY_NONSPACING_MARK" B
+ @228 REGULAR 1/1 "DIRECTIONALITY_BOUNDARY_NEUTRAL" B
+ @229 REGULAR 1/1 "DIRECTIONALITY_PARAGRAPH_SEPARATOR" B
+ @230 REGULAR 1/1 "DIRECTIONALITY_SEGMENT_SEPARATOR" B
+ @231 REGULAR 1/1 "DIRECTIONALITY_WHITESPACE" B
+ @232 REGULAR 1/1 "DIRECTIONALITY_OTHER_NEUTRALS" B
+ @233 REGULAR 1/1 "DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING" B
+ @234 REGULAR 1/1 "DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE" B
+ @235 REGULAR 1/1 "DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING" B
+ @236 REGULAR 1/1 "DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE" B
+ @237 REGULAR 1/1 "DIRECTIONALITY_POP_DIRECTIONAL_FORMAT" B
+ @238 REGULAR 1/1 "DIRECTIONALITY_LEFT_TO_RIGHT_ISOLATE" B
+ @239 REGULAR 1/1 "DIRECTIONALITY_RIGHT_TO_LEFT_ISOLATE" B
+ @240 REGULAR 1/1 "DIRECTIONALITY_FIRST_STRONG_ISOLATE" B
+ @241 REGULAR 1/1 "DIRECTIONALITY_POP_DIRECTIONAL_ISOLATE" B
+ @242 REGULAR 1/1 "$assertionsDisabled" Z
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 4/4
+NULL_FREE_NON_ATOMIC_FLAT layout: 2/2
+NULL_FREE_ATOMIC_FLAT layout: 2/2
+NULLABLE_ATOMIC_FLAT layout: 4/4
+NULLABLE_NON_ATOMIC_FLAT layout: 3/2
+Null marker offset = 10
+Non-oop acmp map <offset,size>: <8,2> 
+oop acmp map: 
+---
+Layout of class java/lang/Number@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".acmp_maps" [I
+ @124 EMPTY 4/1
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 8 bytes
+---
+Layout of class java/lang/Float@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "value" F
+ @12 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "POSITIVE_INFINITY" F
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "NEGATIVE_INFINITY" F
+ @148 REGULAR 4/4 "NaN" F
+ @152 REGULAR 4/4 "MAX_VALUE" F
+ @156 REGULAR 4/4 "MIN_NORMAL" F
+ @160 REGULAR 4/4 "MIN_VALUE" F
+ @164 REGULAR 4/4 "SIZE" I
+ @168 REGULAR 4/4 "PRECISION" I
+ @172 REGULAR 4/4 "MAX_EXPONENT" I
+ @176 REGULAR 4/4 "MIN_EXPONENT" I
+ @180 REGULAR 4/4 "BYTES" I
+ @184 REGULAR 1/1 "$assertionsDisabled" Z
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 4/4
+NULL_FREE_ATOMIC_FLAT layout: 4/4
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 5/4
+Null marker offset = 12
+Non-oop acmp map <offset,size>: <8,4> 
+oop acmp map: 
+---
+Layout of class java/lang/Double@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "value" D
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "SIZE" I
+ @136 REGULAR 8/8 "POSITIVE_INFINITY" D
+ @144 REGULAR 8/8 "NEGATIVE_INFINITY" D
+ @152 REGULAR 8/8 "NaN" D
+ @160 REGULAR 8/8 "MAX_VALUE" D
+ @168 REGULAR 8/8 "MIN_NORMAL" D
+ @176 REGULAR 8/8 "MIN_VALUE" D
+ @184 REGULAR 8/8 "serialVersionUID" J
+ @192 REGULAR 4/4 "PRECISION" I
+ @196 REGULAR 4/4 "MAX_EXPONENT" I
+ @200 REGULAR 4/4 "MIN_EXPONENT" I
+ @204 REGULAR 4/4 "BYTES" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 8/8
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: -/-
+Non-oop acmp map <offset,size>: <8,8> 
+oop acmp map: 
+---
+Layout of class java/lang/Byte@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 1/1 "value" B
+ @9 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "SIZE" I
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "BYTES" I
+ @148 REGULAR 1/1 "MIN_VALUE" B
+ @149 REGULAR 1/1 "MAX_VALUE" B
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 2/2
+NULL_FREE_NON_ATOMIC_FLAT layout: 1/1
+NULL_FREE_ATOMIC_FLAT layout: 1/1
+NULLABLE_ATOMIC_FLAT layout: 2/2
+NULLABLE_NON_ATOMIC_FLAT layout: 2/1
+Null marker offset = 9
+Non-oop acmp map <offset,size>: <8,1> 
+oop acmp map: 
+---
+Layout of class java/lang/Short@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 2/2 "value" S
+ @10 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "SIZE" I
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "BYTES" I
+ @148 REGULAR 2/2 "MIN_VALUE" S
+ @150 REGULAR 2/2 "MAX_VALUE" S
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 4/4
+NULL_FREE_NON_ATOMIC_FLAT layout: 2/2
+NULL_FREE_ATOMIC_FLAT layout: 2/2
+NULLABLE_ATOMIC_FLAT layout: 4/4
+NULLABLE_NON_ATOMIC_FLAT layout: 3/2
+Null marker offset = 10
+Non-oop acmp map <offset,size>: <8,2> 
+oop acmp map: 
+---
+Layout of class java/lang/Integer@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "value" I
+ @12 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 "digits" [B
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "MIN_VALUE" I
+ @148 REGULAR 4/4 "MAX_VALUE" I
+ @152 REGULAR 4/4 "SIZE" I
+ @156 REGULAR 4/4 "BYTES" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 4/4
+NULL_FREE_ATOMIC_FLAT layout: 4/4
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 5/4
+Null marker offset = 12
+Non-oop acmp map <offset,size>: <8,4> 
+oop acmp map: 
+---
+Layout of class java/lang/Long@0xffff78182fb0 extends java/lang/Number@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "value" J
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "TYPE" Ljava/lang/Class;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "SIZE" I
+ @136 REGULAR 8/8 "MIN_VALUE" J
+ @144 REGULAR 8/8 "MAX_VALUE" J
+ @152 REGULAR 8/8 "serialVersionUID" J
+ @160 REGULAR 4/4 "BYTES" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 8/8
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: -/-
+Non-oop acmp map <offset,size>: <8,8> 
+oop acmp map: 
+---
+Layout of class java/util/Optional@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "value" Ljava/lang/Object;
+ @12 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "EMPTY" Ljava/util/Optional;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 4/4
+NULL_FREE_ATOMIC_FLAT layout: 4/4
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 5/4
+Null marker offset = 12
+Non-oop acmp map <offset,size>: 
+oop acmp map: 8 
+---
+Layout of class java/util/OptionalInt@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "value" I
+ @12 REGULAR 1/1 "isPresent" Z
+ @13 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "EMPTY" Ljava/util/OptionalInt;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 6/4
+Null marker offset = 13
+Non-oop acmp map <offset,size>: <8,5> 
+oop acmp map: 
+---
+Layout of class java/util/OptionalLong@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "value" J
+ @16 REGULAR 1/1 "isPresent" Z
+ @17 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "EMPTY" Ljava/util/OptionalLong;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 10/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 10/8
+Null marker offset = 17
+Non-oop acmp map <offset,size>: <8,9> 
+oop acmp map: 
+---
+Layout of class java/util/OptionalDouble@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "value" D
+ @16 REGULAR 1/1 "isPresent" Z
+ @17 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "EMPTY" Ljava/util/OptionalDouble;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 10/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 10/8
+Null marker offset = 17
+Non-oop acmp map <offset,size>: <8,9> 
+oop acmp map: 
+---
+Layout of class java/time/LocalDate@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "year" I
+ @12 REGULAR 1/1 "month" B
+ @13 REGULAR 1/1 "day" B
+ @14 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "serialPersistentFields" [Ljava/io/ObjectStreamField;
+ @124 REGULAR 4/4 "MIN" Ljava/time/LocalDate;
+ @128 REGULAR 4/4 "MAX" Ljava/time/LocalDate;
+ @132 REGULAR 4/4 "EPOCH" Ljava/time/LocalDate;
+ @136 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @140 REGULAR 4/4 ".acmp_maps" [I
+ @144 REGULAR 8/8 "serialVersionUID" J
+ @152 REGULAR 8/8 "DAYS_0000_TO_1970" J
+ @160 REGULAR 4/4 "DAYS_PER_CYCLE" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 7/4
+Null marker offset = 14
+Non-oop acmp map <offset,size>: <8,6> 
+oop acmp map: 
+---
+Layout of class java/time/LocalTime@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "nano" I
+ @12 REGULAR 1/1 "hour" B
+ @13 REGULAR 1/1 "minute" B
+ @14 REGULAR 1/1 "second" B
+ @15 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "MIN" Ljava/time/LocalTime;
+ @124 REGULAR 4/4 "MAX" Ljava/time/LocalTime;
+ @128 REGULAR 4/4 "MIDNIGHT" Ljava/time/LocalTime;
+ @132 REGULAR 4/4 "NOON" Ljava/time/LocalTime;
+ @136 REGULAR 4/4 "HOURS" [Ljava/time/LocalTime;
+ @140 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @144 REGULAR 4/4 ".acmp_maps" [I
+ @148 REGULAR 4/4 "HOURS_PER_DAY" I
+ @152 REGULAR 8/8 "MILLIS_PER_SECOND" J
+ @160 REGULAR 8/8 "MILLIS_PER_DAY" J
+ @168 REGULAR 8/8 "MICROS_PER_SECOND" J
+ @176 REGULAR 8/8 "MICROS_PER_DAY" J
+ @184 REGULAR 8/8 "NANOS_PER_MILLI" J
+ @192 REGULAR 8/8 "NANOS_PER_SECOND" J
+ @200 REGULAR 8/8 "NANOS_PER_MINUTE" J
+ @208 REGULAR 8/8 "NANOS_PER_HOUR" J
+ @216 REGULAR 8/8 "NANOS_PER_DAY" J
+ @224 REGULAR 8/8 "serialVersionUID" J
+ @232 REGULAR 4/4 "MINUTES_PER_HOUR" I
+ @236 REGULAR 4/4 "MINUTES_PER_DAY" I
+ @240 REGULAR 4/4 "SECONDS_PER_MINUTE" I
+ @244 REGULAR 4/4 "SECONDS_PER_HOUR" I
+ @248 REGULAR 4/4 "SECONDS_PER_DAY" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 8/4
+Null marker offset = 15
+Non-oop acmp map <offset,size>: <8,7> 
+oop acmp map: 
+---
+Layout of class java/time/LocalDateTime@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 8/4 "time" Ljava/time/LocalTime; java/time/LocalTime@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @16 FLAT 7/4 "date" Ljava/time/LocalDate; java/time/LocalDate@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @23 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "MIN" Ljava/time/LocalDateTime;
+ @124 REGULAR 4/4 "MAX" Ljava/time/LocalDateTime;
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 16/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 16/4
+Null marker offset = 23
+Non-oop acmp map <offset,size>: <8,15> 
+oop acmp map: 
+---
+Layout of class java/time/Duration@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "seconds" J
+ @16 REGULAR 4/4 "nanos" I
+ @20 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "ZERO" Ljava/time/Duration;
+ @124 REGULAR 4/4 "MIN" Ljava/time/Duration;
+ @128 REGULAR 4/4 "MAX" Ljava/time/Duration;
+ @132 REGULAR 4/4 "BI_NANOS_PER_SECOND" Ljava/math/BigInteger;
+ @136 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @140 REGULAR 4/4 ".acmp_maps" [I
+ @144 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 13/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 13/8
+Null marker offset = 20
+Non-oop acmp map <offset,size>: <8,12> 
+oop acmp map: 
+---
+Layout of class java/time/Instant@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 8/8 "seconds" J
+ @16 REGULAR 4/4 "nanos" I
+ @20 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "EPOCH" Ljava/time/Instant;
+ @124 REGULAR 4/4 "MIN" Ljava/time/Instant;
+ @128 REGULAR 4/4 "MAX" Ljava/time/Instant;
+ @132 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @136 REGULAR 4/4 ".acmp_maps" [I
+ @140 EMPTY 4/1
+ @144 REGULAR 8/8 "MIN_SECOND" J
+ @152 REGULAR 8/8 "MAX_SECOND" J
+ @160 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 13/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 13/8
+Null marker offset = 20
+Non-oop acmp map <offset,size>: <8,12> 
+oop acmp map: 
+---
+Layout of class java/time/MonthDay@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 1/1 "month" B
+ @9 REGULAR 1/1 "day" B
+ @10 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "serialPersistentFields" [Ljava/io/ObjectStreamField;
+ @124 REGULAR 4/4 "PARSER" Ljava/time/format/DateTimeFormatter;
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 4/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 2/2
+NULLABLE_ATOMIC_FLAT layout: 4/4
+NULLABLE_NON_ATOMIC_FLAT layout: 3/1
+Null marker offset = 10
+Non-oop acmp map <offset,size>: <8,2> 
+oop acmp map: 
+---
+Layout of class java/time/ZonedDateTime@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 16/4 "dateTime" Ljava/time/LocalDateTime; java/time/LocalDateTime@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @24 REGULAR 4/4 "offset" Ljava/time/ZoneOffset;
+ @28 REGULAR 4/4 "zone" Ljava/time/ZoneId;
+ @32 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 40 bytes
+First field offset = 8
+BUFFERED layout: 25/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 25/4
+Null marker offset = 32
+Non-oop acmp map <offset,size>: <8,16> 
+oop acmp map: 24 28 
+---
+Layout of class java/time/OffsetDateTime@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 16/4 "dateTime" Ljava/time/LocalDateTime; java/time/LocalDateTime@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @24 REGULAR 4/4 "offset" Ljava/time/ZoneOffset;
+ @28 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "MIN" Ljava/time/OffsetDateTime;
+ @124 REGULAR 4/4 "MAX" Ljava/time/OffsetDateTime;
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 32 bytes
+First field offset = 8
+BUFFERED layout: 21/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 21/4
+Null marker offset = 28
+Non-oop acmp map <offset,size>: <8,16> 
+oop acmp map: 24 
+---
+Layout of class java/time/OffsetTime@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 8/4 "time" Ljava/time/LocalTime; java/time/LocalTime@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @16 REGULAR 4/4 "offset" Ljava/time/ZoneOffset;
+ @20 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "MIN" Ljava/time/OffsetTime;
+ @124 REGULAR 4/4 "MAX" Ljava/time/OffsetTime;
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 13/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 13/4
+Null marker offset = 20
+Non-oop acmp map <offset,size>: <8,8> 
+oop acmp map: 16 
+---
+Layout of class java/time/YearMonth@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "year" I
+ @12 REGULAR 1/1 "month" B
+ @13 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "serialPersistentFields" [Ljava/io/ObjectStreamField;
+ @124 REGULAR 4/4 "PARSER" Ljava/time/format/DateTimeFormatter;
+ @128 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @132 REGULAR 4/4 ".acmp_maps" [I
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 6/4
+Null marker offset = 13
+Non-oop acmp map <offset,size>: <8,5> 
+oop acmp map: 
+---
+Layout of class java/time/Year@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "year" I
+ @12 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "PARSER" Ljava/time/format/DateTimeFormatter;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 REGULAR 4/4 "MIN_VALUE" I
+ @136 REGULAR 8/8 "serialVersionUID" J
+ @144 REGULAR 4/4 "MAX_VALUE" I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 4/4
+NULL_FREE_ATOMIC_FLAT layout: 4/4
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 5/4
+Null marker offset = 12
+Non-oop acmp map <offset,size>: <8,4> 
+oop acmp map: 
+---
+Layout of class java/time/Period@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "years" I
+ @12 REGULAR 4/4 "months" I
+ @16 REGULAR 4/4 "days" I
+ @20 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "ZERO" Ljava/time/Period;
+ @124 REGULAR 4/4 "PATTERN" Ljava/util/regex/Pattern;
+ @128 REGULAR 4/4 "SUPPORTED_UNITS" Ljava/util/List;
+ @132 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @136 REGULAR 4/4 ".acmp_maps" [I
+ @140 EMPTY 4/1
+ @144 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 13/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 13/4
+Null marker offset = 20
+Non-oop acmp map <offset,size>: <8,12> 
+oop acmp map: 
+---
+Layout of class java/time/chrono/ChronoLocalDateImpl@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".acmp_maps" [I
+ @124 EMPTY 4/1
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 8 bytes
+---
+Layout of class java/time/chrono/MinguoDate@0xffff78182fb0 extends java/time/chrono/ChronoLocalDateImpl@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 7/4 "isoDate" Ljava/time/LocalDate; java/time/LocalDate@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @15 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 8/4
+Null marker offset = 15
+Non-oop acmp map <offset,size>: <8,7> 
+oop acmp map: 
+---
+Layout of class java/time/chrono/HijrahDate@0xffff78182fb0 extends java/time/chrono/ChronoLocalDateImpl@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "prolepticYear" I
+ @12 REGULAR 4/4 "chrono" Ljava/time/chrono/HijrahChronology;
+ @16 REGULAR 1/1 "monthOfYear" B
+ @17 REGULAR 1/1 "dayOfMonth" B
+ @18 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 11/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 11/4
+Null marker offset = 18
+Non-oop acmp map <offset,size>: <8,4> <16,2> 
+oop acmp map: 12 
+---
+Layout of class java/time/chrono/JapaneseDate@0xffff78182fb0 extends java/time/chrono/ChronoLocalDateImpl@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 7/4 "isoDate" Ljava/time/LocalDate; java/time/LocalDate@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @15 NULL_MARKER 1/1 
+ @16 REGULAR 4/4 "yearOfEra" I
+ @20 REGULAR 4/4 "era" Ljava/time/chrono/JapaneseEra;
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "MEIJI_6_ISODATE" Ljava/time/LocalDate;
+ @124 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @128 REGULAR 4/4 ".acmp_maps" [I
+ @132 EMPTY 4/1
+ @136 REGULAR 8/8 "serialVersionUID" J
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 16/4
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: -/-
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 16/4
+Null marker offset = 15
+Non-oop acmp map <offset,size>: <8,7> <16,4> 
+oop acmp map: 20 
+---
+Layout of class java/time/chrono/ThaiBuddhistDate@0xffff78182fb0 extends java/time/chrono/ChronoLocalDateImpl@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 7/4 "isoDate" Ljava/time/LocalDate; java/time/LocalDate@0xffff78182fb0 NULLABLE_NON_ATOMIC_FLAT
+ @15 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+ @128 REGULAR 8/8 "serialVersionUID" J
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 8/4
+Null marker offset = 15
+Non-oop acmp map <offset,size>: <8,7> 
+oop acmp map: 
+---
+Layout of class java/io/ObjectStreamClass@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "primDataSize" I
+ @12 REGULAR 4/4 "numObjFields" I
+ @16 REGULAR 1/1 "isProxy" Z
+ @17 REGULAR 1/1 "isEnum" Z
+ @18 REGULAR 1/1 "isRecord" Z
+ @19 REGULAR 1/1 "requiresDeserializer" Z
+ @20 REGULAR 1/1 "serializable" Z
+ @21 REGULAR 1/1 "externalizable" Z
+ @22 REGULAR 1/1 "hasWriteObjectData" Z
+ @23 REGULAR 1/1 "hasBlockExternalData" Z
+ @24 REGULAR 1/1 "initialized" Z
+ @25 EMPTY 3/1
+ @28 REGULAR 4/4 "cl" Ljava/lang/Class;
+ @32 REGULAR 4/4 "name" Ljava/lang/String;
+ @36 REGULAR 4/4 "suid" Ljava/lang/Long;
+ @40 REGULAR 4/4 "resolveEx" Ljava/lang/ClassNotFoundException;
+ @44 REGULAR 4/4 "deserializeEx" Ljava/io/ObjectStreamClass$ExceptionInfo;
+ @48 REGULAR 4/4 "serializeEx" Ljava/io/ObjectStreamClass$ExceptionInfo;
+ @52 REGULAR 4/4 "defaultSerializeEx" Ljava/io/ObjectStreamClass$ExceptionInfo;
+ @56 REGULAR 4/4 "fields" [Ljava/io/ObjectStreamField;
+ @60 REGULAR 4/4 "fieldRefl" Ljava/io/ObjectStreamClass$FieldReflector;
+ @64 REGULAR 4/4 "dataLayout" [Ljava/io/ObjectStreamClass$ClassDataSlot;
+ @68 REGULAR 4/4 "cons" Ljava/lang/reflect/Constructor;
+ @72 REGULAR 4/4 "canonicalCtr" Ljava/lang/invoke/MethodHandle;
+ @76 REGULAR 4/4 "cachedRecordConstructors" Ljava/io/ObjectStreamClass$RecordConstructorsCache;
+ @80 REGULAR 4/4 "cachedAlternativeFactory" Ljava/lang/invoke/MethodHandle;
+ @84 REGULAR 4/4 "deserializer" Ljava/lang/reflect/Executable;
+ @88 REGULAR 4/4 "writeObjectMethod" Ljava/lang/reflect/Method;
+ @92 REGULAR 4/4 "readObjectMethod" Ljava/lang/reflect/Method;
+ @96 REGULAR 4/4 "readObjectNoDataMethod" Ljava/lang/reflect/Method;
+ @100 REGULAR 4/4 "writeReplaceMethod" Ljava/lang/reflect/Method;
+ @104 REGULAR 4/4 "readResolveMethod" Ljava/lang/reflect/Method;
+ @108 REGULAR 4/4 "localDesc" Ljava/io/ObjectStreamClass;
+ @112 REGULAR 4/4 "superDesc" Ljava/io/ObjectStreamClass;
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "NO_FIELDS" [Ljava/io/ObjectStreamField;
+ @124 REGULAR 4/4 "serialPersistentFields" [Ljava/io/ObjectStreamField;
+ @128 REGULAR 8/8 "serialVersionUID" J
+ @136 REGULAR 1/1 "$assertionsDisabled" Z
+Instance size = 120 bytes
+---
+Layout of class java/io/FileInputStream@0xffff78182fb0 extends java/io/InputStream@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 2/2 "isRegularFile" Ljava/lang/Boolean; java/lang/Boolean@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @10 REGULAR 1/1 "closed" Z
+ @11 EMPTY 1/1
+ @12 REGULAR 4/4 "fd" Ljava/io/FileDescriptor;
+ @16 REGULAR 4/4 "path" Ljava/lang/String;
+ @20 REGULAR 4/4 "channel" Ljava/nio/channels/FileChannel;
+ @24 REGULAR 4/4 "closeLock" Ljava/lang/Object;
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "DEFAULT_BUFFER_SIZE" I
+ @124 REGULAR 1/1 "jfrTracing" Z
+Instance size = 32 bytes
+---
+Flat Type Array: [Ljava.lang.Integer; {0x000001fe0002a400}
+ - element klass: 'java/lang/Integer'
+ - layout kind: NULLABLE_ATOMIC_FLAT
+ - array properties: NULLABLE ATOMIC 
+ - element size 8 aligned layout size 8
+Flat Type Array: [Ljava.lang.Character; {0x000001fe0002fd00}
+ - element klass: 'java/lang/Character'
+ - layout kind: NULLABLE_ATOMIC_FLAT
+ - array properties: NULLABLE ATOMIC 
+ - element size 4 aligned layout size 4
+Layout of class java/lang/Runtime$Version@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 8/8 "pre" Ljava/util/Optional; java/util/Optional@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @16 FLAT 8/8 "build" Ljava/util/Optional; java/util/Optional@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @24 FLAT 8/8 "optional" Ljava/util/Optional; java/util/Optional@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @32 REGULAR 4/4 "version" Ljava/util/List;
+Static fields:
+ @0 RESERVED 120/-
+Instance size = 40 bytes
+---
+Layout of class sun/nio/ch/ChannelInputStream@0xffff78182fb0 extends java/io/InputStream@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 2/2 "isOther" Ljava/lang/Boolean; java/lang/Boolean@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @10 EMPTY 2/1
+ @12 REGULAR 4/4 "ch" Ljava/nio/channels/ReadableByteChannel;
+ @16 REGULAR 4/4 "bb" Ljava/nio/ByteBuffer;
+ @20 REGULAR 4/4 "bs" [B
+ @24 REGULAR 4/4 "b1" [B
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "DEFAULT_BUFFER_SIZE" I
+Instance size = 32 bytes
+---
+Layout of class jdk/internal/classfile/impl/ClassReaderImpl@0xffff78182fb0 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 FLAT 8/8 "superclass" Ljava/util/Optional; java/util/Optional@0xffff78182fb0 NULLABLE_ATOMIC_FLAT
+ @16 REGULAR 4/4 "metadataStart" I
+ @20 REGULAR 4/4 "classfileLength" I
+ @24 REGULAR 4/4 "version" I
+ @28 REGULAR 4/4 "flags" I
+ @32 REGULAR 4/4 "thisClassPos" I
+ @36 REGULAR 4/4 "constantPoolCount" I
+ @40 REGULAR 4/4 "interfacesPos" I
+ @44 REGULAR 4/4 "buffer" [B
+ @48 REGULAR 4/4 "attributeMapper" Ljava/util/function/Function;
+ @52 REGULAR 4/4 "thisClass" Ljava/lang/classfile/constantpool/ClassEntry;
+ @56 REGULAR 4/4 "cpOffset" [I
+ @60 REGULAR 4/4 "context" Ljdk/internal/classfile/impl/ClassFileImpl;
+ @64 REGULAR 4/4 "cp" [Ljava/lang/classfile/constantpool/PoolEntry;
+ @68 REGULAR 4/4 "containedClass" Ljava/lang/classfile/ClassModel;
+ @72 REGULAR 4/4 "bsmEntries" Ljava/util/List;
+ @76 REGULAR 4/4 "bootstrapMethodsAttribute" Ljava/lang/classfile/attribute/BootstrapMethodsAttribute;
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 "CP_ITEM_START" I
+Instance size = 80 bytes
+---
+Layout of class FlatAllocReproducer$LargeVP@0xffff7855bf80 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "x" I
+ @12 REGULAR 4/4 "y" I
+ @16 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 24 bytes
+First field offset = 8
+BUFFERED layout: 9/8
+NULL_FREE_NON_ATOMIC_FLAT layout: -/-
+NULL_FREE_ATOMIC_FLAT layout: 8/8
+NULLABLE_ATOMIC_FLAT layout: -/-
+NULLABLE_NON_ATOMIC_FLAT layout: 9/4
+Null marker offset = 16
+Non-oop acmp map <offset,size>: <8,8> 
+oop acmp map: 
+---
+Layout of class FlatAllocReproducer$SmallVP@0xffff7855bf80 extends java/lang/Object@0xffff78182fb0
+Instance fields:
+ @0 RESERVED 8/-
+ @8 REGULAR 4/4 "x" I
+ @12 NULL_MARKER 1/1 
+Static fields:
+ @0 RESERVED 120/-
+ @120 REGULAR 4/4 ".null_reset" Ljava/lang/Object;
+ @124 REGULAR 4/4 ".acmp_maps" [I
+Instance size = 16 bytes
+First field offset = 8
+BUFFERED layout: 8/8
+NULL_FREE_NON_ATOMIC_FLAT layout: 4/4
+NULL_FREE_ATOMIC_FLAT layout: 4/4
+NULLABLE_ATOMIC_FLAT layout: 8/8
+NULLABLE_NON_ATOMIC_FLAT layout: 5/4
+Null marker offset = 12
+Non-oop acmp map <offset,size>: <8,4> 
+oop acmp map: 
+---
+Flat Type Array: [LFlatAllocReproducer$SmallVP; {0x000001fe00140c00}
+ - element klass: 'FlatAllocReproducer$SmallVP'
+ - layout kind: NULLABLE_ATOMIC_FLAT
+ - array properties: NULLABLE ATOMIC 
+ - element size 8 aligned layout size 8
+Flat Type Array: [LFlatAllocReproducer$LargeVP; {0x000001fe00141600}
+ - element klass: 'FlatAllocReproducer$LargeVP'
+ - layout kind: NULL_FREE_ATOMIC_FLAT
+ - array properties: NULL_RESTRICTED ATOMIC 
+ - element size 8 aligned layout size 8
+====== Array properties ======
+  smallArr   (new SmallVP[])                   flat=true   shallow= 8,208 bytes  (8 bytes/elem)
+  largeNRArr (newNullRestrictedAtomicArray)     flat=true   shallow= 8,208 bytes  (8 bytes/elem)
+  largeRegArr(new LargeVP[])                   flat=false  shallow= 4,112 bytes  (4 bytes/elem)
+
+==== Steady-state start ====
+[ 1/11] smallFlatWrite …
+[ 2/11] smallFlatRead …
+[ 3/11] largeFlatNRWrite …
+[ 4/11] largeFlatNRRead …
+[ 5/11] largeRegWrite …
+[ 6/11] largeRegRead …
+[ 7/11] flatWriteNoEscape …
+[ 8/11] flatWriteEscaping …
+[ 9/11] flatReadTyped …
+[10/11] boxedAllocations …
+[11/11] identityBaseline …
+==== Done ====

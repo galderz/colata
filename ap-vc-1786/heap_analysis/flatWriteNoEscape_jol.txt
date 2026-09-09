@@ -1,0 +1,137 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+# WARNING: Unable to attach Serviceability Agent. You can try again with escalated privileges. Two options: a) use -Djol.tryWithSudo=true to try with sudo; b) echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::arrayBaseOffset has been called by org.openjdk.jol.vm.HotspotUnsafe (file:/home/agentuser/src/jol/jol-cli/target/jol-cli.jar)
+WARNING: Please consider reporting this to the maintainers of class org.openjdk.jol.vm.HotspotUnsafe
+WARNING: sun.misc.Unsafe::arrayBaseOffset will be removed in a future release
+Heap Dump: /home/agentuser/ap-reproducer/heap_analysis/flatWriteNoEscape.hprof
+Reading:  done 36 MB in 0.255 seconds at 150 MB/sec
+
+Hotspot Layout Simulation (JDK 28, Current VM: 8-byte object headers, 4-byte references, 8-byte aligned objects)
+
+=== Class Histogram
+
+Table is sorted by "INSTANCES".
+Printing first 30 lines. Use -DprintFirst=# to override.
+
+       INSTANCES            SIZE        SUM SIZE    CLASS
+------------------------------------------------------------------------------------------------
+         111,617              16       1,785,872    HeapScenario$LargeVP
+          42,468              24       1,019,232    java.lang.String
+          32,706              24         784,944    java.util.ArrayList$Itr
+          27,450              24         658,800    java.util.HashMap$Node
+          19,569              24         469,656    java.util.ArrayList
+          16,389              24         393,336    java.util.ImmutableCollections$ListItr
+          15,321              16         245,136    java.lang.Long
+          11,647              48         559,056    java.nio.HeapByteBuffer
+          10,927              16         174,832    jdk.jfr.internal.MetadataDescriptor$Attribute
+          10,464              56         585,984    java.lang.Object[10]
+           9,044              16         144,704    java.util.ArrayDeque$$Lambda+0x0000002000195400
+           6,881              16         110,096    byte[4]
+           6,786              56         380,016    jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl
+           6,446              32         206,272    java.util.LinkedHashMap$Entry
+           6,139              40         245,560    java.util.HashMap
+           6,087              16          97,392    java.util.Collections$UnmodifiableCollection$1
+           5,101              24         122,424    jdk.jfr.internal.MetadataDescriptor$Element
+           5,025              16          80,400    java.util.ImmutableCollections$List12
+           4,872              16          77,952    java.lang.Object[1]
+           4,735              80         378,800    java.util.HashMap$Node[16]
+           4,213              16          67,408    java.util.HashSet
+           3,922              32         125,504    byte[16]
+           3,525              24          84,600    byte[7]
+           3,089              16          49,424    jdk.internal.classfile.impl.LabelImpl
+           2,823              24          67,752    java.lang.StringBuilder
+           2,788              24          66,912    java.lang.Object[2]
+           2,753              16          44,048    byte[3]
+           2,669              32          85,408    java.util.LinkedHashMap$LinkedEntryIterator
+           2,593              88         228,184    java.lang.reflect.Method
+           2,478              24          59,472    byte[5]
+             ...             ...             ...    ...
+         154,347       2,225,808      13,073,136    <other>
+------------------------------------------------------------------------------------------------
+         544,874       2,226,688      22,472,312    <total>
+
+=== Class Histogram
+
+Table is sorted by "SIZE".
+Printing first 30 lines. Use -DprintFirst=# to override.
+
+       INSTANCES            SIZE        SUM SIZE    CLASS
+------------------------------------------------------------------------------------------------
+               1         602,912         602,912    int[150724]
+               1         262,160         262,160    java.util.concurrent.ConcurrentHashMap$Node[65536]
+               1         160,016         160,016    byte[160000]
+               1         113,208         113,208    byte[113191]
+               1          80,016          80,016    byte[80000]
+               2          65,552         131,104    byte[65536]
+               2          40,984          81,968    byte[40971]
+               2          40,872          81,744    byte[40853]
+               1          40,016          40,016    byte[40000]
+               1          36,952          36,952    java.lang.Object[9234]
+               2          32,784          65,568    byte[32768]
+               1          24,640          24,640    java.lang.Object[6156]
+               1          16,888          16,888    int[4218]
+               1          16,432          16,432    java.lang.Object[4104]
+             222          16,400       3,640,800    int[4096]
+               3          16,400          49,200    char[8192]
+               2          16,400          32,800    java.util.HashMap$Node[4096]
+               2          16,400          32,800    byte[16384]
+               1          16,400          16,400    jdk.internal.ref.PhantomCleanable[4096]
+               1          10,960          10,960    java.lang.Object[2736]
+              69           8,208         566,352    byte[8192]
+               1           8,208           8,208    java.util.concurrent.ConcurrentHashMap$Node[2048]
+               1           8,208           8,208    java.util.HashMap$Node[2048]
+               1           7,312           7,312    java.lang.Object[1824]
+               1           5,576           5,576    byte[5560]
+               1           4,880           4,880    java.lang.Object[1216]
+               1           4,800           4,800    byte[4784]
+               1           4,792           4,792    byte[4775]
+               1           4,536           4,536    byte[4524]
+               1           4,288           4,288    byte[4275]
+             ...             ...             ...    ...
+         544,547         539,488      16,356,776    <other>
+------------------------------------------------------------------------------------------------
+         544,874       2,226,688      22,472,312    <total>
+
+=== Class Histogram
+
+Table is sorted by "SUM SIZE".
+Printing first 30 lines. Use -DprintFirst=# to override.
+
+       INSTANCES            SIZE        SUM SIZE    CLASS
+------------------------------------------------------------------------------------------------
+             222          16,400       3,640,800    int[4096]
+         111,617              16       1,785,872    HeapScenario$LargeVP
+          42,468              24       1,019,232    java.lang.String
+             195           4,112         801,840    java.lang.classfile.constantpool.PoolEntry[1024]
+          32,706              24         784,944    java.util.ArrayList$Itr
+          27,450              24         658,800    java.util.HashMap$Node
+               1         602,912         602,912    int[150724]
+          10,464              56         585,984    java.lang.Object[10]
+              69           8,208         566,352    byte[8192]
+          11,647              48         559,056    java.nio.HeapByteBuffer
+          19,569              24         469,656    java.util.ArrayList
+          16,389              24         393,336    java.util.ImmutableCollections$ListItr
+           6,786              56         380,016    jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl
+           4,735              80         378,800    java.util.HashMap$Node[16]
+               1         262,160         262,160    java.util.concurrent.ConcurrentHashMap$Node[65536]
+           6,139              40         245,560    java.util.HashMap
+          15,321              16         245,136    java.lang.Long
+           2,593              88         228,184    java.lang.reflect.Method
+           6,446              32         206,272    java.util.LinkedHashMap$Entry
+          10,927              16         174,832    jdk.jfr.internal.MetadataDescriptor$Attribute
+               1         160,016         160,016    byte[160000]
+             153           1,040         159,120    byte[1024]
+           9,044              16         144,704    java.util.ArrayDeque$$Lambda+0x0000002000195400
+               2          65,552         131,104    byte[65536]
+           3,922              32         125,504    byte[16]
+           5,101              24         122,424    jdk.jfr.internal.MetadataDescriptor$Element
+             224             528         118,272    byte[512]
+             899             128         115,072    java.lang.reflect.ClassFileFormatVersion[29]
+             422             272         114,784    byte[256]
+               1         113,208         113,208    byte[113191]
+             ...             ...             ...    ...
+         199,360         991,512       7,178,360    <other>
+------------------------------------------------------------------------------------------------
+         544,874       2,226,688      22,472,312    <total>
+

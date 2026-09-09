@@ -1,0 +1,10 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+[1.632s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.632s][info][jfr,startup] 
+[1.632s][info][jfr,startup] Use jcmd 132496 JFR.dump name=1 to copy recording data to file.
+Scenario: flatWriteEscaping, iterations: 2000000
+Scenario completed, forcing OOME for heap dump …
+java.lang.OutOfMemoryError: Requested array size exceeds VM limit
+Dumping heap to /home/agentuser/ap-reproducer/heap_analysis/flatWriteEscaping.hprof ...
+Heap dump file created [38151938 bytes in 0.148 secs]
+Terminating due to java.lang.OutOfMemoryError: Requested array size exceeds VM limit

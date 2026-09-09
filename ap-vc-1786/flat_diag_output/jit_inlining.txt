@@ -1,0 +1,1394 @@
+[debug][jit,inlining]                               @ 17   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 27   java.lang.StringLatin1::hashCode (9 bytes)   inline
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.ArraysSupport::hashCodeOfUnsigned (55 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 37  java/lang/StringUTF16::hashCode (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 23   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                   @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 21  java/lang/StringUTF16::charAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 12   jdk.internal.util.Preconditions::outOfBoundsCheckIndex (25 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 14   jdk.internal.misc.Unsafe::getReferenceAcquire (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.misc.Unsafe::getReferenceVolatile (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 18   jdk.internal.classfile.impl.BufWriterImpl::grow (33 bytes)   inline
+[debug][jit,inlining]                                 @ 26   java.util.Arrays::copyOf (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 39   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 51   jdk.internal.util.ArraysSupport::vectorizedHashCode (158 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 26   java.lang.Math::max (11 bytes)   inline
+[debug][jit,inlining]                               @ 31   jdk.internal.classfile.impl.EntryMap::<init> (86 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 76   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 83   java.lang.classfile.constantpool.PoolEntry::index (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 88   jdk.internal.classfile.impl.EntryMap::put (186 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 94   java.lang.classfile.constantpool.PoolEntry::width (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 106   java.lang.Math::max (11 bytes)   inline
+[debug][jit,inlining]                               @ 131   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 138   java.lang.classfile.constantpool.PoolEntry::index (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 143   jdk.internal.classfile.impl.EntryMap::put (186 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 149   java.lang.classfile.constantpool.PoolEntry::width (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 6   jdk.internal.classfile.impl.SplitConstantPool::size (5 bytes)   inline
+[debug][jit,inlining]                               @ 30   jdk.internal.classfile.impl.ClassReaderImpl::entryByIndex (8 bytes)   inline
+[debug][jit,inlining]                                 @ 4   jdk.internal.classfile.impl.ClassReaderImpl::entryByIndex (809 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 53   jdk.internal.classfile.impl.SplitConstantPool::unusableCP (27 bytes)   inline
+[debug][jit,inlining]                                 @ 8   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 13   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 17   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 20   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 23  java/lang/classfile/constantpool/ConstantPoolException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 13   jdk.internal.classfile.impl.SplitConstantPool::badCP (27 bytes)   inline
+[debug][jit,inlining]                                 @ 8   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 13   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 17   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 20   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 23  java/lang/classfile/constantpool/ConstantPoolException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 4   java.util.Objects::checkFromIndexSize (8 bytes)   inline
+[debug][jit,inlining]                                 @ 4   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                   @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                !              @ 30   java.io.InputStream::read (81 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 44  java/io/EOFException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 34   jdk.internal.misc.Unsafe::compareAndSetReference (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 55  java/io/IOException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 2   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 13  java/io/IOException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 1   java.io.BufferedInputStream::ensureOpen (18 bytes)   inline
+[debug][jit,inlining]                                 @ 13  java/io/IOException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 25   java.lang.IndexOutOfBoundsException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 48   java.io.BufferedInputStream::read1 (121 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 100   java.io.InputStream::available (2 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 18   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 26   java.lang.Math::max (11 bytes)   inline
+[debug][jit,inlining]                               @ 46   java.io.BufferedInputStream::getInIfOpen (21 bytes)   inline
+[debug][jit,inlining]                                 @ 15  java/io/IOException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                !              @ 52   java.io.InputStream::read (81 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 57   java.io.BufferedInputStream::fill (204 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 93   java.io.BufferedInputStream::getBufIfOpen (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 104   java.lang.System::arraycopy (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 4   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                 @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2   java.lang.invoke.VarHandle::checkAccessModeThenIsDirect (29 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 12   java.lang.invoke.VarHandle::accessModeType (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 33   java.lang.invoke.VarHandle::accessModeTypeUncached (10 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.invoke.VarHandle$AccessType::values (10 bytes)   inline
+[debug][jit,inlining]                                       @ 3   java.lang.Object::clone (0 bytes)   failed to inline: native method
+[debug][jit,inlining]                                     @ 6   java.lang.invoke.VarHandle::accessModeTypeUncached (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                                 @ 24   java.lang.invoke.VarHandle::throwWrongMethodTypeException (46 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                               @ 42   java.lang.invoke.VarForm::getMemberName (38 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 13   java.lang.invoke.VarForm::resolveMemberName (91 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                                 @ 26   java.lang.invoke.VarHandle$AccessMode::valueFromOrdinal (6 bytes)   inline
+[debug][jit,inlining]                                 @ 29   java.lang.invoke.VarHandle$AccessMode::methodName (5 bytes)   inline
+[debug][jit,inlining]                                 @ 32  java/lang/UnsupportedOperationException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 45   java.lang.invoke.MethodHandle::linkToStatic(LLIL)I (0 bytes)   failed to inline: MemberName not constant
+[debug][jit,inlining]                               @ 54   java.lang.invoke.VarHandle::getMethodHandle (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 33   java.lang.invoke.VarHandle::getMethodHandleUncached (85 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 65   java.lang.invoke.MethodHandle::asType (28 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 12   java.lang.invoke.MethodHandle::asTypeCached (52 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 24   java.lang.invoke.MethodHandle::setAsTypeCache (39 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                               @ 69   java.lang.invoke.VarHandle::asDirect (2 bytes)   force inline by annotation
+[debug][jit,inlining]                               @ 74   java.lang.invoke.MethodHandle::invokeBasic(LLI)I (0 bytes)   failed to inline: receiver not constant
+[debug][jit,inlining]                               @ 12   java.lang.invoke.VarHandle::accessModeType (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 33   java.lang.invoke.VarHandle::accessModeTypeUncached (10 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.invoke.VarHandle$AccessType::values (10 bytes)   inline
+[debug][jit,inlining]                                     @ 3   java.lang.Object::clone (0 bytes)   failed to inline: native method
+[debug][jit,inlining]                                   @ 6   java.lang.invoke.VarHandle::accessModeTypeUncached (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 24   java.lang.invoke.VarHandle::throwWrongMethodTypeException (46 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                               @ 13   java.lang.invoke.VarForm::resolveMemberName (91 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                               @ 26   java.lang.invoke.VarHandle$AccessMode::valueFromOrdinal (6 bytes)   inline
+[debug][jit,inlining]                               @ 29   java.lang.invoke.VarHandle$AccessMode::methodName (5 bytes)   inline
+[debug][jit,inlining]                               @ 32  java/lang/UnsupportedOperationException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 4   java.io.DataInput::readUnsignedShort (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 7   java.io.DataInputStream::readFully (59 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 15   jdk.internal.util.ByteArray::getUnsignedShort (12 bytes)   inline
+[debug][jit,inlining]                                 @ 5   java.lang.invoke.VarHandleGuards::guard_LI_I (78 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 2   java.lang.invoke.VarHandle::checkAccessModeThenIsDirect (29 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 42   java.lang.invoke.VarForm::getMemberName (38 bytes)   force inline by annotation
+[debug][jit,inlining]                                     @ 13   java.lang.invoke.VarForm::resolveMemberName (91 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                                     @ 26   java.lang.invoke.VarHandle$AccessMode::valueFromOrdinal (6 bytes)   inline
+[debug][jit,inlining]                                     @ 29   java.lang.invoke.VarHandle$AccessMode::methodName (5 bytes)   inline
+[debug][jit,inlining]                                     @ 32  java/lang/UnsupportedOperationException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                                   @ 45   java.lang.invoke.MethodHandle::linkToStatic(LLIL)I (0 bytes)   failed to inline: MemberName not constant
+[debug][jit,inlining]                                   @ 54   java.lang.invoke.VarHandle::getMethodHandle (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                     @ 33   java.lang.invoke.VarHandle::getMethodHandleUncached (85 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 65   java.lang.invoke.MethodHandle::asType (28 bytes)   force inline by annotation
+[debug][jit,inlining]                                     @ 12   java.lang.invoke.MethodHandle::asTypeCached (52 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                     @ 24   java.lang.invoke.MethodHandle::setAsTypeCache (39 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                                   @ 69   java.lang.invoke.VarHandle::asDirect (2 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 74   java.lang.invoke.MethodHandle::invokeBasic(LLI)I (0 bytes)   failed to inline: receiver not constant
+[debug][jit,inlining]                                 @ 8   java.lang.Short::toUnsignedInt (5 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::isLatin1 (19 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 3   java.lang.String::checkIndex (10 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 20   java.util.HashMap::resize (356 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 56   java.util.HashMap::newNode (13 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 91   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 123   java.util.HashMap$TreeNode::putTreeVal (314 bytes)   failed to inline: callee's klass not linked yet
+[debug][jit,inlining]                               @ 152   java.util.HashMap::newNode (13 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 169   java.util.HashMap::treeifyBin (110 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 203   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 253   java.util.HashMap::afterNodeAccess (1 bytes)   inline
+[debug][jit,inlining]                               @ 288   java.util.HashMap::resize (356 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 295   java.util.HashMap::afterNodeInsertion (1 bytes)   inline
+[debug][jit,inlining]                               @ 9   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 2   java.util.HashMap::hash (20 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 9   java.util.HashMap::putVal (300 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 9   java.util.HashMap$Node::<init> (26 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 2   java.lang.CharSequence::charAt (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 9   java.lang.Character::isHighSurrogate (18 bytes)   inline
+[debug][jit,inlining]                               @ 20   java.lang.CharSequence::length (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 30   java.lang.CharSequence::charAt (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 37   java.lang.Character::isLowSurrogate (18 bytes)   inline
+[debug][jit,inlining]                               @ 45   java.lang.Character::toCodePoint (10 bytes)   inline
+[debug][jit,inlining]                               @ 8   java.util.HashMap::put (13 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 5   java.lang.invoke.VarHandleGuards::guard_LI_I (78 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 2   java.lang.invoke.VarHandle::checkAccessModeThenIsDirect (29 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 42   java.lang.invoke.VarForm::getMemberName (38 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 13   java.lang.invoke.VarForm::resolveMemberName (91 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                                   @ 26   java.lang.invoke.VarHandle$AccessMode::valueFromOrdinal (6 bytes)   inline
+[debug][jit,inlining]                                   @ 29   java.lang.invoke.VarHandle$AccessMode::methodName (5 bytes)   inline
+[debug][jit,inlining]                                   @ 32  java/lang/UnsupportedOperationException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                                 @ 45   java.lang.invoke.MethodHandle::linkToStatic(LLIL)I (0 bytes)   failed to inline: MemberName not constant
+[debug][jit,inlining]                                 @ 54   java.lang.invoke.VarHandle::getMethodHandle (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 33   java.lang.invoke.VarHandle::getMethodHandleUncached (85 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 65   java.lang.invoke.MethodHandle::asType (28 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 12   java.lang.invoke.MethodHandle::asTypeCached (52 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 24   java.lang.invoke.MethodHandle::setAsTypeCache (39 bytes)   failed to inline: don't inline by annotation
+[debug][jit,inlining]                                 @ 69   java.lang.invoke.VarHandle::asDirect (2 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 74   java.lang.invoke.MethodHandle::invokeBasic(LLI)I (0 bytes)   failed to inline: receiver not constant
+[debug][jit,inlining]                               @ 8   java.lang.Short::toUnsignedInt (5 bytes)   inline
+[debug][jit,inlining]                               @ 23   java.lang.Byte::toUnsignedInt (6 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 19   java.lang.invoke.VarHandleByteArrayAsShorts$ArrayHandle::index (12 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 31   jdk.internal.misc.Unsafe::getShortUnaligned (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 8   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 5   jdk.internal.misc.Unsafe::getShortUnaligned (33 bytes)   intrinsic
+[debug][jit,inlining]                               @ 8   jdk.internal.misc.Unsafe::convEndian (16 bytes)   inline
+[debug][jit,inlining]                                 @ 12   java.lang.Short::reverseBytes (14 bytes)   inline
+[debug][jit,inlining]                               @ 11   jdk.internal.misc.Unsafe::getShort (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 18   jdk.internal.misc.Unsafe::getByte (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 26   jdk.internal.misc.Unsafe::getByte (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 29   jdk.internal.misc.Unsafe::makeShort (26 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.misc.Unsafe::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.misc.Unsafe::pickPos (14 bytes)   inline
+[debug][jit,inlining]                                 @ 12   jdk.internal.misc.Unsafe::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                                 @ 19   jdk.internal.misc.Unsafe::pickPos (14 bytes)   inline
+[debug][jit,inlining]                               @ 12   java.lang.Short::reverseBytes (14 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 13   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 37   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 46  java/lang/StringUTF16::codePointAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 1   java.lang.StringLatin1::canEncode (13 bytes)   inline
+[debug][jit,inlining]                               @ 41   java.lang.StringLatin1::canEncode (13 bytes)   inline
+[debug][jit,inlining]                               @ 48   java.lang.StringConcatHelper::newArray (28 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 10   java.lang.OutOfMemoryError::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                 @ 21   jdk.internal.misc.Unsafe::allocateUninitializedArray (55 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 122   java.lang.String::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 127  java/lang/StringUTF16::newBytesFor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 139   java.lang.StringLatin1::inflate (35 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 175  java/lang/StringUTF16::putChar (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 191   java.lang.String::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 15   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 19   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 24   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 28   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 33   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 36   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 39  jdk/internal/module/ModuleInfo::invalidModuleDescriptor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 56   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                     @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                 @ 21  java/lang/StringUTF16::charAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 86   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 90   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 95   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 99   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 104   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 109   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (102 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 114   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 117   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 120  jdk/internal/module/ModuleInfo::invalidModuleDescriptor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 23  java/util/ConcurrentModificationException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 35  java/util/NoSuchElementException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 16  jdk/internal/module/ModuleInfo::invalidModuleDescriptor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 1   java.lang.CharacterData::of (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 5   java.lang.CharacterData::isJavaIdentifierPart (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 2   java.lang.CharacterDataLatin1::getProperties (11 bytes)   inline
+[debug][jit,inlining]                               @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline
+[debug][jit,inlining]                                 @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 51   jdk.internal.util.ArraysSupport::unsignedHashCode (36 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 71   jdk.internal.util.ArraysSupport::utf16hashCode (40 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 84   jdk.internal.util.ArraysSupport::hashCode (33 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 97   jdk.internal.util.ArraysSupport::hashCode (33 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 110   jdk.internal.util.ArraysSupport::hashCode (33 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 123   jdk.internal.util.ArraysSupport::hashCode (33 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 137   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 142   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 147   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 150   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 153   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 4   java.io.DataInput::readUnsignedByte (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 4   java.io.InputStream::read (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 16  java/io/EOFException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 12   java.io.BufferedInputStream::fill (204 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 29   java.io.BufferedInputStream::getBufIfOpen (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 17   java.lang.String::isLatin1 (19 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 27   java.lang.StringLatin1::hashCode (9 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.ArraysSupport::hashCodeOfUnsigned (55 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 51   jdk.internal.util.ArraysSupport::vectorizedHashCode (158 bytes)   (intrinsic)
+[debug][jit,inlining]                                   @ 39   java.lang.Byte::toUnsignedInt (6 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 1   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 9   java.lang.Math::floorMod (20 bytes)   inline
+[debug][jit,inlining]                               @ 31   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 3   java.lang.Iterable::iterator (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 10   java.util.Iterator::hasNext (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 19   java.util.Iterator::next (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 30   java.lang.Enum::name (5 bytes)   inline
+[debug][jit,inlining]                               @ 33   java.lang.String::hashCode (60 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 4   java.lang.String::checkBoundsBeginEnd (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline
+[debug][jit,inlining]                                   @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 8   java.lang.StringLatin1::canEncode (17 bytes)   inline
+[debug][jit,inlining]                               @ 20   java.lang.StringLatin1::indexOfChar0 (33 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 18   java.lang.StringLatin1::indexOf (24 bytes)   inline
+[debug][jit,inlining]                                 @ 4   java.lang.String::checkBoundsBeginEnd (11 bytes)   inline
+[debug][jit,inlining]                                   @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline
+[debug][jit,inlining]                                     @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 8   java.lang.StringLatin1::canEncode (17 bytes)   inline
+[debug][jit,inlining]                                 @ 20   java.lang.StringLatin1::indexOfChar0 (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 37  java/lang/StringUTF16::indexOf (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 2   java.lang.AbstractStringBuilder::append (102 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 18   java.lang.StringLatin1::coderFromChar (10 bytes)   inline
+[debug][jit,inlining]                               @ 33   java.lang.AbstractStringBuilder::needsNewBuffer (33 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 49   java.lang.AbstractStringBuilder::ensureCapacityNewCoder (125 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 67   java.lang.AbstractStringBuilder::isLatin1 (16 bytes)   inline
+[debug][jit,inlining]                               @ 92  java/lang/StringUTF16::putChar (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 2   jdk.internal.module.ModuleInfo$ConstantPool::checkIndex (21 bytes)   inline
+[debug][jit,inlining]                                 @ 16  jdk/internal/module/ModuleInfo::invalidModuleDescriptor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 24   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 29   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 33   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 36   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 39  jdk/internal/module/ModuleInfo::invalidModuleDescriptor (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 44   java.lang.StringLatin1::equals (16 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                 @ 6   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::equals0 (36 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2   jdk.internal.module.ModuleInfo$ConstantPool$Entry::<init> (10 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::newStringWithLatin1Bytes (42 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.util.AbstractCollection::<init> (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   java.lang.String::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.io.DataInputStream::readUTF (597 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.io.DataInput::readUnsignedShort (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 57   java.io.DataInput::readFully (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 68   java.lang.System$1::countPositives (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.StringCoding::countPositives (18 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                     @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 14   java.lang.StringCoding::countPositives0 (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 89   java.lang.System$1::uncheckedNewStringWithLatin1Bytes (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.String::newStringWithLatin1Bytes (42 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 109   java.lang.String::<init> (22 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 207   java.lang.System$1::inflateBytesToChars (11 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 352  java/io/UTFDataFormatException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 384   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 389   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 394   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 397   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 400  java/io/UTFDataFormatException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 445  java/io/UTFDataFormatException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 497   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 502   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 509   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 512   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 515  java/io/UTFDataFormatException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 564   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 569   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 574   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 577   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 580  java/io/UTFDataFormatException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 593   java.lang.String::<init> (14 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 56   java.lang.String::charAt (25 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.String::isLatin1 (19 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 3   java.lang.String::checkIndex (10 bytes)   inline (hot)
+[debug][jit,inlining]                                     @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 7   java.io.DataInput::readFully (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 3   java.lang.StringCoding::countPositives (18 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                   @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 14   java.lang.StringCoding::countPositives0 (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 7   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                 @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 14   java.lang.StringCoding::countPositives0 (33 bytes)   inline
+[debug][jit,inlining]                               @ 6   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 18   java.lang.StringLatin1::replace (197 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 30  java/lang/StringUTF16::replace (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 11   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 16   java.lang.Class::isPrimitive (5 bytes)   inline
+[debug][jit,inlining]                               @ 29   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 44   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 51   jdk.internal.misc.Unsafe::allocateUninitializedArray0 (90 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 13   java.util.Collection::isEmpty (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 21   java.util.Set::of (4 bytes)   inline
+[debug][jit,inlining]                               @ 30   java.util.HashSet::<init> (29 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.util.AbstractSet::<init> (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.util.AbstractCollection::<init> (5 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.util.Collection::size (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                                 @ 13   java.lang.Math::max (11 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.util.HashMap::newHashMap (44 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 24   java.util.AbstractCollection::addAll (42 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 33   java.util.HashSet::toArray (18 bytes)   inline
+[debug][jit,inlining]                                 @ 8   java.util.HashMap::size (5 bytes)   inline
+[debug][jit,inlining]                                 @ 14   java.util.HashMap::keysToArray (81 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 36   java.util.Set::of (68 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 5   java.util.ImmutableCollections$SetN$SetNIterator::<init> (41 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 3   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.util.HashMap$HashIterator::nextNode (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 6   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 12   java.lang.StringLatin1::equals0 (36 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 34   jdk.internal.misc.Unsafe::compareAndSetReference (0 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 18   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   failed to inline: too big
+[debug][jit,inlining]                               @ 26   java.lang.Math::max (11 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 57   java.io.BufferedInputStream::fill (204 bytes)   failed to inline: too big
+[debug][jit,inlining]                               @ 93   java.io.BufferedInputStream::getBufIfOpen (6 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 2   java.io.BufferedInputStream::getBufIfOpen (61 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 34   jdk.internal.misc.Unsafe::compareAndSetReference (0 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 104   java.lang.System::arraycopy (0 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 3   java.util.Collection::iterator (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 10   java.util.Iterator::hasNext (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 19   java.util.Iterator::next (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 29   java.util.AbstractCollection::add (8 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 217   java.util.HashMap$TreeNode::split (218 bytes)   failed to inline: callee's klass not linked yet
+[debug][jit,inlining]                               @ 23   java.util.HashMap::hash (20 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 63   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 95   java.util.HashMap$TreeNode::getTreeNode (22 bytes)   failed to inline: callee's klass not linked yet
+[debug][jit,inlining]                               @ 128   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 11  java/nio/file/InvalidPathException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 2   java.util.HashMap::getNode (150 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.StrictMath::ceil (10 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 6   java.lang.StrictMath::floorOrCeil (128 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.Math::getExponent (17 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Double::doubleToRawLongBits (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 70   java.lang.Double::doubleToRawLongBits (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 104   java.lang.Double::longBitsToDouble (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 1   java.lang.Double::doubleToRawLongBits (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 11   java.lang.Object::clone (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 34   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 38   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 44   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 48   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 51   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 54   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 73   java.lang.Math::min (11 bytes)   inline
+[debug][jit,inlining]                               @ 76   java.lang.System::arraycopy (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 4   java.lang.module.ModuleDescriptor::modsHashCode (43 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 16   java.lang.String::hashCode (60 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 29   java.util.Set::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 3   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 11   java.util.AbstractSet::<init> (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.util.AbstractCollection::<init> (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 2   jdk.internal.module.ModuleInfo$ConstantPool$Entry::<init> (10 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 6   java.lang.String::coder (15 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 122   java.lang.String::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 17   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 27   java.lang.StringLatin1::hashCode (9 bytes)   inline
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.ArraysSupport::hashCodeOfUnsigned (55 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 37  java/lang/StringUTF16::hashCode (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 10   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 69   jdk.internal.classfile.impl.EntryMap::rehash (92 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 152   jdk.internal.classfile.impl.EntryMap::rehash (92 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 3   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 8   jdk.internal.classfile.impl.SplitConstantPool::internalAdd (78 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 31   java.util.Arrays::copyOf (77 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 53   java.lang.classfile.constantpool.PoolEntry::width (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 63   jdk.internal.classfile.impl.SplitConstantPool::map (161 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 68   java.lang.classfile.constantpool.PoolEntry::index (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 73   jdk.internal.classfile.impl.EntryMap::put (186 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 23   jdk.internal.util.ModifiedUtf::utfLen (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   jdk.internal.util.ModifiedUtf::utfLen (65 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                     @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                   @ 21   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                     @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                       @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                         @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                     @ 21  java/lang/StringUTF16::charAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 1   jdk.internal.util.ModifiedUtf::isValidLengthInConstantPool (41 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                   @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.util.ModifiedUtf::utfLen (6 bytes)   inline
+[debug][jit,inlining]                                   @ 2   jdk.internal.util.ModifiedUtf::utfLen (65 bytes)   force inline by annotation
+[debug][jit,inlining]                                     @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                       @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                     @ 21   java.lang.String::charAt (25 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 15   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 20   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 24   jdk.internal.util.ModifiedUtf::utfLen (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   jdk.internal.util.ModifiedUtf::utfLen (65 bytes)   force inline by annotation
+[debug][jit,inlining]                                   @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                     @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                   @ 21   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                     @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                       @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                         @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                     @ 21  java/lang/StringUTF16::charAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 27   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.AbstractStringBuilder::append (74 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 30   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 33   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 41   jdk.internal.classfile.impl.AbstractPoolEntry::<init> (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 73   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 10   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 46   jdk.internal.classfile.impl.EntryMap::nextToken (37 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2   java.lang.classfile.constantpool.PoolEntry::constantPool (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 7   java.lang.classfile.constantpool.ConstantPoolBuilder::canWriteDirect (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 22   jdk.internal.classfile.impl.AbstractPoolEntry::clone (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 1   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 11   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::inflate (73 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::contentHash (19 bytes)   inline
+[debug][jit,inlining]                                 @ 11   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::inflate (73 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 4   jdk.internal.classfile.impl.AbstractPoolEntry::hashString (5 bytes)   inline
+[debug][jit,inlining]                               @ 16   java.util.Arrays::copyOfRange (82 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 20   java.lang.String::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 9  jdk/internal/vm/ContinuationSupport::pinIfSupported (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 20   java.lang.ref.ReferenceQueue::poll0 (65 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 38  jdk/internal/vm/ContinuationSupport::unpinIfSupported (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 26  jdk/internal/vm/ContinuationSupport::unpinIfSupported (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 6   jdk.internal.classfile.impl.RawBytecodeHelper::endBci (8 bytes)   inline
+[debug][jit,inlining]                               @ 19   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 53   jdk.internal.classfile.impl.RawBytecodeHelper::checkSpecialInstruction (242 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 21   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                     @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                 @ 21  java/lang/StringUTF16::charAt (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 1   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 22   java.lang.System::arraycopy (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 40   java.lang.StringLatin1::inflate (35 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 10   java.lang.OutOfMemoryError::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 21   jdk.internal.misc.Unsafe::allocateUninitializedArray (55 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 8   java.lang.String::checkBoundsBeginEnd (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline
+[debug][jit,inlining]                                   @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 28   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 41   java.lang.StringLatin1::newString (24 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 54  java/lang/StringUTF16::newString (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 4   java.lang.invoke.MemberName::anyFlagSet (15 bytes)   inline
+[debug][jit,inlining]                               @ 1   jdk.internal.classfile.impl.SplitConstantPool::map (161 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 7   jdk.internal.classfile.impl.EntryMap::firstToken (50 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 22   jdk.internal.classfile.impl.EntryMap::getIndexByToken (9 bytes)   inline
+[debug][jit,inlining]                               @ 25   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (59 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 32   java.lang.classfile.constantpool.PoolEntry::tag (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 59   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::stringValue (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::toString (88 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 62   java.lang.String::equals (56 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 75   jdk.internal.classfile.impl.EntryMap::nextToken (37 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 91   jdk.internal.classfile.impl.SplitConstantPool::fullScan (56 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 97   jdk.internal.classfile.impl.SplitConstantPool::tryFindUtf8 (103 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 11   jdk.internal.classfile.impl.Util::outOfRangeException (32 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 16   jdk.internal.misc.Unsafe::compareAndSetReference (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 1   java.util.AbstractCollection::<init> (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.String::hashCode (60 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 7   jdk.internal.classfile.impl.AbstractPoolEntry::hashString (5 bytes)   inline
+[debug][jit,inlining]                               @ 11   jdk.internal.classfile.impl.SplitConstantPool::tryFindUtf8 (103 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 31   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::<init> (86 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 34   jdk.internal.classfile.impl.SplitConstantPool::internalAdd (12 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::hashCode (8 bytes)   inline
+[debug][jit,inlining]                                   @ 1   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::contentHash (19 bytes)   inline
+[debug][jit,inlining]                                     @ 11   jdk.internal.classfile.impl.AbstractPoolEntry$Utf8EntryImpl::inflate (73 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 4   jdk.internal.classfile.impl.AbstractPoolEntry::hashString (5 bytes)   inline
+[debug][jit,inlining]                                 @ 8   jdk.internal.classfile.impl.SplitConstantPool::internalAdd (78 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.Record::<init> (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 9   java.lang.NullPointerException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 40   java.util.Arrays::fill (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 70   java.util.Arrays::copyOf (10 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.Object::getClass (0 bytes)   intrinsic
+[debug][jit,inlining]                                 @ 6   java.util.Arrays::copyOf (77 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 92   java.util.Arrays::fill (28 bytes)   inline
+[debug][jit,inlining]                                 @ 4   java.util.Arrays::rangeCheck (74 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 5   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkStack (96 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.util.AbstractCollection::<init> (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::opcode (9 bytes)   inline
+[debug][jit,inlining]                               @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::bci (5 bytes)   inline
+[debug][jit,inlining]                               @ 20   jdk.internal.classfile.impl.RawBytecodeHelper::isStoreIntoLocal (18 bytes)   inline
+[debug][jit,inlining]                               @ 39   java.lang.String::equals (56 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 68   jdk.internal.classfile.impl.StackMapGenerator::processExceptionHandlerTargets (125 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 911   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 942   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 956   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 973   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 925   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 982   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 985   jdk.internal.classfile.impl.StackMapGenerator::processLdc (300 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 993   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU2 (11 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 996   jdk.internal.classfile.impl.StackMapGenerator::processLdc (300 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1007   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1010   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1016   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1049   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1054   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1063   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1101   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1104   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1110   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1143   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1148   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1157   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1199   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1202   jdk.internal.classfile.impl.StackMapGenerator$Frame::getLocal (23 bytes)   inline
+[debug][jit,inlining]                                 @ 2   jdk.internal.classfile.impl.StackMapGenerator$Frame::getLocalRawInternal (13 bytes)   inline
+[debug][jit,inlining]                                   @ 2   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1205   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1031   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1037   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1080   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1089   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1125   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1131   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1174   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1183   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1224   jdk.internal.classfile.impl.StackMapGenerator$Frame::getLocal (23 bytes)   inline
+[debug][jit,inlining]                                 @ 2   jdk.internal.classfile.impl.StackMapGenerator$Frame::getLocalRawInternal (13 bytes)   inline
+[debug][jit,inlining]                                   @ 2   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1227   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1257   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1266   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1278   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1284   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1296   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1305   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1321   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1324   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1344   jdk.internal.classfile.impl.StackMapGenerator$Type::getComponent (213 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1347   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1239   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1245   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1359   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1363   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1369   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1401   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1405   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1414   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal2 (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1449   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1453   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1459   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1491   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1495   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1504   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal2 (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1539   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 1546   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1549   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1380   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1390   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1425   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1438   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal2 (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1470   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1480   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1515   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1528   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal2 (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1567   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1570   jdk.internal.classfile.impl.StackMapGenerator$Frame::setLocal (76 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1581   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1593   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1617   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1632   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1638   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1643   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1654   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1663   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1674   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1679   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1684   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1695   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1704   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1713   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1724   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1729   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1734   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1739   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1750   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1759   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1770   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1775   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1780   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1785   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1796   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1805   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1814   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1825   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1830   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1835   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1840   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1845   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1856   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1865   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1874   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1883   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1894   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1899   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1904   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1909   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1914   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1919   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1930   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1939   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1950   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1960   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2071   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2077   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2107   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2116   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2029   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2038   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2089   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2095   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2128   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2137   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2050   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2059   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1972   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1978   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2008   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2017   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2149   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 2152   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkLocal (97 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2164   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2173   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2203   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2209   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2221   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2230   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2185   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2191   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2242   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2248   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2260   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2269   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2281   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2287   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2299   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2308   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2320   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2329   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2341   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2350   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2362   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2368   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2380   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2386   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2416   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2422   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2398   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2404   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2435   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2439   jdk.internal.classfile.impl.RawBytecodeHelper::dest (16 bytes)   inline
+[debug][jit,inlining]                                 @ 11   jdk.internal.classfile.impl.RawBytecodeHelper::getShortUnchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2442   jdk.internal.classfile.impl.StackMapGenerator::checkJumpTarget (10 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.classfile.impl.StackMapGenerator::getFrame (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 6   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkAssignableTo (250 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2473   jdk.internal.classfile.impl.RawBytecodeHelper::dest (16 bytes)   inline
+[debug][jit,inlining]                                 @ 11   jdk.internal.classfile.impl.RawBytecodeHelper::getShortUnchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2476   jdk.internal.classfile.impl.StackMapGenerator::checkJumpTarget (10 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.classfile.impl.StackMapGenerator::getFrame (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 6   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkAssignableTo (250 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2503   jdk.internal.classfile.impl.StackMapGenerator::processSwitch (253 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2516   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2541   jdk.internal.classfile.impl.StackMapGenerator::processFieldInstructions (167 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2574   jdk.internal.classfile.impl.StackMapGenerator::processInvokeInstructions (341 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2588   jdk.internal.classfile.impl.StackMapGenerator$Type::uninitializedType (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2591   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2603   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2608   jdk.internal.classfile.impl.RawBytecodeHelper::getIndex (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   jdk.internal.classfile.impl.RawBytecodeHelper::isWide (16 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 21   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU1 (11 bytes)   inline
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                     @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 2611   jdk.internal.classfile.impl.StackMapGenerator::getNewarrayType (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2614   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2623   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU2 (11 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2626   jdk.internal.classfile.impl.StackMapGenerator::processAnewarray (28 bytes)   inline
+[debug][jit,inlining]                                 @ 4   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 17   jdk.internal.classfile.impl.StackMapGenerator::cpIndexToType (21 bytes)   inline
+[debug][jit,inlining]                                   @ 4   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (11 bytes)   inline
+[debug][jit,inlining]                                     @ 2   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (59 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                     @ 7   jdk.internal.classfile.impl.ClassReaderImpl::checkType (23 bytes)   inline
+[debug][jit,inlining]                                       @ 2   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                       @ 10   java.lang.Class::cast (27 bytes)   force inline by annotation
+[debug][jit,inlining]                                         @ 6   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                         @ 18   java.lang.Class::cannotCastMsg (40 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                         @ 21   java.lang.ClassCastException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                       @ 19   jdk.internal.classfile.impl.ClassReaderImpl::checkTypeError (41 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 12   jdk.internal.classfile.impl.AbstractPoolEntry$ClassEntryImpl::asSymbol (53 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 17   jdk.internal.classfile.impl.StackMapGenerator$Type::referenceType (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                                 @ 20   jdk.internal.classfile.impl.StackMapGenerator$Type::toArray (135 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2530   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2637   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2641   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU2 (11 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2648   jdk.internal.classfile.impl.StackMapGenerator::cpIndexToType (21 bytes)   inline
+[debug][jit,inlining]                                 @ 4   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (11 bytes)   inline
+[debug][jit,inlining]                                   @ 2   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (59 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.ClassReaderImpl::checkType (23 bytes)   inline
+[debug][jit,inlining]                                     @ 2   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                     @ 10   java.lang.Class::cast (27 bytes)   force inline by annotation
+[debug][jit,inlining]                                       @ 6   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                       @ 18   java.lang.Class::cannotCastMsg (40 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                       @ 21   java.lang.ClassCastException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                     @ 19   jdk.internal.classfile.impl.ClassReaderImpl::checkTypeError (41 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 12   jdk.internal.classfile.impl.AbstractPoolEntry$ClassEntryImpl::asSymbol (53 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 17   jdk.internal.classfile.impl.StackMapGenerator$Type::referenceType (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2651   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1990   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1996   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 1605   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2659   jdk.internal.classfile.impl.RawBytecodeHelper::getIndexU2 (11 bytes)   inline
+[debug][jit,inlining]                                 @ 7   jdk.internal.classfile.impl.RawBytecodeHelper::getU2Unchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2666   jdk.internal.classfile.impl.StackMapGenerator::cpIndexToType (21 bytes)   inline
+[debug][jit,inlining]                                 @ 4   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (11 bytes)   inline
+[debug][jit,inlining]                                   @ 2   jdk.internal.classfile.impl.SplitConstantPool::entryByIndex (59 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 7   jdk.internal.classfile.impl.ClassReaderImpl::checkType (23 bytes)   inline
+[debug][jit,inlining]                                     @ 2   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                     @ 10   java.lang.Class::cast (27 bytes)   force inline by annotation
+[debug][jit,inlining]                                       @ 6   java.lang.Class::isInstance (0 bytes)   intrinsic
+[debug][jit,inlining]                                       @ 18   java.lang.Class::cannotCastMsg (40 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                       @ 21   java.lang.ClassCastException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                                     @ 19   jdk.internal.classfile.impl.ClassReaderImpl::checkTypeError (41 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 12   jdk.internal.classfile.impl.AbstractPoolEntry$ClassEntryImpl::asSymbol (53 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 17   jdk.internal.classfile.impl.StackMapGenerator$Type::referenceType (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2673   jdk.internal.classfile.impl.RawBytecodeHelper::bci (5 bytes)   inline
+[debug][jit,inlining]                               @ 2678   jdk.internal.classfile.impl.RawBytecodeHelper::getU1Unchecked (13 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Byte::toUnsignedInt (6 bytes)   inline
+[debug][jit,inlining]                               @ 2697   jdk.internal.classfile.impl.StackMapGenerator$Frame::popStack (35 bytes)   inline
+[debug][jit,inlining]                                 @ 14   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2713   jdk.internal.classfile.impl.StackMapGenerator$Frame::pushStack (27 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2454   jdk.internal.classfile.impl.StackMapGenerator$Frame::decStack (29 bytes)   inline
+[debug][jit,inlining]                                 @ 23   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                   @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2458   jdk.internal.classfile.impl.RawBytecodeHelper::dest (16 bytes)   inline
+[debug][jit,inlining]                                 @ 11   jdk.internal.classfile.impl.RawBytecodeHelper::getShortUnchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2461   jdk.internal.classfile.impl.StackMapGenerator::checkJumpTarget (10 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.classfile.impl.StackMapGenerator::getFrame (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 6   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkAssignableTo (250 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2490   jdk.internal.classfile.impl.RawBytecodeHelper::destW (16 bytes)   inline
+[debug][jit,inlining]                                 @ 11   jdk.internal.classfile.impl.RawBytecodeHelper::getIntUnchecked (21 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2493   jdk.internal.classfile.impl.StackMapGenerator::checkJumpTarget (10 bytes)   inline
+[debug][jit,inlining]                                 @ 3   jdk.internal.classfile.impl.StackMapGenerator::getFrame (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 6   jdk.internal.classfile.impl.StackMapGenerator$Frame::checkAssignableTo (250 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2778   jdk.internal.classfile.impl.StackMapGenerator::processExceptionHandlerTargets (125 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2724   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                 @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 2739   java.lang.Integer::valueOf (32 bytes)   inline
+[debug][jit,inlining]                                 @ 28   java.lang.Integer::<init> (10 bytes)   inline
+[debug][jit,inlining]                                   @ 6   java.lang.Number::<init> (5 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 2743   java.lang.String::format (16 bytes)   inline
+[debug][jit,inlining]                                 @ 4  java/util/Formatter::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                                 @ 9  java/util/Formatter::format (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                                 @ 12  java/util/Formatter::toString (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 2746   jdk.internal.classfile.impl.StackMapGenerator::generatorError (13 bytes)   inline
+[debug][jit,inlining]                                 @ 9   jdk.internal.classfile.impl.StackMapGenerator::generatorError (136 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.StringLatin1::canEncode (13 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 41   java.lang.StringLatin1::canEncode (13 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 48   java.lang.StringConcatHelper::newArray (28 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 21   jdk.internal.misc.Unsafe::allocateUninitializedArray (55 bytes)   failed to inline: too big
+[debug][jit,inlining]                               @ 122   java.lang.String::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 20   java.util.HashMap::resize (356 bytes)   failed to inline: too big
+[debug][jit,inlining]                               @ 56   java.util.HashMap::newNode (13 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 56   java.util.LinkedHashMap::newNode (23 bytes)   inline (hot)
+[debug][jit,inlining]                                \-> TypeProfile (59/10080 counts) = java/util/LinkedHashMap
+[debug][jit,inlining]                                \-> TypeProfile (10021/10080 counts) = java/util/HashMap
+[debug][jit,inlining]                                 @ 9   java.util.LinkedHashMap$Entry::<init> (10 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 6   java.util.HashMap$Node::<init> (26 bytes)   inline (hot)
+[debug][jit,inlining]                                     @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 17   java.util.LinkedHashMap::linkNodeAtEnd (76 bytes)   failed to inline: too big
+[debug][jit,inlining]                                 @ 9   java.util.HashMap$Node::<init> (26 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 91   java.lang.String::equals (56 bytes)   failed to inline: too big
+[debug][jit,inlining]                                \-> TypeProfile (402/402 counts) = java/lang/String
+[debug][jit,inlining]                               @ 203   java.lang.String::equals (56 bytes)   failed to inline: too big
+[debug][jit,inlining]                                \-> TypeProfile (85/85 counts) = java/lang/String
+[debug][jit,inlining]                               @ 152   java.util.HashMap::newNode (13 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 152   java.util.LinkedHashMap::newNode (23 bytes)   inline (hot)
+[debug][jit,inlining]                                \-> TypeProfile (2/4047 counts) = java/util/LinkedHashMap
+[debug][jit,inlining]                                \-> TypeProfile (4045/4047 counts) = java/util/HashMap
+[debug][jit,inlining]                                 @ 9   java.util.LinkedHashMap$Entry::<init> (10 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 6   java.util.HashMap$Node::<init> (26 bytes)   inline (hot)
+[debug][jit,inlining]                                     @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 17   java.util.LinkedHashMap::linkNodeAtEnd (76 bytes)   failed to inline: too big
+[debug][jit,inlining]                                 @ 9   java.util.HashMap$Node::<init> (26 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 253   java.util.HashMap::afterNodeAccess (1 bytes)   inline (hot)
+[debug][jit,inlining]                                \-> TypeProfile (505/505 counts) = java/util/HashMap
+[debug][jit,inlining]                               @ 288   java.util.HashMap::resize (356 bytes)   failed to inline: too big
+[debug][jit,inlining]                               @ 295   java.util.HashMap::afterNodeInsertion (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 295   java.util.LinkedHashMap::afterNodeInsertion (40 bytes)   inline (hot)
+[debug][jit,inlining]                                \-> TypeProfile (61/14127 counts) = java/util/LinkedHashMap
+[debug][jit,inlining]                                \-> TypeProfile (14066/14127 counts) = java/util/HashMap
+[debug][jit,inlining]                                 @ 15   java.util.LinkedHashMap::removeEldestEntry (2 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 17   java.lang.String::isLatin1 (19 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 27   java.lang.StringLatin1::hashCode (9 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.ArraysSupport::hashCodeOfUnsigned (55 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 51   jdk.internal.util.ArraysSupport::vectorizedHashCode (158 bytes)   (intrinsic)
+[debug][jit,inlining]                                   @ 39   java.lang.Byte::toUnsignedInt (6 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 9   java.lang.Object::hashCode (0 bytes)   (intrinsic, virtual)
+[debug][jit,inlining]                               @ 44   java.lang.StringLatin1::equals (16 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 6   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::equals0 (36 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 3   java.lang.String::checkIndex (10 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   (intrinsic)
+[debug][jit,inlining]                               @ 19   FlatAllocReproducer$SmallVP::<init> (10 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 6   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 19   FlatAllocReproducer$SmallVP::<init> (10 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 6   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                 @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                   @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                               @ 21   java.lang.StringUTF16::charAt (11 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.StringUTF16::checkIndex (9 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.StringUTF16::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 5   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                     @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                 @ 7   java.lang.StringUTF16::getChar (64 bytes)   intrinsic
+[debug][jit,inlining]                               @ 2   java.util.HashMap::hash (20 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 9   java.util.HashMap::putVal (300 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 8   java.util.HashMap::put (13 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 2   java.util.HashMap::getNode (150 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 86  java/util/NoSuchElementException::<init> (not loaded)   failed to inline: not inlineable
+[debug][jit,inlining]                               @ 33   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 21   java.lang.CharSequence::charAt (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 26   java.util.regex.Pattern$CharPredicate::is (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 70   java.util.regex.Pattern$Node::match (27 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 6   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                !m             @ 4   java.lang.ref.ReferenceQueue::poll (44 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 20   java.util.Map::remove (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 5   java.util.regex.Pattern::lambda$Single$0 (11 bytes)   inline
+[debug][jit,inlining]                               @ 4   java.util.Set::isEmpty (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 2   java.util.HashMap::hash (20 bytes)   inline
+[debug][jit,inlining]                                 @ 9   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 9   java.util.HashMap::putVal (300 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 6   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                 @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 5   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 16   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 13   jdk.internal.classfile.impl.BufWriterImpl::writeU1U2 (50 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 29   jdk.internal.classfile.impl.BufWriterImpl::writeBytes (30 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 40   jdk.internal.classfile.impl.BufWriterImpl::writeUtfEntry (156 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 9   java.lang.System$1::countNonZeroAscii (5 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.StringCoding::countNonZeroAscii (30 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.String::value (5 bytes)   inline
+[debug][jit,inlining]                                   @ 6   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                   @ 16   java.lang.StringCoding::countNonZeroAsciiLatin1 (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                   @ 23   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                     @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                   @ 26   java.lang.StringCoding::countNonZeroAsciiUTF16 (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 17   jdk.internal.util.ModifiedUtf::utfLen (65 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 1   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                   @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                 @ 21   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                   @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                     @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                       @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                   @ 21   java.lang.StringUTF16::charAt (11 bytes)   inline
+[debug][jit,inlining]                                     @ 2   java.lang.StringUTF16::checkIndex (9 bytes)   inline
+[debug][jit,inlining]                                       @ 2   java.lang.StringUTF16::length (5 bytes)   inline
+[debug][jit,inlining]                                       @ 5   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                         @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                     @ 7   java.lang.StringUTF16::getChar (64 bytes)   intrinsic
+[debug][jit,inlining]                               @ 56   jdk.internal.classfile.impl.BufWriterImpl::reserveSpace (22 bytes)   inline
+[debug][jit,inlining]                                 @ 18   jdk.internal.classfile.impl.BufWriterImpl::grow (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 110   java.lang.String::getBytes (60 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 135   java.lang.String::charAt (25 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                 @ 12   java.lang.StringLatin1::charAt (15 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                     @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                 @ 21   java.lang.StringUTF16::charAt (11 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.StringUTF16::checkIndex (9 bytes)   inline
+[debug][jit,inlining]                                     @ 2   java.lang.StringUTF16::length (5 bytes)   inline
+[debug][jit,inlining]                                     @ 5   java.lang.String::checkIndex (10 bytes)   inline
+[debug][jit,inlining]                                       @ 5   jdk.internal.util.Preconditions::checkIndex (18 bytes)   intrinsic
+[debug][jit,inlining]                                   @ 7   java.lang.StringUTF16::getChar (64 bytes)   intrinsic
+[debug][jit,inlining]                               @ 138   jdk.internal.util.ModifiedUtf::putChar (115 bytes)   force inline by annotation
+[debug][jit,inlining]                               @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 1   java.lang.StringCoding::countNonZeroAscii (30 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.String::value (5 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                                 @ 16   java.lang.StringCoding::countNonZeroAsciiLatin1 (33 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 23   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                   @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                                 @ 26   java.lang.StringCoding::countNonZeroAsciiUTF16 (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 1   java.lang.String::value (5 bytes)   inline
+[debug][jit,inlining]                               @ 6   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 16   java.lang.StringCoding::countNonZeroAsciiLatin1 (33 bytes)   inline
+[debug][jit,inlining]                               @ 23   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 26   java.lang.StringCoding::countNonZeroAsciiUTF16 (46 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 3   java.lang.String::length (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   java.lang.String::coder (15 bytes)   inline
+[debug][jit,inlining]                               @ 6   java.lang.String::checkBoundsBeginEnd (11 bytes)   inline
+[debug][jit,inlining]                                 @ 6   jdk.internal.util.Preconditions::checkFromToIndex (24 bytes)   inline
+[debug][jit,inlining]                                   @ 18   jdk.internal.util.Preconditions::outOfBoundsCheckFromToIndex (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 10   java.util.Objects::requireNonNull (14 bytes)   force inline by annotation
+[debug][jit,inlining]                                 @ 8   java.lang.NullPointerException::<init> (5 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 21   java.lang.String::checkBoundsOffCount (10 bytes)   inline
+[debug][jit,inlining]                                 @ 6   jdk.internal.util.Preconditions::checkFromIndexSize (25 bytes)   inline
+[debug][jit,inlining]                                   @ 19   jdk.internal.util.Preconditions::outOfBoundsCheckFromIndexSize (32 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 26   java.lang.String::isLatin1 (19 bytes)   inline
+[debug][jit,inlining]                               @ 41   java.lang.StringLatin1::getBytes (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 56   java.lang.StringUTF16::getBytes (41 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 8   java.lang.System::arraycopy (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 3   jdk.internal.misc.Unsafe::getReferenceVolatile (0 bytes)   intrinsic
+[debug][jit,inlining]                               @ 5   jdk.internal.classfile.impl.AbstractPoolEntry::maybeClone (26 bytes)   inline
+[debug][jit,inlining]                                 @ 2   java.lang.classfile.constantpool.PoolEntry::constantPool (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                                 @ 7   java.lang.classfile.constantpool.ConstantPoolBuilder::canWriteDirect (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                                 @ 22   jdk.internal.classfile.impl.AbstractPoolEntry::clone (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 8   java.lang.classfile.constantpool.PoolEntry::index (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 28   jdk.internal.classfile.impl.BufWriterImpl::invalidIndex (32 bytes)   inline
+[debug][jit,inlining]                                 @ 8   java.lang.StringBuilder::<init> (7 bytes)   inline
+[debug][jit,inlining]                                   @ 3   java.lang.AbstractStringBuilder::<init> (39 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 12   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 18   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 22   java.lang.StringBuilder::append (9 bytes)   inline
+[debug][jit,inlining]                                   @ 2   java.lang.String::valueOf (15 bytes)   inline
+[debug][jit,inlining]                                     @ 11   java.lang.Object::toString (36 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                                   @ 5   java.lang.StringBuilder::append (8 bytes)   inline
+[debug][jit,inlining]                                     @ 2   java.lang.AbstractStringBuilder::append (100 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 25   java.lang.StringBuilder::toString (20 bytes)   inline
+[debug][jit,inlining]                                   @ 1   java.lang.StringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                     @ 1   java.lang.AbstractStringBuilder::length (5 bytes)   inline
+[debug][jit,inlining]                                   @ 16   java.lang.String::<init> (98 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 28   java.lang.IllegalArgumentException::<init> (6 bytes)   failed to inline: don't inline Throwable constructors
+[debug][jit,inlining]                               @ 11   java.lang.Object::equals (11 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 5   java.lang.Object::hashCode (0 bytes)   failed to inline: no static binding
+[debug][jit,inlining]                               @ 10   java.lang.Class::isPrimitive (5 bytes)   inline
+[debug][jit,inlining]                               @ 45   sun.invoke.util.Wrapper::asPrimitiveType (20 bytes)   inline
+[debug][jit,inlining]                                 @ 1   sun.invoke.util.Wrapper::findWrapperType (102 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 10   sun.invoke.util.Wrapper::primitiveType (5 bytes)   inline
+[debug][jit,inlining]                                 @ 14   sun.invoke.util.Wrapper::forceType (72 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 68   sun.invoke.util.Wrapper::asWrapperType (18 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Class::isPrimitive (5 bytes)   inline
+[debug][jit,inlining]                                 @ 8   sun.invoke.util.Wrapper::forPrimitiveType (122 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                                 @ 12   sun.invoke.util.Wrapper::wrapperType (52 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 2   FlatAllocReproducer::doStore (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 2   FlatAllocReproducer::doStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer::createValue (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 14   FlatAllocReproducer::processAndStore (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer::doStore (6 bytes)   inline
+[debug][jit,inlining]                                   @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer::createValue (12 bytes)   failed to inline: callee uses too much stack
+[debug][jit,inlining]                               @ 14   FlatAllocReproducer::processAndStore (6 bytes)   inline
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer::doStore (6 bytes)   inline
+[debug][jit,inlining]                                   @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer::createValue (12 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 8   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 14   FlatAllocReproducer::processAndStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer::doStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$IdentityPoint::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$IdentityPoint::<init> (15 bytes)   inline
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$IdentityPoint::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 2   java.nio.Buffer::position (52 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 22   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 28   java.nio.Buffer::createLimitException (104 bytes)   failed to inline: callee is too large
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer::createValue (12 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 8   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 14   FlatAllocReproducer::processAndStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer::doStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 8   FlatAllocReproducer::createValue (12 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 8   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 14   FlatAllocReproducer::processAndStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 2   FlatAllocReproducer::doStore (6 bytes)   inline (hot)
+[debug][jit,inlining]                                   @ 2   FlatAllocReproducer$Container::add (27 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$LargeVP::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 11   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$IdentityPoint::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)
+[debug][jit,inlining]                               @ 15   FlatAllocReproducer$IdentityPoint::<init> (15 bytes)   inline (hot)
+[debug][jit,inlining]                                 @ 1   java.lang.Object::<init> (1 bytes)   inline (hot)

@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+[1.628s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.628s][info][jfr,startup] 
+[1.628s][info][jfr,startup] Use jcmd 132816 JFR.dump name=1 to copy recording data to file.
+Scenario: boxedAllocations, iterations: 2000000
+java.lang.OutOfMemoryError: Java heap space
+Dumping heap to /home/agentuser/ap-reproducer/heap_analysis/boxedAllocations.hprof ...
+Heap dump file created [75042104 bytes in 0.266 secs]
+Terminating due to java.lang.OutOfMemoryError: Java heap space

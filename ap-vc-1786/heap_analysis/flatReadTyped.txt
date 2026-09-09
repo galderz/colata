@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+[1.631s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.631s][info][jfr,startup] 
+[1.631s][info][jfr,startup] Use jcmd 132656 JFR.dump name=1 to copy recording data to file.
+Scenario: flatReadTyped, iterations: 2000000
+java.lang.OutOfMemoryError: Java heap space
+Dumping heap to /home/agentuser/ap-reproducer/heap_analysis/flatReadTyped.hprof ...
+Heap dump file created [75079777 bytes in 0.266 secs]
+Terminating due to java.lang.OutOfMemoryError: Java heap space

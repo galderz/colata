@@ -1,0 +1,10 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+[1.614s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.614s][info][jfr,startup] 
+[1.614s][info][jfr,startup] Use jcmd 132178 JFR.dump name=1 to copy recording data to file.
+Scenario: largeRegRead, iterations: 2000000
+Scenario completed, forcing OOME for heap dump …
+java.lang.OutOfMemoryError: Requested array size exceeds VM limit
+Dumping heap to /home/agentuser/ap-reproducer/heap_analysis/largeRegRead.hprof ...
+Heap dump file created [34985485 bytes in 0.144 secs]
+Terminating due to java.lang.OutOfMemoryError: Requested array size exceeds VM limit

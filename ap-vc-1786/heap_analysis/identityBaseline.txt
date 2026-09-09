@@ -1,0 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+[1.607s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[1.607s][info][jfr,startup] 
+[1.607s][info][jfr,startup] Use jcmd 132976 JFR.dump name=1 to copy recording data to file.
+Scenario: identityBaseline, iterations: 2000000
+java.lang.OutOfMemoryError: Java heap space
+Dumping heap to /home/agentuser/ap-reproducer/heap_analysis/identityBaseline.hprof ...
+Heap dump file created [95627927 bytes in 0.352 secs]
+Terminating due to java.lang.OutOfMemoryError: Java heap space
