@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Compile
-$JAVA_HOME/bin/javac --source 28 AllocReproducer.java
+$JAVA_HOME/bin/javac --enable-preview --source 28 AllocReproducer.java
 
 # Run
 $JAVA_HOME/bin/java --enable-preview -agentpath:$HOME/src/async-profiler/build/lib/libasyncProfiler.so=start,event=alloc,file=target/alloc_profile.jfr AllocReproducer
