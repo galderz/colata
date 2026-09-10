@@ -15,6 +15,7 @@ base_jvm_args += -XX:-BackgroundCompilation
 base_jvm_args += -XX:-UseOnStackReplacement
 base_jvm_args += -XX:CompileCommand=compileonly,$(CLASS)::test*
 base_jvm_args += -XX:CompileCommand=printcompilation,$(CLASS)::*
+base_jvm_args += -XX:CompileCommand=dontinline,$(CLASS)::test*
 base_jvm_args += -XX:-TieredCompilation
 
 # Use these exact JVM arguments, examples:
