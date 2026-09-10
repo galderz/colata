@@ -9,10 +9,12 @@ class ParentInfoIdentity
 
     static void main()
     {
+        System.out.println("Run");
         for (int i = 0; i < 10_000; i++)
         {
             run();
         }
+        System.out.println("Done");
     }
 
     static void run()
