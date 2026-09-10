@@ -1,10 +1,13 @@
+import java.util.Arrays;
+import java.util.Random;
+
 class ParentInfoIdentity
 {
     static final Random R = new Random(42);
 
     static class Init
     {
-        private ParentInfoList list = new ParentInfoList();
+        ParentInfoList list = new ParentInfoList();
     }
 
     static void main()
@@ -26,12 +29,12 @@ class ParentInfoIdentity
         testEnd(init);
     }
 
-    static class testRegister(Init init)
+    static void testRegister(Init init)
     {
         init.list.add(new ParentInfo(new Object(), R.nextInt()));
     }
 
-    static class testEnd(Init init)
+    static void testEnd(Init init)
     {
         var toLoad = init.list;
         for ( int i = 0; i < toLoad.size; i++ ) {
