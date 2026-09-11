@@ -76,6 +76,17 @@ else
   jvm_args += $(base_jvm_args)
 endif
 
+PREVIEW ?= false
+
+ifeq ($(PREVIEW),true)
+  jvm_args += --enable-preview
+  javac_args += --enable-preview
+  javac_args += --source
+  javac_args += 28
+else
+  javac_args =
+endif
+
 ifdef RR
   call_java += rr
 endif
@@ -87,3 +98,10 @@ run: clear-logs $(java)
 >   $(jvm_args) \
 >   $(shell pwd)/$(CLASS).java
 .PHONY: run
+
+compile-run: clear-logs $(java)
+> $(javac) $(javac_args) -d target $(CLASS).java
+> $(call_java) \
+>   $(jvm_args) \
+>   -cp target $(CLASS)
+.PHONY: compile-run
