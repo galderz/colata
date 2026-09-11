@@ -1,4 +1,6 @@
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 class ParentInfoIdentity
@@ -7,13 +9,13 @@ class ParentInfoIdentity
 
     static class Init
     {
-        ParentInfoList list = new ParentInfoList();
+        List<ParentInfo> list = new ArrayList();
     }
 
     static void main()
     {
         System.out.println("Run");
-        for (int i = 0; i < 10_000; i++)
+        for (int i = 0; i < 1_000_000; i++)
         {
             run();
         }
@@ -37,8 +39,8 @@ class ParentInfoIdentity
     static void testEnd(Init init)
     {
         var toLoad = init.list;
-        for ( int i = 0; i < toLoad.size; i++ ) {
-            final var parentInfo = toLoad.elementData[i];
+        for ( int i = 0; i < toLoad.size(); i++ ) {
+            final var parentInfo = toLoad.get(i);
             final Object parentInstance = parentInfo.parentInstance;
             final var propertyIndex = parentInfo.propertyIndex;
             blackhole(parentInstance, propertyIndex);
@@ -62,95 +64,4 @@ class ParentInfoIdentity
             this.propertyIndex = (short) propertyIndex;
         }
     }
-
-    private static final class ParentInfoList
-    {
-        private static final int DEFAULT_CAPACITY = 10;
-
-        private static final ParentInfo[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
-
-        private ParentInfo[] elementData;
-
-        private int size;
-
-        private int modCount = 0;
-
-        ParentInfoList()
-        {
-            this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
-        }
-
-        void add(ParentInfo e)
-        {
-            add(e, elementData, size);
-        }
-
-        void add(ParentInfo e, ParentInfo[] elementData, int s)
-        {
-            if (s == elementData.length)
-                elementData = grow();
-            elementData[s] = e;
-            size = s + 1;
-        }
-
-        private ParentInfo[] grow()
-        {
-            return grow(size + 1);
-        }
-
-        private ParentInfo[] grow(int minCapacity)
-        {
-            int oldCapacity = elementData.length;
-            if (oldCapacity > 0 || elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
-            {
-                int newCapacity = newLength(oldCapacity,
-                    minCapacity - oldCapacity, /* minimum growth */
-                    oldCapacity >> 1           /* preferred growth */);
-                return elementData = Arrays.copyOf(elementData, newCapacity);
-            }
-            else
-            {
-                return elementData = new ParentInfo[Math.max(DEFAULT_CAPACITY, minCapacity)];
-            }
-        }
-
-        public static final int SOFT_MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 8;
-
-        public static int newLength(int oldLength, int minGrowth, int prefGrowth)
-        {
-            // preconditions not checked because of inlining
-            // assert oldLength >= 0
-            // assert minGrowth > 0
-
-            int prefLength = oldLength + Math.max(minGrowth, prefGrowth); // might overflow
-            if (0 < prefLength && prefLength <= SOFT_MAX_ARRAY_LENGTH)
-            {
-                return prefLength;
-            }
-            else
-            {
-                // put code cold in a separate method
-                return hugeLength(oldLength, minGrowth);
-            }
-        }
-
-        private static int hugeLength(int oldLength, int minGrowth)
-        {
-            int minLength = oldLength + minGrowth;
-            if (minLength < 0)
-            { // overflow
-                throw new OutOfMemoryError(
-                    "Required array length " + oldLength + " + " + minGrowth + " is too large");
-            }
-            else if (minLength <= SOFT_MAX_ARRAY_LENGTH)
-            {
-                return SOFT_MAX_ARRAY_LENGTH;
-            }
-            else
-            {
-                return minLength;
-            }
-        }
-    }
-
 }
