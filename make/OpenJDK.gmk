@@ -368,6 +368,7 @@ sudo dnf install -y \
   alsa-lib-devel \
   capstone-devel \
   cups-devel \
+  file \
   fontconfig-devel \
   g++ \
   libXi-devel \
