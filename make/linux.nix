@@ -18,13 +18,17 @@ let
     set debuginfod enabled on
   '';
 
-  temurin26 = pkgs.stdenvNoCC.mkDerivation rec {
-    pname = "temurin-26";
-    version = "26+35";
+  temurin27 = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "temurin";
+    version = "27+35";
 
     src = pkgs.fetchurl {
-      url = "https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_x64_linux_hotspot_26_35.tar.gz";
-      hash = "sha256-aOGbpTt/H3RjXBP4CeXbNs68zzrp51JCPdktKtfYMe8=";
+      url = "https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27+35/OpenJDK27U-jdk_x64_linux_hotspot_27_35.tar.gz";
+      # hash obtained with:
+      # $ export ADOPTIUM_URL=...
+      # $ curl -L "$ADOPTIUM_URL" -o OpenJDK.tar.gz
+      # $ nix hash file --sri OpenJDK.tar.gz
+      hash = "sha256-HPaaSEj/tyizsmDf1FIGpRVmq1caAqMAkicdTFgLzLw=";
     };
 
     dontUnpack = true;
@@ -86,8 +90,7 @@ pkgs.mkShell {
     xorg.libXrandr
     zip
   ] ++ [
-    # unstable.temurin-bin-25
-    temurin26
+    temurin27
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
@@ -96,7 +99,7 @@ pkgs.mkShell {
   FREETYPE_LIB="${pkgs.freetype}/lib";
   JAVA_17_HOME="${pkgs.temurin-bin-17}";
   JAVA_21_HOME="${pkgs.temurin-bin-21}";
-  JAVA_26_HOME="${temurin26}";
+  JAVA_LATEST_HOME="${temurin27}";
 
   shellHook = ''
     echo "ANT_HOME set to $ANT_HOME"
@@ -105,7 +108,7 @@ pkgs.mkShell {
     echo "FREETYPE_LIB set to $FREETYPE_LIB"
     echo "JAVA_17_HOME set to $JAVA_17_HOME"
     echo "JAVA_21_HOME set to $JAVA_21_HOME"
-    echo "JAVA_26_HOME set to $JAVA_26_HOME"
+    echo "JAVA_LATEST_HOME set to $JAVA_LATEST_HOME"
 
     ln -sf ${gdbInit} $HOME/.gdbinit
 
