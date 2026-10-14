@@ -173,7 +173,7 @@ STUB_SETFILE_EOF
     echo "CAPSTONE_HOME set to $CAPSTONE_HOME"
     echo "JAVA_17_HOME set to $JAVA_17_HOME"
     echo "JAVA_21_HOME set to $JAVA_21_HOME"
-    echo "JAVA_26_HOME set to $JAVA_26_HOME"
+    echo "JAVA_LATEST_HOME set to $JAVA_LATEST_HOME"
     echo "MAVEN_HOME set to $MAVEN_HOME"
     echo "STUB_DIR set to $STUB_DIR"
     echo "SYSROOT set to $SYSROOT"
