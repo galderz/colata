@@ -1,17 +1,17 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
-  temurin26 = pkgs.stdenvNoCC.mkDerivation rec {
-    pname = "temurin-26";
-    version = "26+35";
+  temurin27 = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "temurin";
+    version = "27+35";
 
     src = pkgs.fetchurl {
-      url = "https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_aarch64_mac_hotspot_26_35.tar.gz";
+      url = "https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27+35/OpenJDK27U-jdk_aarch64_mac_hotspot_27_35.tar.gz";
       # hash obtained with:
-      # $ export ADOPTIUM_URL=https://github.com/adoptium/temurin26-binaries/releases/download/jdk-26+35/OpenJDK26U-jdk_aarch64_mac_hotspot_26_35.tar.gz
-      # $ curl -L "$ADOPTIUM_URL" -o OpenJDK26U.tar.gz
-      # $ nix hash file --sri OpenJDK26U.tar.gz
-      hash = "sha256-WWugJkdICLdek0qowyz5s0D6/EVdBvNm7eTyky8gbrE=";
+      # $ export ADOPTIUM_URL=https://github.com/adoptium/temurin27-binaries/releases/download/jdk-27+35/OpenJDK27U-jdk_aarch64_mac_hotspot_27_35.tar.gz
+      # $ curl -L "$ADOPTIUM_URL" -o OpenJDK27U.tar.gz
+      # $ nix hash file --sri OpenJDK27U.tar.gz
+      hash = "sha256-pZYmySbwFGoobLU1/JpGSZ1sRrPXmuchaLvxhDj+Sd0=";
     };
 
     dontConfigure = true;
@@ -40,16 +40,15 @@ pkgs.mkShell {
     pigz
     temurin-bin-17
     temurin-bin-21
-    # temurin-bin-25
   ] ++ [
-    temurin26
+    temurin27
   ];
 
   ANT_HOME="${pkgs.ant}/share/ant";
   CAPSTONE_HOME="${pkgs.capstone}";
   JAVA_17_HOME="${pkgs.temurin-bin-17}";
   JAVA_21_HOME="${pkgs.temurin-bin-21}";
-  JAVA_26_HOME="${temurin26}";
+  JAVA_LATEST_HOME="${temurin27}";
   MAVEN_HOME="${pkgs.maven}";
 
   shellHook = ''
