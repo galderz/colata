@@ -133,7 +133,7 @@ endif
 boot_jdk :=
 
 ifeq ($(JDK_GE_27),yes)
-  boot_jdk := $(JAVA_26_HOME)
+  boot_jdk := $(JAVA_LATEST_HOME)
 else ifeq ($(JDK_LE_17),yes)
   boot_jdk := $(JAVA_17_HOME)
 else ifdef JAVA_21_HOME
