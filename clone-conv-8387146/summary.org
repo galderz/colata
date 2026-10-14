@@ -1,6 +1,113 @@
 #+STARTUP: overview
 #+TODO: TODO IN-PROGRESS WAITING CANCELLED REASSIGNED DEFERRED DUPLICATE DONE
 
+* 14.10.26
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/c2/igvn/TestMissingCompressBitsAndExpandBitsIdeal.jtr
+# base
+        com.sun.javatest.regtest.agent.MainWrapper /home/agentuser/src/jdk/JTwork/compiler/c2/igvn/TestMissingCompressBitsAndExpandBitsIdeal.d/driver.0.jta
+
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.irmatching.IRViolationException: There were one or multiple IR rule failures. Please check stderr for more information.
+
+#+end_src
+
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/intrinsics/TestBitShuffleOpers.jtr
+# base
+        com.sun.javatest.regtest.agent.MainWrapper /home/agentuser/src/jdk/JTwork/compiler/intrinsics/TestBitShuffleOpers.d/driver.0.jta
+
+TEST RESULT: Failed. Execution failed: `main' threw exception: compiler.lib.ir_framework.driver.irmatching.IRViolationException: There were one or multiple IR rule failures. Please check stderr for more information.
+#+end_src
+
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/valhalla/valuetypes/TestMismatchHandling.jtr
+test result: Error. Can't load test: java.lang.ClassNotFoundException: TestMismatchHandling
+
+# base
+./regressions.log:29885:TEST RESULT: Error. Can't load test: java.lang.ClassNotFoundException: TestMismatchHandling
+#+end_src
+
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/vectorapi/VectorExpressionFuzzer.jtr
+test result: Error. Can't load test: java.lang.ClassNotFoundException: VectorExpressionFuzzer
+
+# base
+./regressions.log:30078:TEST RESULT: Error. Can't load test: java.lang.ClassNotFoundException: VectorExpressionFuzzer
+#+end_src
+
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/vectorapi/VectorStoreMaskIdentityStressTest.jtr
+test result: Error. Can't load test: java.lang.ClassNotFoundException: VectorStoreMaskIdentityStressTest
+
+# base
+./regressions.log:30216:TEST RESULT: Error. Can't load test: java.lang.ClassNotFoundException: VectorStoreMaskIdentityStressTest
+#+end_src
+
+#+begin_src
+# patch
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/gc/TestGCALotAtAllSafepoints_Z.jtr
+test result: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: 'Error: Could not find or load main class NoSuchClass' missing from stdout/stderr
+
+# base
+./regressions.log:42381:TEST RESULT: Failed. Execution failed: `main' threw exception: java.lang.RuntimeException: 'Error: Could not find or load main class NoSuchClass' missing from stdout/stderr
+#+end_src
+* 13.10.26
+tier1-3 failures:
+#+begin_src bash
+g@m25 1310 % unzip failed-jtrs-20261013-160106.zip
+Archive:  failed-jtrs-20261013-160106.zip
+   creating: failed-jtrs-20261013-160106
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/c2
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/c2/igvn
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/c2/igvn/TestMissingCompressBitsAndExpandBitsIdeal.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/intrinsics
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/intrinsics/TestBitShuffleOpers.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/valhalla
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/valhalla/valuetypes
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/compiler/valhalla/valuetypes/TestMismatchHandling.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/gc
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier1/gc/TestGCALotAtAllSafepoints_Z.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net/www
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net/www/protocol
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net/www/protocol/https
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net/www/protocol/https/HttpsURLConnection
+  inflating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/sun/net/www/protocol/https/HttpsURLConnection/PostThruProxyWithAuth.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java/nio
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java/nio/channels
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java/nio/channels/FileChannel
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java/nio/channels/FileChannel/directio
+  inflating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/java/nio/channels/FileChannel/directio/DirectIOTest.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/tools
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/tools/jlink
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/tools/jlink/plugins
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/tools/jlink/plugins/StripNativeDebugSymbolsPlugin
+  inflating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier2/tools/jlink/plugins/StripNativeDebugSymbolsPlugin/StripNativeDebugSymbolsPluginTest.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/gallery
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/gallery/TestNormalMapping_visual.jtr
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/gallery/TestParticleLife_visual.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/vectorapi
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/vectorapi/VectorExpressionFuzzer.jtr
+  inflating: failed-jtrs-20261013-160106/jtreg_test_hotspot_jtreg_tier3/compiler/vectorapi/VectorStoreMaskIdentityStressTest.jtr
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3/com
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3/com/sun
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3/com/sun/management
+   creating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3/com/sun/management/OperatingSystemMXBeanmxdw
+  inflating: failed-jtrs-20261013-160106/jtreg_test_jdk_tier3/com/sun/management/OperatingSystemMXBean/TestTotalSwap.jtr
+#+end_src
 * 3.9.26
 Title:
 Add indIndexI2L operand to x86.ad
