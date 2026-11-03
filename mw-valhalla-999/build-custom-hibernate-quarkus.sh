@@ -310,10 +310,14 @@ public class ValueClassesResource {
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public String getValueClasses() {
+    public String getValueClasses() throws Exception {
         final String ek = "EntityKey is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKey.class);
-        final String ek2 = "EntityKeyImpl is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKeyImpl.class);
-        return ek2;
+        final String pi = "ParentInfo is value class? " + ValueClasses.isValueClass(Class.forName("org.hibernate.sql.results.graph.entity.internal.BatchEntitySelectFetchInitializer$ParentInfo"));
+        // final String ek2 = "EntityKeyImpl is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKeyImpl.class);
+        // final String result1 = "HashMap is value class? " + ValueClasses.isValueClass(java.util.HashMap.class);
+        // final String result2 = "HashMap.Node is value class? " + ValueClasses.isValueClass(Class.forName("java.util.HashMap$Node"));
+        // return result1 + " " + result2;
+        return ek + "; " + pi;
     }
 }
 JAVA

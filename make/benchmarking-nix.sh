@@ -81,7 +81,7 @@ performance_scaling_governor() {
 perf_event_paranoid() {
     local dry_run=$1
     local current_value=$(sysctl -n kernel.perf_event_paranoid)
-    local desired_value=1
+    local desired_value=-1
 
     if [ "$current_value" != "$desired_value" ]; then
         echo "ERROR: Perf event paranoid is not $desired_value."
@@ -90,11 +90,27 @@ perf_event_paranoid() {
         else
             echo "Run mode: Setting perf event paranoid to $desired_value..."
             sudo sysctl -w kernel.perf_event_paranoid=$desired_value
-            echo "Run mode: Setting kptr_restrict to $desired_value..."
-            sudo sysctl -w kernel.kptr_restrict=$desired_value
         fi
     else
         echo "SUCCESS: Perf event paranoid is already $current_value or more."
+    fi
+}
+
+kptr_restrict() {
+    local dry_run=$1
+    local current_value=$(sysctl -n kernel.kptr_restrict)
+    local desired_value=0
+
+    if [ "$current_value" != "$desired_value" ]; then
+        echo "ERROR: Kptr restrict is not $desired_value."
+        if [[ $dry_run == "true" ]]; then
+            echo "Dry-run mode: Kptr restrict would be set $desired_value if not in dry-run mode."
+        else
+            echo "Run mode: Setting kptr restrict to $desired_value..."
+            sudo sysctl -w kernel.kptr_restrict=$desired_value
+        fi
+    else
+        echo "SUCCESS: Kptr restrict is already $current_value or more."
     fi
 }
 
@@ -104,6 +120,7 @@ benchmarking_all() {
     disable_turbo $dry_run
     performance_scaling_governor $dry_run
     perf_event_paranoid $dry_run
+    kptr_restrict $dry_run
 }
 
 benchmarking() {
