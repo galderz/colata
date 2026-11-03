@@ -78,6 +78,7 @@ JAVA_HOME="$JAVA_28_HOME" ./mvnw install -Dquickly \
   -pl test-framework/junit-mockito \
   -pl devtools/maven \
   -pl '!devtools/maven' \
+  -pl '!extensions/data/processor' \
   $EXCLUDE_PL
 
 # --------------------------------------------------------------------------
@@ -121,7 +122,7 @@ echo "============================================================"
 echo "Phase 2a: Building panache-hibernate-common (--enable-preview)"
 echo "============================================================"
 
-MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" ./mvnw install \
+MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" JAVA_HOME="$JAVA_28_HOME" ./mvnw install \
   -f extensions/panache/panache-hibernate-common \
   -DskipTests \
   $PREVIEW_FLAGS
@@ -131,7 +132,7 @@ echo "============================================================"
 echo "Phase 2b: Building extensions/hibernate-orm (--enable-preview)"
 echo "============================================================"
 
-MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" ./mvnw install \
+MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" JAVA_HOME="$JAVA_28_HOME" ./mvnw install \
   -f extensions/hibernate-orm \
   -DskipTests \
   $PREVIEW_FLAGS
@@ -141,17 +142,27 @@ echo "============================================================"
 echo "Phase 2c: Building hibernate-orm-panache-common (--enable-preview)"
 echo "============================================================"
 
-MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" ./mvnw install \
+MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" JAVA_HOME="$JAVA_28_HOME" ./mvnw install \
   -f extensions/panache/hibernate-orm-panache-common \
   -DskipTests \
   $PREVIEW_FLAGS
 
 echo ""
 echo "============================================================"
-echo "Phase 2d: Building hibernate-orm-panache (--enable-preview)"
+echo "Phase 2d: Building data-processor (--enable-preview)"
 echo "============================================================"
 
-MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" ./mvnw install \
+MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" JAVA_HOME="$JAVA_28_HOME" ./mvnw install \
+  -f extensions/data/processor \
+  -DskipTests \
+  $PREVIEW_FLAGS
+
+echo ""
+echo "============================================================"
+echo "Phase 2e: Building hibernate-orm-panache (--enable-preview)"
+echo "============================================================"
+
+MAVEN_OPTS="$PREVIEW_MAVEN_OPTS" JAVA_HOME="$JAVA_28_HOME" ./mvnw install \
   -f extensions/panache/hibernate-orm-panache \
   -DskipTests \
   $PREVIEW_FLAGS

@@ -1,49 +1,38 @@
 #!/usr/bin/env bash
 #
-# patch-asm-classreader.sh — Patch ASM's ClassReader to accept JDK 28
-# class files (major version 72).
+# patch-asm-classreader.sh -- Patch ASM's ClassReader to accept JDK 28
+# class files (major version 72), including with --enable-preview.
 #
 # Background:
-#   ASM 9.10.1 (used by Quarkus for bytecode transformation at build time)
-#   only supports class file major versions up to 71 (JDK 27).  JDK 28
-#   (Valhalla) produces class files with major version 72, causing Quarkus's
-#   ClassTransformingBuildStep to fail with:
+#   ASM libraries used by Quarkus for bytecode transformation at build time
+#   may not support JDK 28 (Valhalla) class files.  There are two cases:
 #
-#     java.lang.IllegalArgumentException: Unsupported class file major version 72
-#       at org.objectweb.asm.ClassReader.<init>(ClassReader.java:200)
+#   Case A -- ASM <= 9.10.x (max version < 72):
+#     Only supports class file major versions up to 71 (JDK 27).  JDK 28
+#     produces major version 72, causing:
+#       java.lang.IllegalArgumentException: Unsupported class file major version 72
+#     Fix: change "bipush 71" to "bipush 72" in the version check.
+#     Byte sequence: 0x10 0x47 0xA4 -> 0x10 0x48 0xA4
 #
-#   This script patches the ClassReader class in all cached ASM jars by
-#   changing the max-version check from 71 to 72 (a single-byte change).
+#   Case B -- ASM >= 9.11 (supports major 72 but rejects preview features):
+#     Has a two-part check: (1) major > 72 -> reject, (2) major == 72 AND
+#     minor != 0 -> reject.  When --enable-preview is used, the compiler
+#     sets minor version to 65535 (0xFFFF), causing:
+#       java.lang.IllegalArgumentException: Unsupported class file version 72.65535
+#     Fix: change "ifeq" (0x99) to "ifle" (0x9E) in the minor version check.
+#     Since readShort() returns a signed short, 0xFFFF becomes -1, so ifle
+#     accepts both 0 (non-preview) and -1 (preview).
 #
 # Usage:
 #   ./patch-asm-classreader.sh
 #
-# What it does:
-#   1. Finds all asm-*.jar files in the local Maven repository.
-#   2. Detects whether each jar needs patching by extracting ClassReader.class
-#      and inspecting the version-check bytecode.
-#   3. Applies a single-byte binary patch: changes "bipush 71" (0x10 0x47)
-#      to "bipush 72" (0x10 0x48) in the constructor's version check.
-#   4. Updates each jar in-place.
-#
-# The script is idempotent — it detects whether a jar is already patched
+# The script is idempotent -- it detects whether a jar is already patched
 # and skips it.
-#
-# Technical detail:
-#   In ClassReader.<init>([BIZ), the version check reads:
-#
-#     bipush 71        ; max supported class file major version
-#     if_icmple <ok>   ; if classVersion <= 71, continue
-#     new IllegalArgumentException
-#     ...
-#     athrow
-#
-#   The byte sequence is: 0x10 0x47 0xA4 (bipush 71, if_icmple)
-#   We change the 0x47 (71) to 0x48 (72) to accept JDK 28 class files.
 
 set -euo pipefail
+#set -x
 
-# ── Locate ASM jars ─────────────────────────────────────────────────────────
+# -- Locate ASM jars ----------------------------------------------------------
 
 M2_REPO="${HOME}/.m2/repository"
 if [[ ! -d "$M2_REPO" ]]; then
@@ -61,27 +50,55 @@ if [[ ${#ASM_JARS[@]} -eq 0 ]]; then
     exit 0
 fi
 
-# ── Detection ────────────────────────────────────────────────────────────────
-# Check the ClassReader.class for the byte sequence: bipush 71 if_icmple
-# (0x10 0x47 0xA4).  If found, the jar needs patching.  If the sequence is
-# 0x10 0x48 0xA4 (bipush 72), it's already patched.
+# -- Detection -----------------------------------------------------------------
+#
+# Case A: bipush 71 if_icmple (0x10 0x47 0xA4) -- needs major version bump
+# Case B: two-part check in ASM >= 9.11 with preview minor-version rejection
+#         Pattern: iload_4 bipush_72 if_icmpne ... readShort ifeq
+#         Hex:     15 04 10 48 a0 XX XX 2a 1c 07 60 b6 XX XX 99
+
+get_class_bytes() {
+    local jar="$1"
+    unzip -p "$jar" org/objectweb/asm/ClassReader.class 2>/dev/null \
+        | od -An -tx1 -v | tr -d ' \n'
+}
+
+needs_patch_major() {
+    local class_bytes="$1"
+    echo "$class_bytes" | grep -q "1047a4"
+}
+
+needs_patch_preview() {
+    local class_bytes="$1"
+    # Check for the two-part version check (ASM >= 9.11):
+    # bipush 72 if_icmpgt present AND minor-version ifeq not yet patched
+    if echo "$class_bytes" | grep -qP '1048a3'; then
+        # Has the bipush-72/if_icmpgt check.  Now look for the unpatched
+        # minor-version ifeq (0x99) in the specific pattern:
+        # iload_4 bipush_XX if_icmpne XX XX aload_0 iload_2 iconst_4 iadd
+        # invokevirtual(readShort) ifeq
+        # = 15 04 10 XX a0 XX XX 2a 1c 07 60 b6 XX XX 99
+        if echo "$class_bytes" | grep -qP '150410..a0....2a1c0760b6....99'; then
+            return 0  # needs preview patch
+        fi
+    fi
+    return 1
+}
 
 needs_patch() {
     local jar="$1"
     local class_bytes
-    class_bytes=$(unzip -p "$jar" org/objectweb/asm/ClassReader.class 2>/dev/null | od -An -tx1 -v | tr -d ' \n')
+    class_bytes=$(get_class_bytes "$jar")
     if [[ -z "$class_bytes" ]]; then
         return 1  # class not present in jar
     fi
-    # Look for bipush-71 if_icmple: 10 47 a4
-    if echo "$class_bytes" | grep -q "1047a4"; then
-        return 0  # needs patching
-    else
-        return 1  # already patched or different version
+    if needs_patch_major "$class_bytes" || needs_patch_preview "$class_bytes"; then
+        return 0
     fi
+    return 1
 }
 
-# ── Check if any work is needed ──────────────────────────────────────────────
+# -- Check if any work is needed -----------------------------------------------
 
 ANY_NEED_PATCH=false
 for jar in "${ASM_JARS[@]}"; do
@@ -96,7 +113,7 @@ if [[ "$ANY_NEED_PATCH" == false ]]; then
     exit 0
 fi
 
-# ── Patch each jar ──────────────────────────────────────────────────────────
+# -- Patch each jar ------------------------------------------------------------
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -119,20 +136,41 @@ for jar in "${ASM_JARS[@]}"; do
             continue
         fi
 
-        # Apply the binary patch: bipush 71 → bipush 72
+        # Apply binary patches as needed
         python3 -c "
-import sys
+import sys, re
+
 data = open('$CLASS_FILE', 'rb').read()
-# bipush 71 if_icmple = 0x10 0x47 0xa4
-pattern = bytes([0x10, 71, 0xa4])
-idx = data.find(pattern)
-if idx < 0:
-    print('ERROR: byte pattern not found', file=sys.stderr)
+patched = data
+changes = 0
+
+# Case A: bipush 71 if_icmple -> bipush 72 if_icmple
+pattern_a = bytes([0x10, 71, 0xa4])
+idx = patched.find(pattern_a)
+if idx >= 0:
+    print('      Case A: bipush 71 -> 72 (major version bump)')
+    patched = patched[:idx+1] + bytes([72]) + patched[idx+2:]
+    changes += 1
+
+# Case B: preview minor-version check -- ifeq -> ifle
+# Pattern: iload_4 bipush_XX if_icmpne XX XX aload_0 iload_2 iconst_4 iadd
+#          invokevirtual(readShort) ifeq
+# Hex:     15 04 10 XX a0 XX XX 2a 1c 07 60 b6 XX XX 99
+pattern_b = re.compile(
+    rb'\x15\x04\x10.\xa0..\x2a\x1c\x07\x60\xb6..\x99'
+)
+m = pattern_b.search(patched)
+if m:
+    ifeq_offset = m.start() + 14  # offset of the 0x99 (ifeq) byte
+    if patched[ifeq_offset] == 0x99:
+        print('      Case B: ifeq -> ifle (accept preview minor version 65535)')
+        patched = patched[:ifeq_offset] + bytes([0x9e]) + patched[ifeq_offset+1:]
+        changes += 1
+
+if changes == 0:
+    print('WARNING: no applicable patches found', file=sys.stderr)
     sys.exit(1)
-patched = data[:idx+1] + bytes([72]) + data[idx+2:]
-# Verify only one occurrence
-if patched.find(pattern) >= 0:
-    print('WARNING: multiple occurrences of pattern found', file=sys.stderr)
+
 open('$CLASS_FILE', 'wb').write(patched)
 "
 

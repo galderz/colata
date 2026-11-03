@@ -22,7 +22,7 @@
 #   --help                    Show this help message
 
 set -euo pipefail
-#set -x
+set -x
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 # Resolve paths relative to the script's location so the script works
@@ -312,8 +312,8 @@ public class ValueClassesResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String getValueClasses() {
         final String ek = "EntityKey is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKey.class);
-        final String ek2 = "EntityKeyImpl is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKeyImpl.class);
-        return ek2;
+        // final String ek2 = "EntityKeyImpl is value class? " + ValueClasses.isValueClass(org.hibernate.engine.spi.EntityKeyImpl.class);
+        return ek;
     }
 }
 JAVA
