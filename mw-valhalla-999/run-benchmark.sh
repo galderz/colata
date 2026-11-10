@@ -23,7 +23,8 @@ while [[ $# -gt 0 ]]; do
         --with-vc)          WITH_VC=true;        shift ;;
         --with-debug)       WITH_DEBUG=true;     shift ;;
         --with-egc)         WITH_EGC=true;       shift ;;
-        --with-prof)        WITH_PROF=true;      shift ;;
+        --with-prof-ap)     WITH_PROF_AP=true;   shift ;;
+        --with-prof-jfr)    WITH_PROF_JFR=true;  shift ;;
         --help)
             sed -n '2,/^$/{ s/^# \{0,1\}//; p }' "$0"
             exit 0
@@ -58,9 +59,14 @@ if [[ "$WITH_EGC" == true ]]; then
     jvm_args+=(-XX:HeapDumpPath=$HOME/tmp/quarkus.hprof)
 fi
 
-if [[ "$WITH_PROF" == true ]]; then
+if [[ "$WITH_PROF_AP" == true ]]; then
     jvm_args+=(-Xlog:gc*:file=$HOME/tmp/gc.log:level,time,tags,uptime)
     PROFILER=jfr
+fi
+
+if [[ "$WITH_PROF_JFR" == true ]]; then
+    jvm_args+=(-Xlog:gc*:file=$HOME/tmp/gc.log:level,time,tags,uptime)
+    PROFILER=syncjfr
 fi
 
 if [[ "$WITH_DEBUG" == true ]]; then
