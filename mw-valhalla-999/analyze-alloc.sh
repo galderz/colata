@@ -386,106 +386,171 @@ if [[ -n "$JFR_FILE" && -f "$JFR_FILE" ]]; then
 
             echo "### TLAB Allocations (top 20 by total allocationSize)"
             echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationInNewTLAB "$JFR_FILE" 2>&1 | \
+            "$JFR_CMD" print --events jdk.ObjectAllocationInNewTLAB --stack-depth 5 "$JFR_FILE" 2>&1 | \
                 python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
+import sys, collections, re
+
+def parse_size(val):
+    val = val.strip()
+    m = re.match(r'([\d.]+)\s*(bytes|kB|MB|GB)', val)
+    if not m:
+        m2 = re.match(r'(\d+)', val)
+        return int(m2.group(1)) if m2 else 0
+    num = float(m.group(1))
+    unit = m.group(2)
+    if unit == 'kB': num *= 1024
+    elif unit == 'MB': num *= 1024 * 1024
+    elif unit == 'GB': num *= 1024 * 1024 * 1024
+    return int(num)
+
+VALUE_CLASSES = {
+    'java.lang.Integer','java.lang.Long','java.lang.Float','java.lang.Double',
+    'java.lang.Byte','java.lang.Short','java.lang.Character','java.lang.Boolean',
+    'java.util.Optional','java.util.OptionalInt','java.util.OptionalLong','java.util.OptionalDouble',
+    'java.time.LocalDate','java.time.LocalTime','java.time.LocalDateTime',
+    'java.time.ZonedDateTime','java.time.Duration',
+}
+
 totals = collections.Counter()
 counts = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    cls = rec.get('values', {}).get('objectClass', {}).get('name', 'unknown')
-    size = rec.get('values', {}).get('allocationSize', 0)
-    totals[cls] += size
-    counts[cls] += 1
+categories = collections.Counter()
+cat_counts = collections.Counter()
+sites = collections.Counter()
+site_bytes = collections.Counter()
+
+cur_cls = ''
+cur_size = 0
+cur_top_frame = ''
+in_event = False
+in_stack = False
+frame_idx = 0
+
+for line in sys.stdin:
+    stripped = line.strip()
+
+    if stripped.startswith('jdk.Object') and stripped.endswith('{'):
+        if in_event and cur_cls:
+            totals[cur_cls] += cur_size
+            counts[cur_cls] += 1
+            # categorize
+            cls = cur_cls
+            if cls.startswith('org.hibernate'): cat = 'Hibernate ORM'
+            elif cls.startswith('org.acme'): cat = 'Application'
+            elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
+            elif 'HashMap' in cls: cat = 'HashMap'
+            elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
+            elif cls.startswith('java.util.stream'): cat = 'Stream API'
+            elif cls.startswith('java.math'): cat = 'BigInteger/BigDecimal'
+            elif cls.startswith('org.postgresql'): cat = 'PostgreSQL JDBC'
+            elif cls.startswith('io.netty') or cls.startswith('io.vertx'): cat = 'Netty/Vert.x'
+            elif cls.startswith('com.fasterxml'): cat = 'Jackson'
+            elif cls.startswith('io.quarkus') or cls.startswith('io.smallrye'): cat = 'Quarkus/SmallRye'
+            elif cls.startswith('io.opentelemetry'): cat = 'OpenTelemetry'
+            elif cls in ('byte[]','byte[][]','int[]','long[]','java.lang.String','java.lang.String[]'): cat = 'byte[]/String/prim'
+            elif cls.endswith('[]'): cat = 'Object arrays'
+            elif cls.startswith('java.'): cat = 'JDK other'
+            else: cat = 'Other'
+            categories[cat] += cur_size
+            cat_counts[cat] += 1
+            if cls in VALUE_CLASSES:
+                short = cls.rsplit('.', 1)[-1]
+                categories[f'  -> {short}'] += cur_size
+                cat_counts[f'  -> {short}'] += 1
+            # site
+            key = f'{cur_cls} <- {cur_top_frame}' if cur_top_frame else f'{cur_cls} <- (no stack)'
+            sites[key] += 1
+            site_bytes[key] += cur_size
+        in_event = True
+        cur_cls = ''
+        cur_size = 0
+        cur_top_frame = ''
+        in_stack = False
+        frame_idx = 0
+        continue
+
+    if not in_event:
+        continue
+
+    if stripped == '}':
+        if cur_cls:
+            totals[cur_cls] += cur_size
+            counts[cur_cls] += 1
+            cls = cur_cls
+            if cls.startswith('org.hibernate'): cat = 'Hibernate ORM'
+            elif cls.startswith('org.acme'): cat = 'Application'
+            elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
+            elif 'HashMap' in cls: cat = 'HashMap'
+            elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
+            elif cls.startswith('java.util.stream'): cat = 'Stream API'
+            elif cls.startswith('java.math'): cat = 'BigInteger/BigDecimal'
+            elif cls.startswith('org.postgresql'): cat = 'PostgreSQL JDBC'
+            elif cls.startswith('io.netty') or cls.startswith('io.vertx'): cat = 'Netty/Vert.x'
+            elif cls.startswith('com.fasterxml'): cat = 'Jackson'
+            elif cls.startswith('io.quarkus') or cls.startswith('io.smallrye'): cat = 'Quarkus/SmallRye'
+            elif cls.startswith('io.opentelemetry'): cat = 'OpenTelemetry'
+            elif cls in ('byte[]','byte[][]','int[]','long[]','java.lang.String','java.lang.String[]'): cat = 'byte[]/String/prim'
+            elif cls.endswith('[]'): cat = 'Object arrays'
+            elif cls.startswith('java.'): cat = 'JDK other'
+            else: cat = 'Other'
+            categories[cat] += cur_size
+            cat_counts[cat] += 1
+            if cls in VALUE_CLASSES:
+                short = cls.rsplit('.', 1)[-1]
+                categories[f'  -> {short}'] += cur_size
+                cat_counts[f'  -> {short}'] += 1
+            key = f'{cur_cls} <- {cur_top_frame}' if cur_top_frame else f'{cur_cls} <- (no stack)'
+            sites[key] += 1
+            site_bytes[key] += cur_size
+        in_event = False
+        in_stack = False
+        continue
+
+    if in_stack:
+        if stripped == ']':
+            in_stack = False
+        elif frame_idx == 0 and stripped != '...':
+            cur_top_frame = stripped
+            frame_idx += 1
+        continue
+
+    if stripped.startswith('objectClass = '):
+        val = stripped[len('objectClass = '):]
+        cur_cls = re.sub(r'\s*\(classLoader.*', '', val)
+    elif stripped.startswith('allocationSize = ') or stripped.startswith('weight = '):
+        eq = stripped.index('= ') + 2
+        cur_size = parse_size(stripped[eq:])
+    elif stripped.startswith('stackTrace = ['):
+        in_stack = True
+
+# --- Output ---
 grand = sum(totals.values())
 cumul = 0
 print(f'  {\"Bytes\":>10}  {\"Obj sz\":>7}  {\"% tot\":>6}  {\"Cum%\":>5}  {\"Events\":>6}  Class')
-print(f'  {\"-\"*80}')
+print(f'  ' + '-'*80)
 for cls, total in totals.most_common(20):
     avg = total // counts[cls]
-    pct = total / grand * 100
+    pct = total / grand * 100 if grand > 0 else 0
     cumul += pct
     print(f'  {total:10d}  {avg:7d}  {pct:5.1f}%  {cumul:4.1f}%  {counts[cls]:6d}  {cls}')
-" 2>/dev/null || echo "  (python3 not available for byte aggregation)"
-            echo ""
+print()
 
-            echo "### Allocation by Category"
-            echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationInNewTLAB "$JFR_FILE" 2>&1 | \
-                python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
-categories = collections.Counter()
-cat_counts = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    v = rec.get('values', {})
-    cls = v.get('objectClass', {}).get('name', 'unknown')
-    size = v.get('allocationSize', 0)
-    VALUE_CLASSES = {
-        'java/lang/Integer','java/lang/Long','java/lang/Float','java/lang/Double',
-        'java/lang/Byte','java/lang/Short','java/lang/Character','java/lang/Boolean',
-        'java/util/Optional','java/util/OptionalInt','java/util/OptionalLong','java/util/OptionalDouble',
-        'java/time/LocalDate','java/time/LocalTime','java/time/LocalDateTime',
-        'java/time/ZonedDateTime','java/time/Duration',
-    }
-    if cls.startswith('org/hibernate'): cat = 'Hibernate ORM'
-    elif cls.startswith('org/acme'): cat = 'Application'
-    elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
-    elif 'HashMap' in cls: cat = 'HashMap'
-    elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
-    elif cls.startswith('java/util/stream'): cat = 'Stream API'
-    elif cls.startswith('java/math'): cat = 'BigInteger/BigDecimal'
-    elif cls.startswith('org/postgresql'): cat = 'PostgreSQL JDBC'
-    elif cls.startswith('io/netty') or cls.startswith('io/vertx'): cat = 'Netty/Vert.x'
-    elif cls.startswith('com/fasterxml'): cat = 'Jackson'
-    elif cls.startswith('io/quarkus') or cls.startswith('io/smallrye'): cat = 'Quarkus/SmallRye'
-    elif cls.startswith('io/opentelemetry'): cat = 'OpenTelemetry'
-    elif cls in ('[B','[[B','[I','[J','java/lang/String','[Ljava/lang/String;'): cat = 'byte[]/String/prim'
-    elif cls.startswith('[L'): cat = 'Object arrays'
-    elif cls.startswith('java/'): cat = 'JDK other'
-    else: cat = 'Other'
-    categories[cat] += size
-    cat_counts[cat] += 1
-    # Also track individual value classes
-    if cls in VALUE_CLASSES:
-        short = cls.rsplit('/', 1)[-1]
-        categories[f'  -> {short}'] += size
-        cat_counts[f'  -> {short}'] += 1
-grand = sum(c for k, c in categories.items() if not k.startswith('  -> '))
+print('### Allocation by Category')
+print()
+cat_grand = sum(c for k, c in categories.items() if not k.startswith('  -> '))
 for cat, total in categories.most_common():
     kb = total / 1024
-    pct = total / grand * 100 if grand > 0 else 0
+    pct = total / cat_grand * 100 if cat_grand > 0 else 0
     print(f'  {cat:<25} {kb:8.1f} KB  {pct:5.1f}%  ({cat_counts[cat]:5d} events)')
-" 2>/dev/null || echo "  (python3 not available for category aggregation)"
-            echo ""
+print()
 
-            echo "### Top Allocation Sites (type <- method)"
-            echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationInNewTLAB --stack-depth 5 "$JFR_FILE" 2>&1 | \
-                python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
-sites = collections.Counter()
-site_bytes = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    v = rec.get('values', {})
-    cls = v.get('objectClass', {}).get('name', 'unknown')
-    size = v.get('allocationSize', 0)
-    frames = v.get('stackTrace', {}).get('frames', [])
-    if frames:
-        top = frames[0].get('method', {})
-        method = top.get('type', {}).get('name', '?') + '.' + top.get('name', '?')
-        key = f'{cls} <- {method}'
-    else:
-        key = f'{cls} <- (no stack)'
-    sites[key] += 1
-    site_bytes[key] += size
+print('### Top Allocation Sites (type <- method)')
+print()
 print(f'  {\"Events\":>6} {\"Bytes\":>9} {\"ObjSz\":>6}  Type <- Method')
-print(f'  {\"-\"*90}')
+print(f'  ' + '-'*90)
 for key, count in sites.most_common(30):
     avg = site_bytes[key] // count
     print(f'  {count:6d} {site_bytes[key]:9d} {avg:6d}  {key}')
-" 2>/dev/null || echo "  (python3 not available for site aggregation)"
+" 2>/dev/null || echo "  (python3 not available for TLAB analysis)"
             echo ""
         fi
 
@@ -496,6 +561,7 @@ for key, count in sites.most_common(30):
                 grep 'objectClass' | sed 's/.*objectClass = //;s/ (classLoader.*//' | sort | uniq -c | sort -rn | awk 'NR<=20 {printf "  %6d  %s\n", $1, $2}'
             echo ""
         fi
+
         if [[ "${alloc_sample:-0}" -gt 0 ]]; then
             echo "### Sampled Allocations (top 20 by count) [jdk.ObjectAllocationSample]"
             echo ""
@@ -505,108 +571,172 @@ for key, count in sites.most_common(30):
 
             echo "### Sampled Allocations (top 20 by total weight) [jdk.ObjectAllocationSample]"
             echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationSample "$JFR_FILE" 2>&1 | \
+            "$JFR_CMD" print --events jdk.ObjectAllocationSample --stack-depth 5 "$JFR_FILE" 2>&1 | \
                 python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
+import sys, collections, re
+
+def parse_size(val):
+    val = val.strip()
+    m = re.match(r'([\d.]+)\s*(bytes|kB|MB|GB)', val)
+    if not m:
+        m2 = re.match(r'(\d+)', val)
+        return int(m2.group(1)) if m2 else 0
+    num = float(m.group(1))
+    unit = m.group(2)
+    if unit == 'kB': num *= 1024
+    elif unit == 'MB': num *= 1024 * 1024
+    elif unit == 'GB': num *= 1024 * 1024 * 1024
+    return int(num)
+
+VALUE_CLASSES = {
+    'java.lang.Integer','java.lang.Long','java.lang.Float','java.lang.Double',
+    'java.lang.Byte','java.lang.Short','java.lang.Character','java.lang.Boolean',
+    'java.util.Optional','java.util.OptionalInt','java.util.OptionalLong','java.util.OptionalDouble',
+    'java.time.LocalDate','java.time.LocalTime','java.time.LocalDateTime',
+    'java.time.ZonedDateTime','java.time.Duration',
+}
+
 totals = collections.Counter()
 counts = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    cls = rec.get('values', {}).get('objectClass', {}).get('name', 'unknown')
-    size = rec.get('values', {}).get('weight', 0)
-    totals[cls] += size
-    counts[cls] += 1
+categories = collections.Counter()
+cat_counts = collections.Counter()
+sites = collections.Counter()
+site_bytes = collections.Counter()
+
+cur_cls = ''
+cur_size = 0
+cur_top_frame = ''
+in_event = False
+in_stack = False
+frame_idx = 0
+
+for line in sys.stdin:
+    stripped = line.strip()
+
+    if stripped.startswith('jdk.Object') and stripped.endswith('{'):
+        if in_event and cur_cls:
+            totals[cur_cls] += cur_size
+            counts[cur_cls] += 1
+            cls = cur_cls
+            if cls.startswith('org.hibernate'): cat = 'Hibernate ORM'
+            elif cls.startswith('org.acme'): cat = 'Application'
+            elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
+            elif 'HashMap' in cls: cat = 'HashMap'
+            elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
+            elif cls.startswith('java.util.stream'): cat = 'Stream API'
+            elif cls.startswith('java.math'): cat = 'BigInteger/BigDecimal'
+            elif cls.startswith('org.postgresql'): cat = 'PostgreSQL JDBC'
+            elif cls.startswith('io.netty') or cls.startswith('io.vertx'): cat = 'Netty/Vert.x'
+            elif cls.startswith('com.fasterxml'): cat = 'Jackson'
+            elif cls.startswith('io.quarkus') or cls.startswith('io.smallrye'): cat = 'Quarkus/SmallRye'
+            elif cls.startswith('io.opentelemetry'): cat = 'OpenTelemetry'
+            elif cls in ('byte[]','byte[][]','int[]','long[]','java.lang.String','java.lang.String[]'): cat = 'byte[]/String/prim'
+            elif cls.endswith('[]'): cat = 'Object arrays'
+            elif cls.startswith('java.'): cat = 'JDK other'
+            else: cat = 'Other'
+            categories[cat] += cur_size
+            cat_counts[cat] += 1
+            if cls in VALUE_CLASSES:
+                short = cls.rsplit('.', 1)[-1]
+                categories[f'  -> {short}'] += cur_size
+                cat_counts[f'  -> {short}'] += 1
+            key = f'{cur_cls} <- {cur_top_frame}' if cur_top_frame else f'{cur_cls} <- (no stack)'
+            sites[key] += 1
+            site_bytes[key] += cur_size
+        in_event = True
+        cur_cls = ''
+        cur_size = 0
+        cur_top_frame = ''
+        in_stack = False
+        frame_idx = 0
+        continue
+
+    if not in_event:
+        continue
+
+    if stripped == '}':
+        if cur_cls:
+            totals[cur_cls] += cur_size
+            counts[cur_cls] += 1
+            cls = cur_cls
+            if cls.startswith('org.hibernate'): cat = 'Hibernate ORM'
+            elif cls.startswith('org.acme'): cat = 'Application'
+            elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
+            elif 'HashMap' in cls: cat = 'HashMap'
+            elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
+            elif cls.startswith('java.util.stream'): cat = 'Stream API'
+            elif cls.startswith('java.math'): cat = 'BigInteger/BigDecimal'
+            elif cls.startswith('org.postgresql'): cat = 'PostgreSQL JDBC'
+            elif cls.startswith('io.netty') or cls.startswith('io.vertx'): cat = 'Netty/Vert.x'
+            elif cls.startswith('com.fasterxml'): cat = 'Jackson'
+            elif cls.startswith('io.quarkus') or cls.startswith('io.smallrye'): cat = 'Quarkus/SmallRye'
+            elif cls.startswith('io.opentelemetry'): cat = 'OpenTelemetry'
+            elif cls in ('byte[]','byte[][]','int[]','long[]','java.lang.String','java.lang.String[]'): cat = 'byte[]/String/prim'
+            elif cls.endswith('[]'): cat = 'Object arrays'
+            elif cls.startswith('java.'): cat = 'JDK other'
+            else: cat = 'Other'
+            categories[cat] += cur_size
+            cat_counts[cat] += 1
+            if cls in VALUE_CLASSES:
+                short = cls.rsplit('.', 1)[-1]
+                categories[f'  -> {short}'] += cur_size
+                cat_counts[f'  -> {short}'] += 1
+            key = f'{cur_cls} <- {cur_top_frame}' if cur_top_frame else f'{cur_cls} <- (no stack)'
+            sites[key] += 1
+            site_bytes[key] += cur_size
+        in_event = False
+        in_stack = False
+        continue
+
+    if in_stack:
+        if stripped == ']':
+            in_stack = False
+        elif frame_idx == 0 and stripped != '...':
+            cur_top_frame = stripped
+            frame_idx += 1
+        continue
+
+    if stripped.startswith('objectClass = '):
+        val = stripped[len('objectClass = '):]
+        cur_cls = re.sub(r'\s*\(classLoader.*', '', val)
+    elif stripped.startswith('allocationSize = ') or stripped.startswith('weight = '):
+        eq = stripped.index('= ') + 2
+        cur_size = parse_size(stripped[eq:])
+    elif stripped.startswith('stackTrace = ['):
+        in_stack = True
+
+# --- Output ---
 grand = sum(totals.values())
 cumul = 0
 print(f'  {\"Bytes\":>10}  {\"Obj sz\":>7}  {\"% tot\":>6}  {\"Cum%\":>5}  {\"Events\":>6}  Class')
-print(f'  {chr(45)*80}')
+print(f'  ' + '-'*80)
 for cls, total in totals.most_common(20):
     avg = total // counts[cls]
-    pct = total / grand * 100
+    pct = total / grand * 100 if grand > 0 else 0
     cumul += pct
     print(f'  {total:10d}  {avg:7d}  {pct:5.1f}%  {cumul:4.1f}%  {counts[cls]:6d}  {cls}')
-" 2>/dev/null || echo "  (python3 not available for byte aggregation)"
-            echo ""
+print()
 
-            echo "### Allocation by Category [jdk.ObjectAllocationSample]"
-            echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationSample "$JFR_FILE" 2>&1 | \
-                python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
-categories = collections.Counter()
-cat_counts = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    v = rec.get('values', {})
-    cls = v.get('objectClass', {}).get('name', 'unknown')
-    size = v.get('weight', 0)
-    VALUE_CLASSES = {
-        'java/lang/Integer','java/lang/Long','java/lang/Float','java/lang/Double',
-        'java/lang/Byte','java/lang/Short','java/lang/Character','java/lang/Boolean',
-        'java/util/Optional','java/util/OptionalInt','java/util/OptionalLong','java/util/OptionalDouble',
-        'java/time/LocalDate','java/time/LocalTime','java/time/LocalDateTime',
-        'java/time/ZonedDateTime','java/time/Duration',
-    }
-    if cls.startswith('org/hibernate'): cat = 'Hibernate ORM'
-    elif cls.startswith('org/acme'): cat = 'Application'
-    elif cls in VALUE_CLASSES: cat = 'JDK Value Classes'
-    elif 'HashMap' in cls: cat = 'HashMap'
-    elif 'ConcurrentHashMap' in cls: cat = 'ConcurrentHashMap'
-    elif cls.startswith('java/util/stream'): cat = 'Stream API'
-    elif cls.startswith('java/math'): cat = 'BigInteger/BigDecimal'
-    elif cls.startswith('org/postgresql'): cat = 'PostgreSQL JDBC'
-    elif cls.startswith('io/netty') or cls.startswith('io/vertx'): cat = 'Netty/Vert.x'
-    elif cls.startswith('com/fasterxml'): cat = 'Jackson'
-    elif cls.startswith('io/quarkus') or cls.startswith('io/smallrye'): cat = 'Quarkus/SmallRye'
-    elif cls.startswith('io/opentelemetry'): cat = 'OpenTelemetry'
-    elif cls in ('[B','[[B','[I','[J','java/lang/String','[Ljava/lang/String;'): cat = 'byte[]/String/prim'
-    elif cls.startswith('[L'): cat = 'Object arrays'
-    elif cls.startswith('java/'): cat = 'JDK other'
-    else: cat = 'Other'
-    categories[cat] += size
-    cat_counts[cat] += 1
-    # Also track individual value classes
-    if cls in VALUE_CLASSES:
-        short = cls.rsplit('/', 1)[-1]
-        categories[f'  -> {short}'] += size
-        cat_counts[f'  -> {short}'] += 1
-grand = sum(c for k, c in categories.items() if not k.startswith('  -> '))
+print('### Allocation by Category [jdk.ObjectAllocationSample]')
+print()
+cat_grand = sum(c for k, c in categories.items() if not k.startswith('  -> '))
 for cat, total in categories.most_common():
     kb = total / 1024
-    pct = total / grand * 100 if grand > 0 else 0
+    pct = total / cat_grand * 100 if cat_grand > 0 else 0
     print(f'  {cat:<25} {kb:8.1f} KB  {pct:5.1f}%  ({cat_counts[cat]:5d} events)')
-" 2>/dev/null || echo "  (python3 not available for category aggregation)"
-            echo ""
+print()
 
-            echo "### Top Allocation Sites (type <- method) [jdk.ObjectAllocationSample]"
-            echo ""
-            "$JFR_CMD" print --json --events jdk.ObjectAllocationSample --stack-depth 5 "$JFR_FILE" 2>&1 | \
-                python3 -c "
-import json, sys, collections
-data = json.load(sys.stdin)
-sites = collections.Counter()
-site_bytes = collections.Counter()
-for rec in data.get('recording', {}).get('events', []):
-    v = rec.get('values', {})
-    cls = v.get('objectClass', {}).get('name', 'unknown')
-    size = v.get('weight', 0)
-    frames = v.get('stackTrace', {}).get('frames', [])
-    if frames:
-        top = frames[0].get('method', {})
-        method = top.get('type', {}).get('name', '?') + '.' + top.get('name', '?')
-        key = f'{cls} <- {method}'
-    else:
-        key = f'{cls} <- (no stack)'
-    sites[key] += 1
-    site_bytes[key] += size
+print('### Top Allocation Sites (type <- method) [jdk.ObjectAllocationSample]')
+print()
 print(f'  {\"Events\":>6} {\"Bytes\":>9} {\"ObjSz\":>6}  Type <- Method')
-print(f'  {chr(45)*90}')
+print(f'  ' + '-'*90)
 for key, count in sites.most_common(30):
     avg = site_bytes[key] // count
     print(f'  {count:6d} {site_bytes[key]:9d} {avg:6d}  {key}')
-" 2>/dev/null || echo "  (python3 not available for site aggregation)"
+" 2>/dev/null || echo "  (python3 not available for sample analysis)"
             echo ""
         fi
+
 
     else
         echo "## Per-Type Allocation (JFR)"
@@ -688,7 +818,10 @@ if [[ -n "$FOCUS_CLASSES" && -n "$JFR_FILE" && -f "$JFR_FILE" ]]; then
         echo ""
     else
 
-    "$JFR_CMD" print --events "$ALLOC_EVENTS" --stack-depth 64 "$JFR_FILE" 2>&1 | \
+    # Use subshell to isolate pipefail: jfr may OOM on very large recordings
+    # with deep stacks but still produces usable partial output on stdout.
+    ( set +o pipefail
+    "$JFR_CMD" print --events "$ALLOC_EVENTS" --stack-depth 64 "$JFR_FILE" 2>/dev/null | \
         python3 -c "
 import sys, collections, re
 
@@ -894,7 +1027,8 @@ for target in sorted(focus_data.keys()):
         print()
 
     print()
-" 2>/dev/null || echo "  (python3 required for focused class analysis)"
+"
+    ) || echo "  (python3 required for focused class analysis)"
 
     fi  # end ALLOC_EVENTS non-empty check
 fi
