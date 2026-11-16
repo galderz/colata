@@ -73,14 +73,14 @@ CONF=release make clean-csv
 # UseNewCode / UseNewCode requires UnlockDiagnosticVMOptions
 
 if [ "$(uname)" = "Linux" ]; then
-  benchmark_branch "topic.reassoc-reduct-chain.roland" "-prof ${ASM_PROFILER}" "perfasm"
-  benchmark_branch "topic.reassoc-reduct-chain.roland" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+  benchmark_branch "topic.reassoc-reduct-chain.nov26" "-prof ${ASM_PROFILER}" "perfasm"
+  benchmark_branch "topic.reassoc-reduct-chain.nov26" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 fi
-benchmark_branch "topic.reassoc-reduct-chain.roland" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.nov26" "" "noprof"
 if [ "$(uname)" = "Linux" ]; then
-  benchmark_branch "topic.reassoc-reduct-chain.roland.base" "-prof ${ASM_PROFILER}" "perfasm"
-  benchmark_branch "topic.reassoc-reduct-chain.roland.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
+  benchmark_branch "topic.reassoc-reduct-chain.nov26.base" "-prof ${ASM_PROFILER}" "perfasm"
+  benchmark_branch "topic.reassoc-reduct-chain.nov26.base" "-prof perfnorm:events=${EVENTS}" "perfnorm"
 fi
-benchmark_branch "topic.reassoc-reduct-chain.roland.base" "" "noprof"
+benchmark_branch "topic.reassoc-reduct-chain.nov26.base" "" "noprof"
 
 CONF=release DATE=$(date +%Y%m%d-%H%M%S) make results
