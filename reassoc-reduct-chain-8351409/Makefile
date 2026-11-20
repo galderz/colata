@@ -102,7 +102,7 @@ ifdef REASSOC
   jvm_args += -XX:+UseNewCode
 endif
 
-ifdef BRANCH_NEVER_MIN
+ifdef USE_NEW_CODE_2
   jvm_args += -XX:+UseNewCode2
 endif
 
