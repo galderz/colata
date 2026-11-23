@@ -114,11 +114,13 @@ if [[ "$SKIP_HIBERNATE" == false ]]; then
 
     cd "$HIBERNATE_REPO"
 
-    if [[ "$WITH_PREVIEW" == false ]]; then
-      # Checkout the matching tag
-      echo "    Checking out tag $TAG_NAME ..."
-      git checkout "$TAG_NAME" --quiet
-    fi
+    # Checkout the matching tag
+    echo "    Checking out tag $TAG_NAME ..."
+    git fetch --tags
+    git checkout -f
+    git reset --hard HEAD
+    git clean -f -d
+    git checkout "$TAG_NAME" --quiet
 
     # Patch the version
     echo "    Setting version to $CUSTOM_VERSION ..."
