@@ -35,3 +35,7 @@ if [[ -z "$LIBJVM_DEBUGINFO" ]]; then
     [[ -f "$c" ]] && LIBJVM_DEBUGINFO="$(realpath "$c")" && break
   done
 fi
+# --with-native-debug-symbols=internal: the DWARF is inside libjvm.so itself
+if [[ -z "$LIBJVM_DEBUGINFO" ]] && readelf -S "$LIBJVM" 2>/dev/null | grep -q '\.debug_info'; then
+  LIBJVM_DEBUGINFO="$(realpath "$LIBJVM")"
+fi

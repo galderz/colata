@@ -20,8 +20,47 @@ much runs in the interpreter or C1), but the conclusions do not change.
 |---|---|---|
 | JDK built from `~/src/jdk` (commit 4f33273), with `jdk.jfr` | `~/src/jdk/build/release-linux-x86_64/images/jdk` | `JAVA_HOME_EXP=...` |
 | async-profiler checkout (built by `build.sh` if needed) | `~/src/async-profiler` | `ASYNC_PROFILER_HOME=...` |
-| `libjvm.debuginfo` (probes only) | `<build>/support/modules_libs/java.base/server/` | `LIBJVM_DEBUGINFO=...` |
+| `libjvm.debuginfo` (probes only), see [JDK build configuration](#jdk-build-configuration) | `<build>/support/modules_libs/java.base/server/` | `LIBJVM_DEBUGINFO=...` |
 | gdb (probes only), bpftrace + root outside containers (BPF probe only) | | |
+
+### JDK build configuration
+
+The JDK used for all results was configured with (from `CONFIGURE_COMMAND_LINE` in
+`~/src/jdk/build/release-linux-x86_64/spec.gmk`; run from `~/src/jdk`):
+
+```
+bash configure --with-boot-jdk=/usr/lib/jvm/java-latest-openjdk --with-conf-name=release-linux-x86_64 \
+  --with-gtest=$HOME/opt/googletest --with-jmh=build/jmh/jars --with-jtreg=$HOME/opt/jtreg/build/images/jtreg \
+  --disable-warnings-as-errors --enable-hsdis-bundling --with-capstone=/usr --with-hsdis=capstone
+make images
+```
+
+(`--with-devkit=`, `--with-freetype-*=` and the `METAL`/`METALLIB`/`MIG`/`SETFILE` stubs were also
+on the command line; they are irrelevant on Linux.) None of these options is needed here. The
+debug info comes from configure **defaults**:
+
+- `--with-native-debug-symbols` defaults to `external` on Linux.
+  - HotSpot is compiled with `-g`, and the DWARF is split into `libjvm.debuginfo` (objcopy).
+  - `libjvm.so` keeps its `.symtab`, which is enough for uprobes by symbol name, plus a
+    `.gnu_debuglink` to the debuginfo file.
+- For release builds, `--with-external-symbols-in-bundles` defaults to `none`, so
+  `libjvm.debuginfo` is *not* copied into `images/jdk`. It stays in
+  `~/src/jdk/build/<conf>/support/modules_libs/java.base/server/libjvm.debuginfo`. That is where
+  `scripts/env.sh` looks; spec.gmk shows `COPY_DEBUG_SYMBOLS=true` and an empty `SHIP_DEBUG_SYMBOLS`.
+
+Debug info is needed only by `scripts/offsets.sh` (struct offsets) and `scripts/probe-gdb.sh`. The
+uprobes themselves only need `libjvm.so`'s symbol table. Alternatives when building a JDK for this:
+
+| configure option | where the DWARF ends up | picked up by `env.sh` |
+|---|---|---|
+| (default) `--with-native-debug-symbols=external` | `support/.../libjvm.debuginfo` | yes, via `<JAVA_HOME>/../../support/...` |
+| `--with-external-symbols-in-bundles=full` | also `images/jdk/lib/server/libjvm.debuginfo` | yes |
+| `--with-native-debug-symbols=internal` | inside `images/jdk/lib/server/libjvm.so` | yes (`.debug_info` section detected) |
+| `--with-native-debug-symbols=none` | nowhere | no: offsets/gdb probe unavailable |
+
+A JDK whose debuginfo lives elsewhere (e.g. a distro `-debuginfo` package) works with
+`LIBJVM_DEBUGINFO=/path/to/libjvm.so.debug`. If no debug info is available, the four values in
+`target/offsets.env` can be written by hand, but only for exactly the same build.
 
 ## Layout
 
@@ -40,10 +79,12 @@ scripts/offsets.sh          HotSpot struct offsets needed by the probes (from li
 scripts/probe-gdb.sh        exact counts per HotSpot runtime entry point, via gdb (works in this container)
 scripts/run-probes-gdb.sh   probe-gdb.sh for the scenarios shown below
 scripts/probe-bpf.sh        same as probe-gdb.sh with bpftrace uprobes (needs root, NOT in this container)
+scripts/bpf-smoke.sh        step-by-step bpftrace checks to find what fails (see docs/bpf-context.md)
 probe/alloc_ctx.bt.in       bpftrace program template used by probe-bpf.sh
 probe/alloc_ctx_gdb.py      gdb Python equivalent used by probe-gdb.sh
 probe/probe-report.py       report for raw probe output (both probes)
 docs/incus-spawn-feature-request.md   how instances could be allowed to run BPF
+docs/bpf-context.md         handoff document: all BPF tasks, context and the current failure
 target/                     generated outputs
 ```
 
@@ -292,6 +333,9 @@ the interpreter needs a heap object. This was verified by resolving the stub's r
 noise; in C2 code the same situation is handled by the materialization at the `aastore`.
 
 ### Outside a container: `scripts/probe-bpf.sh <scenario> <mode> [iterations=5] [inner=1000000]`
+
+**Status:** the first attempt outside the container crashed bpftrace (SIGSEGV). Continue with
+`docs/bpf-context.md`, which has the full context, the `scripts/bpf-smoke.sh` bisection and the task list.
 
 **Not tested**: it cannot run in this environment. The logic is identical to the gdb version, which
 is tested. Requirements: Linux with uprobes and BTF, bpftrace ≥ 0.20, root, and the JDK plus

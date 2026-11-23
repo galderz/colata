@@ -24,19 +24,41 @@ the same restriction.
 
 ## Proposed options (in order of preference)
 
-### 1. VM-backed instances (`incus launch --vm`), opt-in per template or instance
+Options 2–4 below are new. Option 1 records what isx already supports and the gaps in it.
 
-Example: `isx spawn --vm tpl-mw-valhalla` or a `vm: true` template setting.
+### 1. VM instances: already supported; what is missing
 
-- The instance has its own kernel, so passwordless `sudo` gives full BPF/perf/tracefs access.
-  Nothing on the host is exposed.
-- Copy-on-write still works: Incus VMs use block volumes on zfs/btrfs/lvm-thin, with snapshot
-  and clone the same as for containers.
-- Costs: slower start (seconds), memory reserved per VM, and the guest needs the
-  `incus-agent` so that `incus exec`/file push work. The host-side TLS proxy and CA injection
-  must work for the VM's network the same way they do for containers.
-- The guest kernel must have BTF (`/sys/kernel/btf/vmlinux`) and `CONFIG_UPROBES`. Stock
-  Fedora/Ubuntu cloud images have both.
+What isx already has (checked against https://github.com/Sanne/incus-spawn `docs/` and source):
+- **`type: vm` templates.** `isx build <tpl> --type vm` or `type: vm` in a definition gives VM
+  instances with isx's own kernel (7.3.5, `appliance/kernel/isx.config` + `vm.config`).
+- **That kernel can run uprobe-based bpftrace.** It has `CONFIG_BPF_SYSCALL=y`,
+  `CONFIG_UPROBE_EVENTS=y`, `CONFIG_KPROBE_EVENTS=y`, `CONFIG_FTRACE=y` (tracefs) and
+  `CONFIG_PERF_EVENTS=y`. `CONFIG_BPF_EVENTS` has no prompt and defaults to `y`, so `allnoconfig`
+  keeps it.
+- **`--kvm` branches.** A container branch with `/dev/kvm` can boot nested VMs.
+- **`perf_event_paranoid=-1`.** `isx init` sets it on the host. That helps perf inside containers,
+  but not BPF and not uprobes.
+
+What is missing:
+- **No way to turn an existing container instance into a VM.**
+  - `isx branch --from <instance>` is a copy-on-write clone of the same type.
+  - `docs/SANDBOXES.md` mentions `isx branch --vm`, but `docs/CLI.md` has no such option.
+  - A VM template whose parent is a container is rebuilt from definitions, so an instance's work
+    (checkouts, builds) does not carry over.
+  - Request: `isx branch <name> --from <container-instance> --type vm`, which builds or reuses the VM
+    variant of the template and copies the instance's home directory (or chosen paths) into the
+    new VM. Alternatively, `isx copy-files <from> <to> <path>` between instances.
+- **No BTF in the VM kernel** (`CONFIG_DEBUG_INFO=n`, hence no `CONFIG_DEBUG_INFO_BTF`). Uprobe
+  scripts that only read user memory (like `probe/alloc_ctx.bt.in`) do not need BTF. bpftrace
+  features that use kernel types (kfuncs, `struct task_struct` access, `kptr` helpers) do, and tools
+  such as `bcc` CO-RE tools need it too.
+  - Request: `CONFIG_DEBUG_INFO_BTF=y` in `vm.config`. It needs `CONFIG_DEBUG_INFO` and pahole at
+    build time, and makes vmlinux larger; the BTF itself is a few MB.
+- **Docs.** `docs/SANDBOXES.md` lists "install `bpftrace` and write a probe" as something an isx
+  agent can do. In a container instance that fails: tracefs, `bpf()` for tracing programs and
+  uprobe `perf_event_open` all need host-level capabilities (verified: even root inside gets
+  `EACCES` from `perf_event_open` with the `uprobe` PMU). The docs should say this needs
+  `type: vm`, or host-side tracing.
 
 ### 2. Host-side tracing helper: `isx trace <instance> [-p PID] -- <bpftrace args>`
 
