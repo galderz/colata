@@ -1,0 +1,61 @@
+#!/usr/bin/env bpftrace
+// Template: attribute every Java instance allocation to the HotSpot entry point that requested it.
+// Do not run directly: scripts/probe-bpf.sh substitutes the libjvm path and struct offsets (scripts/offsets.sh).
+//
+// The JVM must run with -XX:-UseTLAB so that compiled code (C2/C1) and the interpreter take the
+// runtime slow path for every allocation; otherwise only TLAB refills are visible.
+//
+// Context = runtime entry point active on the thread when InstanceKlass::allocate_instance runs:
+//   C2  ...  entered only from C2-compiled code (or C2 deoptimization)
+//   C1  ...  entered only from C1-compiled code
+//   INT ...  entered only from the interpreter
+//   ANY ...  shared stubs, entered from interpreter, C1 or C2
+
+uprobe:@LIBJVM@:_ZN11OptoRuntime14new_instance_CEP5KlassP10JavaThread /pid == cpid/ { @ctx[tid] = "C2  OptoRuntime::new_instance_C"; }
+uretprobe:@LIBJVM@:_ZN11OptoRuntime14new_instance_CEP5KlassP10JavaThread /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN11OptoRuntime20load_unknown_value_CEP16flatArrayOopDesciP10JavaThread /pid == cpid/ { @ctx[tid] = "C2  OptoRuntime::load_unknown_value_C"; }
+uretprobe:@LIBJVM@:_ZN11OptoRuntime20load_unknown_value_CEP16flatArrayOopDesciP10JavaThread /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN8Runtime112new_instanceEP10JavaThreadP5Klass /pid == cpid/ { @ctx[tid] = "C1  Runtime1::new_instance"; }
+uretprobe:@LIBJVM@:_ZN8Runtime112new_instanceEP10JavaThreadP5Klass /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN18InterpreterRuntime4_newEP10JavaThreadP12ConstantPooli /pid == cpid/ { @ctx[tid] = "INT InterpreterRuntime::_new"; }
+uretprobe:@LIBJVM@:_ZN18InterpreterRuntime4_newEP10JavaThreadP12ConstantPooli /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN18InterpreterRuntime15read_flat_fieldEP10JavaThreadP7oopDescP18ResolvedFieldEntry /pid == cpid/ { @ctx[tid] = "INT InterpreterRuntime::read_flat_field"; }
+uretprobe:@LIBJVM@:_ZN18InterpreterRuntime15read_flat_fieldEP10JavaThreadP7oopDescP18ResolvedFieldEntry /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN18InterpreterRuntime15flat_array_loadEP10JavaThreadP12arrayOopDesci /pid == cpid/ { @ctx[tid] = "INT InterpreterRuntime::flat_array_load"; }
+uretprobe:@LIBJVM@:_ZN18InterpreterRuntime15flat_array_loadEP10JavaThreadP12arrayOopDesci /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN13SharedRuntime30store_value_type_fields_to_bufEP10JavaThreadl /pid == cpid/ { @ctx[tid] = "ANY SharedRuntime::store_value_type_fields_to_buf"; }
+uretprobe:@LIBJVM@:_ZN13SharedRuntime30store_value_type_fields_to_bufEP10JavaThreadl /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN13SharedRuntime20allocate_value_typesEP10JavaThreadP6Methodb /pid == cpid/ { @ctx[tid] = "ANY SharedRuntime::allocate_value_types"; }
+uretprobe:@LIBJVM@:_ZN13SharedRuntime20allocate_value_typesEP10JavaThreadP6Methodb /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN14Deoptimization15realloc_objectsEP10JavaThreadP5frameP11RegisterMapP13GrowableArrayIP10ScopeValueES1_ /pid == cpid/ { @ctx[tid] = "C2  Deoptimization::realloc_objects"; }
+uretprobe:@LIBJVM@:_ZN14Deoptimization15realloc_objectsEP10JavaThreadP5frameP11RegisterMapP13GrowableArrayIP10ScopeValueES1_ /pid == cpid/ { delete(@ctx[tid]); }
+
+uprobe:@LIBJVM@:_ZN14Deoptimization25realloc_value_type_resultEP10ValueKlassRK11RegisterMapR13GrowableArrayI6HandleEP10JavaThread /pid == cpid/ { @ctx[tid] = "C2  Deoptimization::realloc_value_type_result"; }
+uretprobe:@LIBJVM@:_ZN14Deoptimization25realloc_value_type_resultEP10ValueKlassRK11RegisterMapR13GrowableArrayI6HandleEP10JavaThread /pid == cpid/ { delete(@ctx[tid]); }
+
+
+// InstanceKlass::allocate_instance(this = Klass*, JavaThread*)
+uprobe:@LIBJVM@:_ZN13InstanceKlass17allocate_instanceEP10JavaThread /pid == cpid/
+{
+  $sym = *(uint64 *)(arg0 + @KLASS_NAME@);
+  $name = str($sym + @SYMBOL_BODY@, *(uint16 *)($sym + @SYMBOL_LENGTH@));
+  $ctx = @ctx[tid];
+  if ($ctx == "") { $ctx = "VM  other runtime path"; }
+  @alloc[$ctx, $name] = count();
+  if ($ctx == "C2  OptoRuntime::new_instance_C") {
+    // _last_Java_sp points at the C2 runtime stub frame (frame size 2 words on x86_64);
+    // the return pc into the calling C2 nmethod is right above it. probe/probe-report.py maps it
+    // to a compiled method using /tmp/perf-<pid>.map (-XX:+DumpPerfMapAtExit).
+    @c2_site[$name, *(uint64 *)(*(uint64 *)(arg1 + @THREAD_LAST_JAVA_SP@) + 8)] = count();
+  }
+}
+
+END { clear(@ctx); printf("cpid=%d\n", cpid); }
