@@ -46,7 +46,7 @@ uretprobe:@LIBJVM@:_ZN14Deoptimization25realloc_value_type_resultEP10ValueKlassR
 uprobe:@LIBJVM@:_ZN13InstanceKlass17allocate_instanceEP10JavaThread /pid == cpid/
 {
   $sym = *(uint64 *)(arg0 + @KLASS_NAME@);
-  $name = str($sym + @SYMBOL_BODY@, *(uint16 *)($sym + @SYMBOL_LENGTH@));
+  $name = str($sym + @SYMBOL_BODY@, *(uint16 *)($sym + @SYMBOL_LENGTH@) + 1);
   $ctx = @ctx[tid];
   if ($ctx == "") { $ctx = "VM  other runtime path"; }
   @alloc[$ctx, $name] = count();

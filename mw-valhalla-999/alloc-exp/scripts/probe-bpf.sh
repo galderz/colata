@@ -20,6 +20,7 @@ grep -q '@[A-Z_]*@' "$BT" && { echo "unsubstituted placeholders in $BT" >&2; exi
 # The JVM is started by bpftrace (-c) so that probes are filtered on its pid (cpid).
 CMD="$JAVA $(mode_flags "$MODE") ${COMMON_FLAGS[*]} -XX:-UseTLAB -XX:+UnlockDiagnosticVMOptions \
  -XX:+DumpPerfMapAtExit -Dinner=$INNER -Dhistogram=false -cp $CLASSES ValueAllocs $SCEN $ITERS"
+CMD=$(echo $CMD)   # collapse repeated spaces: bpftrace -c turns each extra space into an empty argument
 bpftrace -q -o "$RAW" "$BT" -c "$CMD"
 PID=$(sed -n 's/^cpid=//p' "$RAW")
 cp "/tmp/perf-$PID.map" "$OUTDIR/$SCEN-$MODE.perf.map" 2>/dev/null || echo "warning: no perf map for pid $PID" >&2
