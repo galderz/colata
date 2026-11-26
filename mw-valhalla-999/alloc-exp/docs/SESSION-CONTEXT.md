@@ -86,8 +86,9 @@ noise.
   VM's `~/src/jdk` (same commit 4f33273), so the default `~/src/jdk/build/release-linux-x86_64/images/jdk`
   exists and has `jvmti.h`; async-profiler is built against it (leave `JAVA_HOME_EXP` unset).
   `build.sh` still falls back to `/usr/lib/jvm` (or `AP_JAVA_HOME`) for JDKs without the headers.
-  The BPF results in the README were made with `~/xfer/jdk`; its `libjvm.so` differs from the new
-  image's, so `probe-bpf.sh` re-runs `offsets.sh` automatically when pointed at the new image.
+  The BPF results in the README were re-made with this image (offsets unchanged, 24/4/6/1128).
+  `env.sh` resolves default paths against `$SUDO_USER`'s home under sudo, so plain
+  `sudo scripts/run-probes-bpf.sh` uses it. `~/xfer/jdk` is no longer needed.
 - Paths in the container:
   - this directory: `~/src/colata/mw-valhalla-999/alloc-exp` (untracked in the colata repo);
   - JDK: `~/src/jdk/build/release-linux-x86_64/images/jdk`;

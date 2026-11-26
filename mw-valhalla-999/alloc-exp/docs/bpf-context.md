@@ -54,8 +54,9 @@ results are in the README, step 6 (T1 and T4 done).
 
 Environment (`target/probe-bpf-env.txt`):
 - kernel 7.3.5, Fedora Linux 45, bpftrace v0.26.0, no BTF (`/sys/kernel/btf/vmlinux` absent);
-- JDK `28-internal-adhoc.agentuser.jdk` (commit 4f33273), offsets `24/4/6/1128` as in the
-  container build;
+- JDK `28-internal-adhoc.agentuser.jdk` (commit 4f33273), built in the VM with `make images`
+  (`~/src/jdk/build/release-linux-x86_64/images/jdk`, with CDS archive); offsets `24/4/6/1128` as
+  in the container build;
 - 8 vCPUs, 14 GB RAM.
 
 What made it work, besides moving to the VM (commit "Fixes for bpf"):
@@ -286,12 +287,16 @@ a report.
 ### T4: full probe runs — done (VM, kernel 7.3.5, bpftrace v0.26.0)
 
 Result: all acceptance criteria met; reports in `target/probe-bpf/*.txt`, summary in README step 6.
-- `cached-call identity`: no C2 `Integer` allocations (270 interpreter start-up `Integer`s only).
-- Preview: 4,832,062 / 4,832,056 / 4,832,059 C2 `Integer` allocations, resolved to `cachedCall()`
-  / `flatFieldLoad()` / `fresh()`; C2 is ~95% of all instance allocations (gdb runs: ~64%).
-- `Integer` totals vs `histogram.sh 5`: 5,051,262 vs 5,050,248 (`cached-call`), 5,000,280 vs
-  5,000,317 (`flat-field`, `fresh`).
+- `cached-call identity`: no C2 `Integer` allocations; ~4k interpreter start-up allocations
+  (7 `Integer`s).
+- Preview: 4,832,029 / 4,832,046 / 4,832,037 C2 `Integer` allocations, resolved to `cachedCall()`
+  / `flatFieldLoad()` / `fresh()`; C2 is ~97% of all instance allocations (gdb runs: ~64%).
+- `Integer` totals vs `histogram.sh 5`: 4,990,707 vs 4,993,921 (`cached-call`, varies by a few
+  thousand between runs), 5,000,014 vs 5,000,318 (`flat-field`, `fresh`; the ~300 difference is
+  the CDS-archived `Integer`s, which the histogram counts but which are never allocated).
 - Run time: ~15 s per preview run (~0.5 s without the probe), ~2.5 s for identity.
+- An earlier run with the exploded `build/<conf>/jdk` (no CDS archive) gave the same C2 counts but
+  ~45k start-up allocations per run, ~270 of them `Integer`. Use `images/jdk`.
 
 ```bash
 for sm in "cached-call identity" "cached-call preview" "flat-field preview" "fresh preview"; do

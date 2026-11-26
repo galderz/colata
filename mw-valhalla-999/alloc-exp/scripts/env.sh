@@ -1,8 +1,12 @@
 # Common settings, sourced by every script. Override any variable from the environment.
 EXP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export JAVA_HOME="${JAVA_HOME_EXP:-$HOME/src/jdk/build/release-linux-x86_64/images/jdk}"
+# Under sudo (the BPF probe), $HOME is root's; default paths are relative to the invoking user's home.
+USER_HOME="$HOME"
+if [[ $EUID -eq 0 && -n "${SUDO_USER:-}" ]]; then USER_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"; fi
+export JAVA_HOME="${JAVA_HOME_EXP:-$USER_HOME/src/jdk/build/release-linux-x86_64/images/jdk}"
 JAVA="$JAVA_HOME/bin/java"
-ASYNC_PROFILER_HOME="${ASYNC_PROFILER_HOME:-$HOME/src/async-profiler}"
+[[ -x "$JAVA" ]] || { echo "no java at $JAVA; set JAVA_HOME_EXP=<jdk>" >&2; exit 1; }
+ASYNC_PROFILER_HOME="${ASYNC_PROFILER_HOME:-$USER_HOME/src/async-profiler}"
 ASPROF_LIB="$ASYNC_PROFILER_HOME/build/lib/libasyncProfiler.so"
 CLASSES="$EXP_DIR/build/classes"
 TARGET="$EXP_DIR/target"

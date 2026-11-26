@@ -353,8 +353,8 @@ Requirements: Linux with uprobes, bpftrace (tested with v0.26.0), root, and the 
 ```
 sudo dnf install bpftrace gdb          # or apt install bpftrace gdb
 scripts/build.sh
-sudo -E scripts/probe-bpf.sh cached-call preview      # -E keeps JAVA_HOME_EXP etc.
-sudo -E scripts/probe-bpf.sh cached-call identity
+sudo scripts/probe-bpf.sh cached-call preview      # default JDK under the invoking user's home
+sudo JAVA_HOME_EXP=<jdk> scripts/probe-bpf.sh cached-call identity
 ```
 
 What the script does:
@@ -370,6 +370,10 @@ it, only TLAB refills reach the runtime, which gives samples, not counts.
 Each allocation costs three uprobe hits (entry, return, `allocate_instance`). Measured in the VM:
 ~15 s for a preview run with ~5.1M allocations vs ~0.5 s without the probe, i.e. ~3 µs per
 allocation (including ~2 s of bpftrace start-up).
+
+Use an `images/jdk` with its CDS archive (`lib/server/classes*.jsa`). With an exploded
+`build/<conf>/jdk` (no archive) the C2 counts are the same, but start-up adds ~45k allocations per
+run instead of ~4k.
 
 bpftrace caveats (seen with v0.26.0, both fixed in the scripts):
 - `str(ptr, n)` counts the terminating NUL in `n`, so a length read from a HotSpot `Symbol` must be

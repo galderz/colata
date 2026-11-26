@@ -178,45 +178,51 @@ The probe shows *where in HotSpot* objects are made; whether they are extra come
 ## Step 6: the same counts with BPF (needs a VM or bare metal)
 
 ```bash
-sudo JAVA_HOME_EXP="$JAVA_HOME_EXP" scripts/probe-bpf.sh cached-call preview   # -> target/probe-bpf/cached-call-preview.txt
-sudo JAVA_HOME_EXP="$JAVA_HOME_EXP" scripts/run-probes-bpf.sh                  # four runs
+sudo scripts/probe-bpf.sh cached-call preview   # -> target/probe-bpf/cached-call-preview.txt
+sudo scripts/run-probes-bpf.sh                  # four runs
 ```
+Under `sudo`, default paths are relative to the invoking user's home. For a JDK elsewhere, pass
+it through: `sudo JAVA_HOME_EXP=<jdk> scripts/probe-bpf.sh ...`.
+
 Same report as step 5, with bpftrace uprobes instead of gdb, so it runs at full size
 (5 × 1,000,000 iterations). A preview run takes ~15 s (~0.5 s without the probe, so roughly 3 µs
 per allocation), the identity run ~2.5 s; `run-probes-bpf.sh` finishes in about 50 s.
 `target/probe-bpf/cached-call-preview.txt`:
 ```
 Instance allocations by HotSpot entry point (exact counts)
-  C2  OptoRuntime::new_instance_C                       4841723   94.9%
-  ANY SharedRuntime::store_value_type_fields_to_buf       218920    4.3%
-  INT InterpreterRuntime::_new                            25451    0.5%
-  C1  Runtime1::new_instance                              16694    0.3%
-  VM  other runtime path                                   1806    0.0%
-  INT InterpreterRuntime::flat_array_load                     9    0.0%
+  C2  OptoRuntime::new_instance_C                       4832029   96.7%
+  ANY SharedRuntime::store_value_type_fields_to_buf       158664    3.2%
+  INT InterpreterRuntime::_new                             3912    0.1%
+  VM  other runtime path                                    191    0.0%
+  INT InterpreterRuntime::flat_array_load                     6    0.0%
+  C1  Runtime1::new_instance                                  4    0.0%
 
 Top (entry point, class)
-  C2  OptoRuntime::new_instance_C                  java.lang.Integer                         4832062
-  ANY SharedRuntime::store_value_type_fields_to_buf java.lang.Integer                          218920
-  C2  OptoRuntime::new_instance_C                  java.util.HashMap$Node                       9159
-  C1  Runtime1::new_instance                       java.util.HashMap$Node                       4984
+  C2  OptoRuntime::new_instance_C                  java.lang.Integer                         4832029
+  ANY SharedRuntime::store_value_type_fields_to_buf java.lang.Integer                          158664
+  INT InterpreterRuntime::_new                     ValueAllocs$Holder                           1024
 ...
 C2 allocation sites (OptoRuntime::new_instance_C) resolved to compiled methods
-  java.lang.Integer             4832062  in  void ValueAllocs.cachedCall()
-  java.util.HashMap$Node           5331  in  java.lang.Object java.util.HashMap.putVal(int, java.lang.Object, java.lang.Object, boolean, boolean)
-...
+  java.lang.Integer             4832029  in  void ValueAllocs.cachedCall()
 ```
 
 | run | C2 `Integer` allocations | main noise (interpreter, C1, shared stubs) |
 |---|---|---|
-| `cached-call identity` | none | ~45k start-up allocations (interpreter, C1, some C2 `HashMap$Node`); only 270 `Integer`s, from the interpreter |
-| `cached-call preview` | 4,832,062 in `cachedCall()` | ~219k `store_value_type_fields_to_buf` |
-| `flat-field preview` | 4,832,056 in `flatFieldLoad()` | ~104k C1 and ~63k interpreter flat-field reads of `Integer` |
-| `fresh preview` | 4,832,059 in `fresh()` | ~162k `store_value_type_fields_to_buf` |
+| `cached-call identity` | none | ~4k interpreter start-up allocations (7 of them `Integer`) |
+| `cached-call preview` | 4,832,029 in `cachedCall()` | ~159k `store_value_type_fields_to_buf` |
+| `flat-field preview` | 4,832,046 in `flatFieldLoad()` | ~104k C1 and ~64k interpreter flat-field reads of `Integer` |
+| `fresh preview` | 4,832,037 in `fresh()` | ~161k `store_value_type_fields_to_buf` |
 
-At full size, C2 makes ~95% of all instance allocations in the preview runs (gdb, step 5: ~64%).
+At full size, C2 makes ~97% of all instance allocations in the preview runs (gdb, step 5: ~64%).
 The `Integer` totals over all entry points match `scripts/histogram.sh 5` (which overwrites
-`target/histogram.txt`) to within ~1,000 objects: 5,051,262 vs 5,050,248 for `cached-call`, and
-5,000,280 vs 5,000,317 for `flat-field` and `fresh`.
+`target/histogram.txt`): 5,000,014 vs 5,000,318 for `flat-field` and `fresh`. The ~300
+difference is the `Integer`s mapped in from the CDS archive, which the histogram counts but which
+are never allocated. For `cached-call` it is 4,990,707 vs 4,993,921; that count varies by a few
+thousand between runs (JIT timing).
+
+The JDK must be an `images/jdk` with its CDS archive (`lib/server/classes*.jsa`). An exploded
+`build/<conf>/jdk` has no archive, and start-up then adds ~45k allocations (~270 of them
+`Integer`) to every run.
 
 If bpftrace fails, `scripts/bpf-smoke.sh` runs step-by-step checks; see
 [`docs/bpf-context.md`](docs/bpf-context.md).
