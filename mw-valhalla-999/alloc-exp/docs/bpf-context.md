@@ -49,6 +49,12 @@ preview runs, and a much smaller interpreter/C1 share than the gdb runs show.
 
 ## 3. Current status of BPF
 
+**Update:** running in an isx VM instance (route 3 below) fixed the BPF issues; the probes work
+there. What remains is to run the probes, record their output and fill in the README (step 6).
+See `docs/SESSION-CONTEXT.md`, "BPF fill-in". The history below explains the original crash; T2/T3
+are only needed if bpftrace fails again.
+
+
 - `scripts/probe-bpf.sh` and `probe/alloc_ctx.bt.in` were written in a container where BPF is
   blocked, so they have been syntax-checked only.
 - **First attempt outside the container:**
