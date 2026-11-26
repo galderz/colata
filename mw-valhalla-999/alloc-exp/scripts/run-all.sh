@@ -3,7 +3,9 @@
 #   target/histogram.txt                         exact Integer counts (ground truth)
 #   target/{jfr-sampled,jfr-exact,ap}/*.jfr       recordings
 #   target/analysis/<variant>/<scenario>-<mode>.txt   AllocAnalyzer reports
-# Takes ~5 minutes.
+#   target/probe-bpf/*.txt or target/probe-gdb/*.txt  per-HotSpot-entry-point counts (run-probes.sh:
+#                                                BPF if it works here, else gdb; PROBES=bpf|gdb|none)
+# Takes ~3 minutes with the BPF probe, ~8-13 minutes with the gdb fallback.
 set -euo pipefail
 cd "$(dirname "$0")"
 source ./env.sh
@@ -18,4 +20,5 @@ for s in "${SCENARIOS[@]}"; do
   done
 done
 ./analyze-all.sh
+./run-probes.sh
 echo "done: see $TARGET"

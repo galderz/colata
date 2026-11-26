@@ -13,7 +13,6 @@ RAW="$OUTDIR/$SCEN-$MODE.raw"
 # let gdb find libjvm.debuginfo via its .gnu_debuglink: <debug-dir>/<dir of libjvm.so>/libjvm.debuginfo
 DBG="$TARGET/.debug"; mkdir -p "$DBG$(dirname "$(realpath "$LIBJVM")")"
 ln -sf "$LIBJVM_DEBUGINFO" "$DBG$(dirname "$(realpath "$LIBJVM")")/libjvm.debuginfo"
-rm -f /tmp/perf-*.map
 PROBE_OFFSETS="$TARGET/offsets.env" PROBE_OUT="$RAW" \
 timeout "${PROBE_TIMEOUT:-300}" gdb -q -batch -nx -ex "set debuginfod enabled off" -ex "set debug-file-directory $DBG" \
   -ex "set pagination off" -ex "set breakpoint pending on" \
@@ -23,5 +22,5 @@ timeout "${PROBE_TIMEOUT:-300}" gdb -q -batch -nx -ex "set debuginfod enabled of
          -XX:+UnlockDiagnosticVMOptions -XX:+DumpPerfMapAtExit -Dinner="$INNER" -Dhistogram=false \
          -cp "$CLASSES" ValueAllocs "$SCEN" "$ITERS" > "$OUTDIR/$SCEN-$MODE.gdb.log" 2>&1
 PID=$(sed -n 's/^cpid=//p' "$RAW")
-cp "/tmp/perf-$PID.map" "$OUTDIR/$SCEN-$MODE.perf.map"
+mv "/tmp/perf-$PID.map" "$OUTDIR/$SCEN-$MODE.perf.map"   # mv: leave no stale maps in /tmp
 python3 "$EXP_DIR/probe/probe-report.py" "$RAW" "$OUTDIR/$SCEN-$MODE.perf.map" | tee "$OUTDIR/$SCEN-$MODE.txt"

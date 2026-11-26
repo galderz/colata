@@ -102,9 +102,9 @@ noise.
 
 - **Done and reproducible:** scenarios, ground-truth histogram, JFR (sampled/exact) and
   async-profiler recordings, analyzer with classification and baseline diff, gdb probe, BPF probe
-  scripts, BPF smoke-test script, feature request, docs. `scripts/run-all.sh` plus
-  `scripts/run-probes-gdb.sh` regenerate everything except BPF into `target/`;
-  `scripts/run-probes-bpf.sh` (as root, in the VM) regenerates `target/probe-bpf/`.
+  scripts, BPF smoke-test script, feature request, docs. `scripts/run-all.sh` regenerates everything
+  into `target/`, including the probes (`scripts/run-probes.sh`: BPF where a test uprobe attaches
+  as root, else the gdb fallback; `PROBES=auto|bpf|gdb|none`).
 - **README** was rewritten for users: each invocation with its output. Step 6 (BPF) is filled in
   with the VM results.
 - **`target/`** in the VM holds only `histogram.txt`, `offsets.env`, `probe-bpf/` and

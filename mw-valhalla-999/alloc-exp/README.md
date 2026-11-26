@@ -35,9 +35,13 @@ Every scenario runs twice: `identity` (no flags) and `preview` (`--enable-previe
 ## Quick start
 
 ```bash
-scripts/run-all.sh          # build, count, record and analyze everything (~3 min)
-scripts/run-probes-gdb.sh   # optional: per-HotSpot-entry-point counts with gdb (~10 min)
+scripts/run-all.sh          # build, count, record, analyze and probe everything
 ```
+The last part, `scripts/run-probes.sh`, gives the per-HotSpot-entry-point counts. It uses the BPF
+probe (step 6, ~1 min) if bpftrace can attach uprobes here as root (root, or `sudo` without a
+password). Otherwise, e.g. in an unprivileged container, it falls back to the gdb probe (step 5,
+~5–10 min). The whole run takes ~3 min with BPF, ~8–13 min with gdb. Force a choice with
+`PROBES=bpf|gdb|none scripts/run-all.sh`.
 
 Or step by step, as below.
 

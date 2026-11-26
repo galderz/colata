@@ -23,5 +23,5 @@ CMD="$JAVA $(mode_flags "$MODE") ${COMMON_FLAGS[*]} -XX:-UseTLAB -XX:+UnlockDiag
 CMD=$(echo $CMD)   # collapse repeated spaces: bpftrace -c turns each extra space into an empty argument
 bpftrace -q -o "$RAW" "$BT" -c "$CMD"
 PID=$(sed -n 's/^cpid=//p' "$RAW")
-cp "/tmp/perf-$PID.map" "$OUTDIR/$SCEN-$MODE.perf.map" 2>/dev/null || echo "warning: no perf map for pid $PID" >&2
+mv "/tmp/perf-$PID.map" "$OUTDIR/$SCEN-$MODE.perf.map" 2>/dev/null || echo "warning: no perf map for pid $PID" >&2
 python3 "$EXP_DIR/probe/probe-report.py" "$RAW" "$OUTDIR/$SCEN-$MODE.perf.map" | tee "$OUTDIR/$SCEN-$MODE.txt"
