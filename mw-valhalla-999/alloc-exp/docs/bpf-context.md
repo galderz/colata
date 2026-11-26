@@ -49,10 +49,23 @@ preview runs, and a much smaller interpreter/C1 share than the gdb runs show.
 
 ## 3. Current status of BPF
 
-**Update:** running in an isx VM instance (route 3 below) fixed the BPF issues; the probes work
-there. What remains is to run the probes, record their output and fill in the README (step 6).
-See `docs/SESSION-CONTEXT.md`, "BPF fill-in". The history below explains the original crash; T2/T3
-are only needed if bpftrace fails again.
+**Update: BPF works.** In an isx VM instance (route 3 below) the probes run at full size and the
+results are in the README, step 6 (T1 and T4 done).
+
+Environment (`target/probe-bpf-env.txt`):
+- kernel 7.3.5, Fedora Linux 45, bpftrace v0.26.0, no BTF (`/sys/kernel/btf/vmlinux` absent);
+- JDK `28-internal-adhoc.agentuser.jdk` (commit 4f33273), offsets `24/4/6/1128` as in the
+  container build;
+- 8 vCPUs, 14 GB RAM.
+
+What made it work, besides moving to the VM (commit "Fixes for bpf"):
+- `probe/alloc_ctx.bt.in`: `str()` length `+ 1`, because bpftrace counts the terminating NUL in
+  the length; without it every class name lost its last character.
+- `scripts/probe-bpf.sh`: collapse repeated spaces in the `-c` command line; bpftrace turned each
+  extra space into an empty argument for `java`.
+
+The SIGSEGV from the first host attempt did not reproduce in the VM, so `bpf-smoke.sh` (T2) and
+T3 were not needed; the history below is kept in case bpftrace fails elsewhere.
 
 
 - `scripts/probe-bpf.sh` and `probe/alloc_ctx.bt.in` were written in a container where BPF is
@@ -70,7 +83,7 @@ are only needed if bpftrace fails again.
 
 ## 4. Environment requirements
 
-- Linux x86_64 with uprobes (`CONFIG_UPROBE_EVENTS`) and BTF (`/sys/kernel/btf/vmlinux`); root.
+- Linux x86_64 with uprobes (`CONFIG_UPROBE_EVENTS`); root. BTF is not needed (verified in the VM, which has none).
 - `bpftrace` (any recent version; newer is better), `gdb`, `python3`.
 - The JDK: `images/jdk` from the build, plus `libjvm.debuginfo`. A default Linux build keeps it in
   `<build>/support/modules_libs/java.base/server/`; see `README.md` "JDK build configuration".
@@ -214,7 +227,7 @@ cpid=<pid>
 
 ## 6. Tasks
 
-### T1: sanity check (expected: prints `bpf ok`)
+### T1: sanity check (expected: prints `bpf ok`) — done (VM, bpftrace v0.26.0)
 ```bash
 sudo bpftrace -e 'BEGIN { printf("bpf ok\n"); exit(); }'
 cd alloc-exp
@@ -223,7 +236,7 @@ scripts/build.sh
 scripts/offsets.sh            # as the normal user; ~1.5 min
 ```
 
-### T2: find what crashes bpftrace: `scripts/bpf-smoke.sh`
+### T2: find what crashes bpftrace: `scripts/bpf-smoke.sh` — not needed (no crash in the VM)
 ```bash
 sudo JAVA_HOME_EXP="$JAVA_HOME_EXP" scripts/bpf-smoke.sh
 ```
@@ -249,7 +262,7 @@ Output: `target/probe-bpf/smoke/` (`summary.txt`, `bpftrace-info.txt`, and per s
 
 Acceptance: you know the first failing step and have a backtrace.
 
-### T3: fix or work around the crash
+### T3: fix or work around the crash — not needed (no crash in the VM)
 
 Hypotheses, by the step that fails first:
 
@@ -270,7 +283,16 @@ raw format must stay as in section 5 so that the gdb and BPF reports stay compar
 Acceptance: `sudo JAVA_HOME_EXP=... scripts/probe-bpf.sh cached-call identity` completes and prints
 a report.
 
-### T4: full probe runs
+### T4: full probe runs — done (VM, kernel 7.3.5, bpftrace v0.26.0)
+
+Result: all acceptance criteria met; reports in `target/probe-bpf/*.txt`, summary in README step 6.
+- `cached-call identity`: no C2 `Integer` allocations (270 interpreter start-up `Integer`s only).
+- Preview: 4,832,062 / 4,832,056 / 4,832,059 C2 `Integer` allocations, resolved to `cachedCall()`
+  / `flatFieldLoad()` / `fresh()`; C2 is ~95% of all instance allocations (gdb runs: ~64%).
+- `Integer` totals vs `histogram.sh 5`: 5,051,262 vs 5,050,248 (`cached-call`), 5,000,280 vs
+  5,000,317 (`flat-field`, `fresh`).
+- Run time: ~15 s per preview run (~0.5 s without the probe), ~2.5 s for identity.
+
 ```bash
 for sm in "cached-call identity" "cached-call preview" "flat-field preview" "fresh preview"; do
   sudo JAVA_HOME_EXP="$JAVA_HOME_EXP" scripts/probe-bpf.sh $sm

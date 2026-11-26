@@ -78,8 +78,11 @@ noise.
     files.
 - **isx VM instance** (template with `type: vm`, see `docs/bpf-context.md` "Chosen route"). BPF
   works there. The first attempt on a host had crashed bpftrace (SIGSEGV); the VM fixed the BPF
-  issues. **Still to record:** bpftrace and kernel versions, and whether anything else was
-  changed to make it work.
+  issues. Kernel 7.3.5, Fedora 45, bpftrace v0.26.0, no BTF; 8 vCPUs, 14 GB. Besides the VM, two
+  script fixes were needed (commit "Fixes for bpf", see `docs/bpf-context.md` section 3).
+  In the VM, the JDK and debuginfo live in `~/xfer/jdk` and `~/xfer/libjvm.debuginfo`, and this
+  directory is at the same path as in the container. The copied JDK lacks `include/jvmti.h`, so
+  `build.sh` fails to build async-profiler there (the classes still compile; BPF doesn't need it).
 - Paths in the container:
   - this directory: `~/src/colata/mw-valhalla-999/alloc-exp` (untracked in the colata repo);
   - JDK: `~/src/jdk/build/release-linux-x86_64/images/jdk`;
@@ -94,12 +97,14 @@ noise.
 - **Done and reproducible:** scenarios, ground-truth histogram, JFR (sampled/exact) and
   async-profiler recordings, analyzer with classification and baseline diff, gdb probe, BPF probe
   scripts, BPF smoke-test script, feature request, docs. `scripts/run-all.sh` plus
-  `scripts/run-probes-gdb.sh` regenerate everything except BPF into `target/`.
-- **README** was rewritten for users: each invocation with its output. Step 6 (BPF) has a
-  placeholder (`<!-- BPF-RESULTS ... -->`).
-- **`target/`** holds the outputs from the last full run in the container.
+  `scripts/run-probes-gdb.sh` regenerate everything except BPF into `target/`;
+  `scripts/run-probes-bpf.sh` (as root, in the VM) regenerates `target/probe-bpf/`.
+- **README** was rewritten for users: each invocation with its output. Step 6 (BPF) is filled in
+  with the VM results.
+- **`target/`** in the VM holds only `histogram.txt`, `offsets.env`, `probe-bpf/` and
+  `probe-bpf-env.txt`; the JFR/async-profiler/gdb outputs are in the container's `target/`.
 
-## 5. BPF fill-in (to do in the VM)
+## 5. BPF fill-in (done in the VM; steps kept for re-runs)
 
 1. Set up as in `docs/bpf-context.md` "Chosen route", step 3:
    ```bash

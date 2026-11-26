@@ -82,14 +82,14 @@ scripts/run-all.sh          build + histogram + all recordings + all analyses
 scripts/offsets.sh          HotSpot struct offsets needed by the probes (from libjvm.debuginfo)
 scripts/probe-gdb.sh        exact counts per HotSpot runtime entry point, via gdb (works in this container)
 scripts/run-probes-gdb.sh   probe-gdb.sh for the scenarios shown below
-scripts/probe-bpf.sh        same as probe-gdb.sh with bpftrace uprobes (needs root, NOT in this container)
+scripts/probe-bpf.sh        same as probe-gdb.sh with bpftrace uprobes (needs root and a VM or bare metal, not an unprivileged container)
 scripts/run-probes-bpf.sh   probe-bpf.sh for the four scenarios shown in the README
 scripts/bpf-smoke.sh        step-by-step bpftrace checks to find what fails (see docs/bpf-context.md)
 probe/alloc_ctx.bt.in       bpftrace program template used by probe-bpf.sh
 probe/alloc_ctx_gdb.py      gdb Python equivalent used by probe-gdb.sh
 probe/probe-report.py       report for raw probe output (both probes)
 docs/incus-spawn-feature-request.md   how instances could be allowed to run BPF
-docs/bpf-context.md         handoff document: all BPF tasks, context and the current failure
+docs/bpf-context.md         BPF background, troubleshooting and task list
 target/                     generated outputs
 ```
 
@@ -339,13 +339,15 @@ noise; in C2 code the same situation is handled by the materialization at the `a
 
 ### Outside a container: `scripts/probe-bpf.sh <scenario> <mode> [iterations=5] [inner=1000000]`
 
-**Status:** the first attempt on a host crashed bpftrace (SIGSEGV). Running in an isx VM instance
-(`type: vm` template) fixed the BPF issues. For background, continue with
-`docs/bpf-context.md`, which has the full context, the `scripts/bpf-smoke.sh` bisection and the task list.
+**Status:** works in an isx VM instance (`type: vm` template): kernel 7.3.5, Fedora 45,
+bpftrace v0.26.0 (`target/probe-bpf-env.txt`). Results are in the README, step 6. The first attempt
+on a host had crashed bpftrace (SIGSEGV); background, the `scripts/bpf-smoke.sh` bisection and the
+task list are in `docs/bpf-context.md`.
 
-It cannot run in an unprivileged container. In the VM it works (results to be added to the README,
-step 6). The logic is identical to the gdb version. Requirements: Linux with uprobes and BTF, bpftrace ≥ 0.20, root, and the JDK plus
-`libjvm.debuginfo` (only for `offsets.sh`). On a host or VM with this directory and the JDK:
+It cannot run in an unprivileged container. The logic is identical to the gdb version.
+Requirements: Linux with uprobes, bpftrace (tested with v0.26.0), root, and the JDK plus
+`libjvm.debuginfo` (only for `offsets.sh`). BTF is not needed: the VM kernel has no
+`/sys/kernel/btf/vmlinux` and the probe works. On a host or VM with this directory and the JDK:
 
 ```
 sudo dnf install bpftrace gdb          # or apt install bpftrace gdb
@@ -364,8 +366,15 @@ To trace an already-running JVM instead, replace `cpid` with the target pid and 
 `bpftrace -p <pid>`. That JVM must have been started with `-XX:-UseTLAB` for exact counts. Without
 it, only TLAB refills reach the runtime, which gives samples, not counts.
 
-Each allocation costs three uprobe hits (entry, return, `allocate_instance`), so expect a slowdown of
-roughly 1–5 µs per allocation.
+Each allocation costs three uprobe hits (entry, return, `allocate_instance`). Measured in the VM:
+~15 s for a preview run with ~5.1M allocations vs ~0.5 s without the probe, i.e. ~3 µs per
+allocation (including ~2 s of bpftrace start-up).
+
+bpftrace caveats (seen with v0.26.0, both fixed in the scripts):
+- `str(ptr, n)` counts the terminating NUL in `n`, so a length read from a HotSpot `Symbol` must be
+  passed as `len + 1`; otherwise the last character of every class name is cut off.
+- `bpftrace -c "<cmd>"` turns each extra space into an empty argument, which the `java` launcher
+  rejects; `probe-bpf.sh` collapses repeated spaces in the command line first.
 
 ## Corrections to the first exploration
 
