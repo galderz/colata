@@ -82,8 +82,12 @@ noise.
   script fixes were needed (commit "Fixes for bpf", see `docs/bpf-context.md` section 3).
   In the VM, the JDK and debuginfo live in `~/xfer/jdk` and `~/xfer/libjvm.debuginfo`, and this
   directory is at the same path as in the container. The copied JDK is the exploded build directory
-  (`build/<conf>/jdk`), which has no `include/jvmti.h`; `build.sh` then builds async-profiler with
-  `/usr/lib/jvm/java-latest-openjdk` (or `AP_JAVA_HOME`). Recording with the experimental JDK works.
+  (`build/<conf>/jdk`), which has no `include/jvmti.h`. `make images` has since been run in the
+  VM's `~/src/jdk` (same commit 4f33273), so the default `~/src/jdk/build/release-linux-x86_64/images/jdk`
+  exists and has `jvmti.h`; async-profiler is built against it (leave `JAVA_HOME_EXP` unset).
+  `build.sh` still falls back to `/usr/lib/jvm` (or `AP_JAVA_HOME`) for JDKs without the headers.
+  The BPF results in the README were made with `~/xfer/jdk`; its `libjvm.so` differs from the new
+  image's, so `probe-bpf.sh` re-runs `offsets.sh` automatically when pointed at the new image.
 - Paths in the container:
   - this directory: `~/src/colata/mw-valhalla-999/alloc-exp` (untracked in the colata repo);
   - JDK: `~/src/jdk/build/release-linux-x86_64/images/jdk`;
