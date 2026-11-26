@@ -81,8 +81,9 @@ noise.
   issues. Kernel 7.3.5, Fedora 45, bpftrace v0.26.0, no BTF; 8 vCPUs, 14 GB. Besides the VM, two
   script fixes were needed (commit "Fixes for bpf", see `docs/bpf-context.md` section 3).
   In the VM, the JDK and debuginfo live in `~/xfer/jdk` and `~/xfer/libjvm.debuginfo`, and this
-  directory is at the same path as in the container. The copied JDK lacks `include/jvmti.h`, so
-  `build.sh` fails to build async-profiler there (the classes still compile; BPF doesn't need it).
+  directory is at the same path as in the container. The copied JDK is the exploded build directory
+  (`build/<conf>/jdk`), which has no `include/jvmti.h`; `build.sh` then builds async-profiler with
+  `/usr/lib/jvm/java-latest-openjdk` (or `AP_JAVA_HOME`). Recording with the experimental JDK works.
 - Paths in the container:
   - this directory: `~/src/colata/mw-valhalla-999/alloc-exp` (untracked in the colata repo);
   - JDK: `~/src/jdk/build/release-linux-x86_64/images/jdk`;

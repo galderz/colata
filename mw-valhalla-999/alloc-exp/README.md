@@ -11,7 +11,9 @@ compare your own run. Internals are in [`docs/DETAILS.md`](docs/DETAILS.md).
 - A JDK built from `openjdk/jdk` at commit `4f33273115381cd7697082fcb1bb2642dae19043`. Default
   location: `~/src/jdk/build/release-linux-x86_64/images/jdk`; elsewhere, set `JAVA_HOME_EXP=<jdk>`.
 - For the async-profiler step: a checkout at `~/src/async-profiler` (or `ASYNC_PROFILER_HOME`);
-  `scripts/build.sh` builds it.
+  `scripts/build.sh` builds it. It needs a JDK with `include/jvmti.h`; if `JAVA_HOME_EXP` has none
+  (e.g. an exploded `build/<conf>/jdk` directory), it uses another JDK from `/usr/lib/jvm`, or
+  `AP_JAVA_HOME`.
 - For the probe steps: `gdb`, and `libjvm.debuginfo` (found automatically in a JDK build tree, or
   set `LIBJVM_DEBUGINFO`). The BPF probe also needs `bpftrace` and root on a machine where BPF works:
   a VM or bare metal, **not** an unprivileged container.

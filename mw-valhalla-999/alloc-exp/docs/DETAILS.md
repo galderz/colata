@@ -24,6 +24,7 @@ much runs in the interpreter or C1), but the conclusions do not change.
 |---|---|---|
 | JDK built from `~/src/jdk` (commit 4f33273), with `jdk.jfr` | `~/src/jdk/build/release-linux-x86_64/images/jdk` | `JAVA_HOME_EXP=...` |
 | async-profiler checkout (built by `build.sh` if needed) | `~/src/async-profiler` | `ASYNC_PROFILER_HOME=...` |
+| JDK with `include/jvmti.h` and `javac`, to build async-profiler (the library works with any JDK) | the experimental JDK, else the first match in `/usr/lib/jvm` | `AP_JAVA_HOME=...` |
 | `libjvm.debuginfo` (probes only), see [JDK build configuration](#jdk-build-configuration) | `<build>/support/modules_libs/java.base/server/` | `LIBJVM_DEBUGINFO=...` |
 | gdb (probes only), bpftrace + root outside containers (BPF probe only) | | |
 
